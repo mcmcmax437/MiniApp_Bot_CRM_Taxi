@@ -1,0 +1,21 @@
+# Set DOMAIN in the environment (docker-compose passes it through).
+# Caddy automatically provisions HTTPS certificates for a real domain.
+{$DOMAIN:localhost} {
+	encode gzip
+
+	# API requests go to the Fastify service.
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	handle /health {
+		reverse_proxy api:3000
+	}
+
+	# Everything else is the Mini App SPA.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

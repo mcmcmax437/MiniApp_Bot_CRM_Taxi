@@ -1,0 +1,88 @@
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--tgui--secondary_bg_color, #efeff4);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 64px; /* space for the tab bar */
+}
+
+.page {
+  padding: 8px 0 16px;
+}
+
+.tabbar-fixed {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.stat-card {
+  background: var(--tgui--bg_color, #fff);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-card .value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.stat-card .label {
+  font-size: 12px;
+  color: var(--tgui--hint_color, #8e8e93);
+  margin-top: 4px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.amount-pos {
+  color: var(--tgui--destructive_text_color, #e53935);
+  font-weight: 600;
+}
+
+.amount-neg {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.center-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  text-align: center;
+}

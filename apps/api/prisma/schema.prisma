@@ -1,0 +1,260 @@
+// Prisma schema for the Taxi Rental Mini App (multi-tenant SaaS).
+// Every domain table carries `ownerId` and is always queried scoped to the
+// authenticated owner (tenant).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OwnerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum CarStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  INACTIVE
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RentPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum AgreementStatus {
+  ACTIVE
+  ENDED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK
+  CARD
+  OTHER
+}
+
+enum PaymentType {
+  RENT
+  DEPOSIT
+  REFUND
+  FINE
+}
+
+enum ExpenseCategory {
+  MAINTENANCE
+  REPAIR
+  INSURANCE
+  FUEL
+  TAX
+  OTHER
+}
+
+enum FineStatus {
+  UNPAID
+  PAID
+}
+
+enum DocumentRelatedType {
+  CAR
+  DRIVER
+  AGREEMENT
+}
+
+model Owner {
+  id                    String      @id @default(cuid())
+  telegramUserId        BigInt      @unique
+  name                  String?
+  username              String?
+  status                OwnerStatus @default(PENDING)
+  locale                String      @default("uk")
+  subscriptionExpiresAt DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  cars       Car[]
+  drivers    Driver[]
+  agreements RentalAgreement[]
+  payments   Payment[]
+  expenses   Expense[]
+  fines      Fine[]
+  shifts     Shift[]
+  documents  Document[]
+}
+
+model Car {
+  id               String     @id @default(cuid())
+  ownerId          String
+  owner            Owner      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  plate            String
+  make             String?
+  model            String?
+  year             Int?
+  status           CarStatus  @default(AVAILABLE)
+  insuranceExpiry  DateTime?
+  inspectionExpiry DateTime?
+  notes            String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  drivers    Driver[]          @relation("DriverAssignedCar")
+  agreements RentalAgreement[]
+  payments   Payment[]
+  expenses   Expense[]
+  fines      Fine[]
+  shifts     Shift[]
+
+  @@index([ownerId])
+  @@index([ownerId, status])
+}
+
+model Driver {
+  id               String       @id @default(cuid())
+  ownerId          String
+  owner            Owner        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  fullName         String
+  phone            String?
+  telegramUsername String?
+  assignedCarId    String?
+  assignedCar      Car?         @relation("DriverAssignedCar", fields: [assignedCarId], references: [id], onDelete: SetNull)
+  depositAmount    Float        @default(0)
+  status           DriverStatus @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  agreements RentalAgreement[]
+  payments   Payment[]
+  fines      Fine[]
+  shifts     Shift[]
+
+  @@index([ownerId])
+  @@index([ownerId, status])
+  @@index([assignedCarId])
+}
+
+model RentalAgreement {
+  id         String          @id @default(cuid())
+  ownerId    String
+  owner      Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId      String
+  car        Car             @relation(fields: [carId], references: [id], onDelete: Cascade)
+  driverId   String
+  driver     Driver          @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  rentAmount Float
+  period     RentPeriod      @default(DAILY)
+  startDate  DateTime
+  endDate    DateTime?
+  status     AgreementStatus @default(ACTIVE)
+  notes      String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([ownerId])
+  @@index([ownerId, status])
+  @@index([driverId])
+  @@index([carId])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  ownerId   String
+  owner     Owner         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  driverId  String
+  driver    Driver        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  carId     String?
+  car       Car?          @relation(fields: [carId], references: [id], onDelete: SetNull)
+  amount    Float
+  date      DateTime
+  method    PaymentMethod @default(CASH)
+  type      PaymentType   @default(RENT)
+  note      String?
+  createdAt DateTime      @default(now())
+
+  @@index([ownerId])
+  @@index([ownerId, date])
+  @@index([driverId])
+}
+
+model Expense {
+  id        String          @id @default(cuid())
+  ownerId   String
+  owner     Owner           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId     String?
+  car       Car?            @relation(fields: [carId], references: [id], onDelete: SetNull)
+  category  ExpenseCategory @default(OTHER)
+  amount    Float
+  date      DateTime
+  note      String?
+  createdAt DateTime        @default(now())
+
+  @@index([ownerId])
+  @@index([ownerId, date])
+  @@index([carId])
+}
+
+model Fine {
+  id          String     @id @default(cuid())
+  ownerId     String
+  owner       Owner      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId       String?
+  car         Car?       @relation(fields: [carId], references: [id], onDelete: SetNull)
+  driverId    String?
+  driver      Driver?    @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  amount      Float
+  date        DateTime
+  status      FineStatus @default(UNPAID)
+  description String?
+  createdAt   DateTime   @default(now())
+
+  @@index([ownerId])
+  @@index([ownerId, status])
+  @@index([driverId])
+}
+
+model Shift {
+  id           String   @id @default(cuid())
+  ownerId      String
+  owner        Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId        String
+  car          Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  driverId     String
+  driver       Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  date         DateTime
+  mileageStart Int?
+  mileageEnd   Int?
+  income       Float?
+  note         String?
+  createdAt    DateTime @default(now())
+
+  @@index([ownerId])
+  @@index([ownerId, date])
+}
+
+model Document {
+  id          String              @id @default(cuid())
+  ownerId     String
+  owner       Owner               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  relatedType DocumentRelatedType
+  relatedId   String
+  fileName    String
+  filePath    String
+  mimeType    String?
+  uploadedAt  DateTime            @default(now())
+
+  @@index([ownerId])
+  @@index([ownerId, relatedType, relatedId])
+}

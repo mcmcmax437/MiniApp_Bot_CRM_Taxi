@@ -1,0 +1,16 @@
+# Public entrypoint: builds the Mini App and serves it behind Caddy (auto HTTPS),
+# reverse-proxying /api/* to the API service.
+
+# --- Stage 1: build the Mini App static bundle ---
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package.json ./
+COPY packages ./packages
+COPY apps/miniapp ./apps/miniapp
+RUN npm install
+RUN npm run build -w @taxi/miniapp
+
+# --- Stage 2: Caddy serving static files + API reverse proxy ---
+FROM caddy:2-alpine
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/apps/miniapp/dist /srv

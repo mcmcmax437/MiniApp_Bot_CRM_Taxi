@@ -1,0 +1,34 @@
+{
+  "name": "taxi-rental-miniapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant Telegram Mini App SaaS for car-rental-to-taxi-drivers businesses",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:db": "npm run dev:db -w @taxi/api",
+    "dev:api": "npm run dev -w @taxi/api",
+    "dev:bot": "npm run dev -w @taxi/bot",
+    "dev:miniapp": "npm run dev -w @taxi/miniapp",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "prisma:generate": "npm run prisma:generate -w @taxi/api",
+    "prisma:migrate": "npm run prisma:migrate -w @taxi/api",
+    "prisma:deploy": "npm run prisma:deploy -w @taxi/api",
+    "seed": "npm run seed -w @taxi/api"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  }
+}
