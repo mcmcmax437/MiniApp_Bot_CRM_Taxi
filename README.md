@@ -73,37 +73,88 @@ npm run prisma:generate
 cp .env.example .env          # then set DEV_BYPASS_AUTH=true
 ```
 
-Then open **four terminals** (keep each running):
+Then run everything with **one command**:
 
 ```bash
-npm run dev:db        # 1. zero-install local PostgreSQL (downloads once, then stays up)
-npm run db:push -w @taxi/api   # 2. create the tables (run once, in any terminal)
-npm run seed                   #    optional: add demo car/driver/payment
-npm run dev:api       # 3. the API   (http://localhost:3000)
-npm run dev:miniapp   # 4. the Mini App (http://localhost:5173)
+npm run dev
 ```
 
-Open **http://localhost:5173** in your browser. With `DEV_BYPASS_AUTH=true` you are
-logged in as a local super-admin and can use every screen. The Vite dev server
-proxies `/api` to `http://localhost:3000`.
+This starts the local PostgreSQL (downloads once), syncs the schema, the API
+(`http://localhost:3000`), and the Mini App (`http://localhost:5173`). Open the
+Mini App URL in your browser. Press Ctrl+C in that terminal to stop all services.
+
+Optional demo data (run once):
+
+```bash
+npm run seed
+```
 
 > The local database lives in `apps/api/.localdb` (git-ignored). Delete that folder
-> to reset all local data. You do not need to run the bot for browser testing.
+> to reset all local data. You do not need to run the bot or install PostgreSQL
+> manually for browser testing.
 
-### Testing inside real Telegram (optional)
+### Browse the database in Beekeeper Studio
 
-Telegram only opens Mini Apps over HTTPS. To try it for real, expose your local
-Mini App with a tunnel and point the bot at it:
+While `npm run dev` is running, add a **PostgreSQL** connection in Beekeeper:
+
+| Field | Value |
+|-------|-------|
+| Host | `localhost` |
+| Port | `5432` |
+| User | `taxi` |
+| Password | `taxi` |
+| Database | `taxi` |
+| SSL | off / disable |
+
+Then expand: **taxi → Schemas → public → Tables**. You will see tables such as
+`Owner`, `Car`, `Driver`, `Payment`, `Expense`, etc. Double-click a table to view
+and edit rows. Use the SQL tab to run queries (e.g. `SELECT * FROM "Car";`).
+
+Note: Prisma uses quoted PascalCase table names, so in SQL use `"Car"` not `car`.
+
+### Testing inside Telegram (local — no deploy)
+
+Telegram Mini Apps **must** be opened over **HTTPS**. You do not need a VPS yet —
+run everything on your PC and expose it with a free tunnel while you work.
+
+#### One-time setup in @BotFather
+
+1. Create a bot (or use your existing one) → copy the **token** into `.env` as `BOT_TOKEN`.
+2. Find your numeric Telegram ID (message [@userinfobot](https://t.me/userinfobot)) → put it in
+   `.env` as `TELEGRAM_SUPERADMIN_ID` (you will be auto-activated as super-admin).
+3. **Menu button → Configure → Web App** — set the URL to your tunnel HTTPS address
+   (see below; you update this each dev session unless you use a fixed ngrok domain).
+
+#### Each dev session (terminal on = bot on, Ctrl+C = everything stops)
+
+**Terminal 1** — app + database + bot:
 
 ```bash
-# example with cloudflared (or use ngrok):
-cloudflared tunnel --url http://localhost:5173
+npm run dev:telegram
 ```
 
-Set `PUBLIC_URL` to the HTTPS tunnel URL, set the same URL as the Web App URL in
-BotFather, set `DEV_BYPASS_AUTH=false`, restart `dev:api` and `dev:bot`, then open
-the app from your bot. Your own Telegram ID (from `/id`) should be in
-`TELEGRAM_SUPERADMIN_ID` so you are auto-activated.
+**Terminal 2** — HTTPS tunnel (keep open):
+
+```bash
+# One-time: sign up at ngrok.com, then:
+npm run ngrok:auth -- YOUR_TOKEN
+
+npm run dev:tunnel
+```
+
+The script auto-saves the URL to `.env` and syncs the Telegram menu button via the Bot API.
+Also paste the URL in @BotFather → Menu button → Web App if needed.
+
+Set `DEV_BYPASS_AUTH=false` in `.env`. Restart **Terminal 1** after the tunnel URL is set.
+Open your bot in Telegram → `/start` → **Open app** (use the newest button only).
+
+| Mode | Command | Where it opens |
+|------|---------|----------------|
+| Browser only (no Telegram) | `npm run dev` | http://localhost:5173, `DEV_BYPASS_AUTH=true` |
+| Real Telegram | `npm run dev:telegram` + tunnel | Inside Telegram app |
+
+When you are happy with the app, deploy to the VPS with Docker (section 3). Until then, nothing
+needs to be published.
 
 ## 5. Production / VPS deployment
 

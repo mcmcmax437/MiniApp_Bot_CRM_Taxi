@@ -10,6 +10,7 @@ interface TelegramWebApp {
   ready: () => void;
   expand: () => void;
   setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
   enableClosingConfirmation?: () => void;
 }
 
@@ -28,9 +29,25 @@ export function initTelegram(): void {
     tg.ready();
     tg.expand();
     tg.enableClosingConfirmation?.();
+    syncDocumentTheme();
   } catch {
     /* noop */
   }
+}
+
+/** Match html/body to Telegram theme so edges never show the light fallback. */
+function syncDocumentTheme(): void {
+  if (!tg) return;
+  const dark = tg.colorScheme === "dark";
+  const secondary = tg.themeParams.secondary_bg_color ?? (dark ? "#232e3c" : "#efeff4");
+  const bg = tg.themeParams.bg_color ?? (dark ? "#18222d" : "#ffffff");
+
+  document.documentElement.style.colorScheme = tg.colorScheme;
+  document.documentElement.style.backgroundColor = secondary;
+  document.body.style.backgroundColor = secondary;
+
+  tg.setHeaderColor?.(bg);
+  tg.setBackgroundColor?.(secondary);
 }
 
 /** initData string used to authenticate API requests. */

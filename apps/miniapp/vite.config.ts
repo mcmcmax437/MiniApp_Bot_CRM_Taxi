@@ -11,6 +11,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Required for ngrok tunnel hostnames during local Telegram testing.
+    // Tunnel hostnames change each session, so allow all hosts in dev.
+    host: true,
+    allowedHosts: true,
     proxy: {
       "/api": {
         target: "http://localhost:3000",

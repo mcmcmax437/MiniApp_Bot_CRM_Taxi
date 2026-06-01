@@ -22,7 +22,7 @@ const platform = /iphone|ipad|ios|macos/i.test(getPlatform()) ? "ios" : "base";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AppRoot appearance={getColorScheme()} platform={platform}>
+      <AppRoot appearance={getColorScheme()} platform={platform} style={{ width: "100%", minHeight: "100vh" }}>
         <HashRouter>
           <App />
         </HashRouter>
