@@ -18,4 +18,4 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Sync the schema then start the API (env comes from the container, not a .env file).
-CMD ["sh", "-c", "npm run db:push:env -w @taxi/api && npm run start -w @taxi/api"]
+CMD ["sh", "-c", "npm run db:sync -w @taxi/api && npm run start -w @taxi/api"]

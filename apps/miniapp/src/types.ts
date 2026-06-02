@@ -21,19 +21,27 @@ export interface Car {
   insuranceExpiry: string | null;
   inspectionExpiry: string | null;
   notes: string | null;
-  drivers?: { id: string; fullName: string }[];
+  agreements?: Array<{ driver?: { id: string; fullName: string } }>;
 }
 
 export interface Driver {
   id: string;
+  firstName: string;
+  lastName: string;
   fullName: string;
   phone: string | null;
   telegramUsername: string | null;
-  assignedCarId: string | null;
-  depositAmount: number;
+  pesel: string | null;
+  passportNumber: string | null;
+  addressCity: string | null;
+  addressStreet: string | null;
+  addressHouse: string | null;
+  addressFlat: string | null;
+  fatherName: string | null;
+  motherName: string | null;
   status: DriverStatus;
   notes: string | null;
-  assignedCar?: { id: string; plate: string } | null;
+  createdAt?: string;
   agreements?: Agreement[];
 }
 
@@ -42,6 +50,7 @@ export interface Agreement {
   carId: string;
   driverId: string;
   rentAmount: number;
+  depositAmount: number;
   period: RentPeriod;
   startDate: string;
   endDate: string | null;

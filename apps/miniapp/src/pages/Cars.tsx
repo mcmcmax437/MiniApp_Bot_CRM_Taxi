@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { List, Section, Cell, Button, Spinner, Badge } from "@telegram-apps/telegram-ui";
 import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
-import { useCars, useDeleteCar, useSaveCar } from "../hooks";
+import { useCars, useCarCoverPhotos, useDeleteCar, useSaveCar } from "../hooks";
 import type { Car } from "../types";
 import {
   Modal,
@@ -12,9 +11,10 @@ import {
   DateInput,
   SelectInput,
   FormActions,
-  formatDate,
 } from "../components/ui";
 import { Documents } from "../components/Documents";
+import { AppHeader, Icon } from "../components/crm";
+import { CarCard } from "../components/CarCard";
 
 interface CarForm {
   plate: string;
@@ -41,6 +41,7 @@ const emptyForm: CarForm = {
 export function CarsPage() {
   const { t } = useTranslation();
   const cars = useCars();
+  const covers = useCarCoverPhotos();
   const save = useSaveCar();
   const del = useDeleteCar();
   const [open, setOpen] = useState(false);
@@ -79,35 +80,51 @@ export function CarsPage() {
       inspectionExpiry: form.inspectionExpiry || null,
       notes: form.notes || null,
     };
-    save.mutate(
-      { id: editId ?? undefined, data },
-      { onSuccess: () => setOpen(false) },
-    );
+    save.mutate({ id: editId ?? undefined, data }, { onSuccess: () => setOpen(false) });
   }
 
   return (
-    <List>
-      <div className="row-actions">
-        <Button stretched onClick={openCreate}>
-          + {t("cars.addCar")}
-        </Button>
+    <div className="crm-page">
+      <div className="crm-page-header-block">
+        <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
       </div>
 
-      <Section>
-        {cars.isLoading && <Cell before={<Spinner size="s" />}>{t("common.loading")}</Cell>}
-        {cars.data?.length === 0 && <Cell>{t("common.empty")}</Cell>}
+      <div className="crm-page-head">
+        <div className="crm-page-head__titles">
+          <h2 className="crm-page-head__title">{t("cars.pageTitle")}</h2>
+          <p className="crm-page-head__subtitle">{t("cars.pageSubtitle")}</p>
+        </div>
+        <button type="button" className="crm-btn-primary" onClick={openCreate}>
+          <Icon width="18" height="18" stroke="#fff" fill="none">
+            <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
+          </Icon>
+          <span>{t("cars.addCar")}</span>
+        </button>
+      </div>
+
+      {cars.isLoading && (
+        <div className="crm-empty-box">
+          <span className="crm-spinner" />
+          <p>{t("common.loading")}</p>
+        </div>
+      )}
+
+      {!cars.isLoading && cars.data?.length === 0 && (
+        <div className="crm-empty-box">
+          <p className="crm-empty-box__title">{t("common.empty")}</p>
+        </div>
+      )}
+
+      <div className="crm-car-list">
         {cars.data?.map((car) => (
-          <Cell
+          <CarCard
             key={car.id}
-            subtitle={[car.make, car.model, car.year].filter(Boolean).join(" ")}
-            after={<Badge type="number" mode={badgeMode(car.status)}>{t(`cars.${car.status}`)}</Badge>}
+            car={car}
+            coverDocumentId={covers.data?.get(car.id)}
             onClick={() => openEdit(car)}
-            description={insuranceLine(car, t)}
-          >
-            {car.plate}
-          </Cell>
+          />
         ))}
-      </Section>
+      </div>
 
       <Modal
         open={open}
@@ -117,9 +134,9 @@ export function CarsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <FormActions onCancel={() => setOpen(false)} onSave={submit} saving={save.isPending} />
             {editId && (
-              <Button
-                mode="outline"
-                stretched
+              <button
+                type="button"
+                className="crm-btn-outline"
                 onClick={() => {
                   if (confirm(t("common.confirmDelete"))) {
                     del.mutate(editId, { onSuccess: () => setOpen(false) });
@@ -127,7 +144,7 @@ export function CarsPage() {
                 }}
               >
                 {t("common.delete")}
-              </Button>
+              </button>
             )}
           </div>
         }
@@ -162,19 +179,6 @@ export function CarsPage() {
         </Field>
         {editId && <Documents relatedType="CAR" relatedId={editId} />}
       </Modal>
-    </List>
+    </div>
   );
-}
-
-function badgeMode(status: CarStatus): "primary" | "critical" | "secondary" {
-  if (status === CarStatus.RENTED) return "primary";
-  if (status === CarStatus.MAINTENANCE) return "critical";
-  return "secondary";
-}
-
-function insuranceLine(car: Car, t: (k: string) => string): string {
-  const parts: string[] = [];
-  if (car.insuranceExpiry) parts.push(`${t("cars.insurance")}: ${formatDate(car.insuranceExpiry)}`);
-  if (car.inspectionExpiry) parts.push(`${t("cars.inspection")}: ${formatDate(car.inspectionExpiry)}`);
-  return parts.join("  •  ");
 }

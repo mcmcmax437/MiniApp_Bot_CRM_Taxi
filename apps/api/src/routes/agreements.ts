@@ -20,7 +20,7 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
       orderBy: { startDate: "desc" },
       include: {
         car: { select: { id: true, plate: true } },
-        driver: { select: { id: true, fullName: true } },
+        driver: { select: { id: true, fullName: true, firstName: true, lastName: true } },
       },
     });
   });
@@ -35,13 +35,21 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     ]);
     if (!car || !driver) return reply.code(400).send({ error: "invalid_car_or_driver" });
 
+    const duplicate = await prisma.rentalAgreement.findFirst({
+      where: {
+        ownerId: oid,
+        driverId: body.driverId,
+        carId: body.carId,
+        status: "ACTIVE",
+      },
+    });
+    if (duplicate) return reply.code(400).send({ error: "agreement_exists" });
+
     const data = toDates(body, ["startDate", "endDate"]);
     const created = await prisma.$transaction(async (tx) => {
       const agreement = await tx.rentalAgreement.create({ data: { ...data, ownerId: oid } });
-      // Keep car/driver assignment in sync with the active agreement.
       if (agreement.status === "ACTIVE") {
         await tx.car.update({ where: { id: body.carId }, data: { status: "RENTED" } });
-        await tx.driver.update({ where: { id: body.driverId }, data: { assignedCarId: body.carId } });
       }
       return agreement;
     });
@@ -60,7 +68,6 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     return prisma.rentalAgreement.update({ where: { id }, data });
   });
 
-  // Convenience endpoint to end an agreement and free the car.
   app.post("/agreements/:id/end", async (req, reply) => {
     const { id } = req.params as { id: string };
     const existing = await prisma.rentalAgreement.findFirst({
@@ -72,7 +79,12 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
         where: { id },
         data: { status: "ENDED", endDate: existing.endDate ?? new Date() },
       });
-      await tx.car.update({ where: { id: existing.carId }, data: { status: "AVAILABLE" } });
+      const otherActiveOnCar = await tx.rentalAgreement.count({
+        where: { carId: existing.carId, status: "ACTIVE", id: { not: id } },
+      });
+      if (otherActiveOnCar === 0) {
+        await tx.car.update({ where: { id: existing.carId }, data: { status: "AVAILABLE" } });
+      }
       return agreement;
     });
   });

@@ -17,6 +17,7 @@ import type {
   OwnerRow,
   Payment,
 } from "./types";
+import { isImageDocument } from "./components/documentUtils";
 
 export function useMe() {
   return useQuery({ queryKey: ["me"], queryFn: () => apiFetch<MeResponse>("/me") });
@@ -251,6 +252,32 @@ export function useDeleteShift() {
 }
 
 // --- Documents --------------------------------------------------------------
+export function useAllDocuments() {
+  return useQuery({
+    queryKey: ["documents", "all"],
+    queryFn: () => apiFetch<DocumentItem[]>("/documents"),
+  });
+}
+
+/** First uploaded image per car id, for list thumbnails. */
+export function useCarCoverPhotos() {
+  return useQuery({
+    queryKey: ["documents", "CAR", "covers"],
+    queryFn: () => apiFetch<DocumentItem[]>("/documents", { query: { relatedType: "CAR" } }),
+    select: (docs) => {
+      const map = new Map<string, string>();
+      const sorted = [...docs].sort(
+        (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+      );
+      for (const doc of sorted) {
+        if (!isImageDocument(doc)) continue;
+        if (!map.has(doc.relatedId)) map.set(doc.relatedId, doc.id);
+      }
+      return map;
+    },
+  });
+}
+
 export function useDocuments(relatedType: string, relatedId: string | undefined) {
   return useQuery({
     queryKey: ["documents", relatedType, relatedId],
@@ -269,14 +296,18 @@ export function useUploadDocument() {
       fd.append("file", input.file);
       return apiUpload<DocumentItem>("/documents", fd);
     },
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["documents"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["documents"] });
+    },
   });
 }
 export function useDeleteDocument() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/documents/${id}`, { method: "DELETE" }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["documents"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["documents"] });
+    },
   });
 }
 

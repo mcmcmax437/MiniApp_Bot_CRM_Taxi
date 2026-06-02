@@ -110,7 +110,6 @@ model Car {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  drivers    Driver[]          @relation("DriverAssignedCar")
   agreements RentalAgreement[]
   payments   Payment[]
   expenses   Expense[]
@@ -125,12 +124,19 @@ model Driver {
   id               String       @id @default(cuid())
   ownerId          String
   owner            Owner        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  firstName        String
+  lastName         String
   fullName         String
   phone            String?
   telegramUsername String?
-  assignedCarId    String?
-  assignedCar      Car?         @relation("DriverAssignedCar", fields: [assignedCarId], references: [id], onDelete: SetNull)
-  depositAmount    Float        @default(0)
+  pesel            String?
+  passportNumber   String?
+  addressCity      String?
+  addressStreet    String?
+  addressHouse     String?
+  addressFlat      String?
+  fatherName       String?
+  motherName       String?
   status           DriverStatus @default(ACTIVE)
   notes            String?
   createdAt        DateTime     @default(now())
@@ -143,7 +149,6 @@ model Driver {
 
   @@index([ownerId])
   @@index([ownerId, status])
-  @@index([assignedCarId])
 }
 
 model RentalAgreement {
@@ -154,8 +159,9 @@ model RentalAgreement {
   car        Car             @relation(fields: [carId], references: [id], onDelete: Cascade)
   driverId   String
   driver     Driver          @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  rentAmount Float
-  period     RentPeriod      @default(DAILY)
+  rentAmount    Float
+  depositAmount Float           @default(0)
+  period        RentPeriod      @default(DAILY)
   startDate  DateTime
   endDate    DateTime?
   status     AgreementStatus @default(ACTIVE)

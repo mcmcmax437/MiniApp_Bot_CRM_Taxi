@@ -8,7 +8,12 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     return prisma.car.findMany({
       where: { ownerId: ownerId(req) },
       orderBy: { createdAt: "desc" },
-      include: { drivers: { select: { id: true, fullName: true } } },
+      include: {
+        agreements: {
+          where: { status: "ACTIVE" },
+          include: { driver: { select: { id: true, fullName: true } } },
+        },
+      },
     });
   });
 

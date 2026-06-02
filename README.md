@@ -48,7 +48,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-This starts PostgreSQL, the API (which syncs the DB schema via `prisma db push` on boot),
+This starts PostgreSQL, the API (which applies DB migrations automatically on boot),
 the bot, and Caddy (HTTPS + static Mini App + `/api` reverse proxy). Point your domain's
 DNS A record at the VPS first so Caddy can issue a certificate.
 
@@ -68,9 +68,9 @@ dev auth bypass lets you open the app without Telegram.
 npm install
 npm run prisma:generate
 
-# 1) Copy the example env. It already enables local testing defaults:
-#    DEV_BYPASS_AUTH=true and a localhost DATABASE_URL.
-cp .env.example .env          # then set DEV_BYPASS_AUTH=true
+# 1) Copy the example env and set DEV_BYPASS_AUTH=true for browser testing.
+#    Database connection is built from POSTGRES_* — you do not need DATABASE_URL locally.
+cp .env.example .env
 ```
 
 Then run everything with **one command**:

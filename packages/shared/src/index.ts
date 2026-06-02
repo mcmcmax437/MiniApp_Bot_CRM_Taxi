@@ -119,12 +119,28 @@ export type CarUpdateInput = z.infer<typeof carUpdateSchema>;
 // Driver schemas
 // ---------------------------------------------------------------------------
 
+export function driverFullName(input: {
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null;
+}): string {
+  const fromParts = [input.firstName, input.lastName].filter(Boolean).join(" ").trim();
+  return fromParts || input.fullName?.trim() || "";
+}
+
 export const driverCreateSchema = z.object({
-  fullName: z.string().trim().min(1).max(128),
+  firstName: z.string().trim().min(1).max(64),
+  lastName: z.string().trim().min(1).max(64),
   phone: z.string().trim().max(32).optional().nullable(),
   telegramUsername: z.string().trim().max(64).optional().nullable(),
-  assignedCarId: z.string().cuid().optional().nullable(),
-  depositAmount: money.default(0),
+  pesel: z.string().trim().max(11).optional().nullable(),
+  passportNumber: z.string().trim().max(32).optional().nullable(),
+  addressCity: z.string().trim().max(128).optional().nullable(),
+  addressStreet: z.string().trim().max(128).optional().nullable(),
+  addressHouse: z.string().trim().max(32).optional().nullable(),
+  addressFlat: z.string().trim().max(32).optional().nullable(),
+  fatherName: z.string().trim().max(128).optional().nullable(),
+  motherName: z.string().trim().max(128).optional().nullable(),
   status: z.nativeEnum(DriverStatus).default(DriverStatus.ACTIVE),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
@@ -140,6 +156,7 @@ export const agreementCreateSchema = z.object({
   carId: z.string().cuid(),
   driverId: z.string().cuid(),
   rentAmount: money,
+  depositAmount: money.default(0),
   period: z.nativeEnum(RentPeriod).default(RentPeriod.DAILY),
   startDate: isoDate,
   endDate: optionalIsoDate,

@@ -74,9 +74,19 @@ function sleep(ms) {
 async function syncSchema(maxAttempts = 30) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await run("npm", ["run", "db:push", "-w", "@taxi/api"], { track: false });
+      await run("npm", ["run", "db:sync", "-w", "@taxi/api"], { track: false });
       return;
-    } catch {
+    } catch (err) {
+      const msg = String(err?.message ?? err);
+      const schemaError =
+        msg.includes("firstName") ||
+        msg.includes("cannot be executed") ||
+        msg.includes("Could not apply database migrations");
+
+      if (schemaError) {
+        throw err;
+      }
+
       if (attempt === maxAttempts) {
         throw new Error(
           "Could not sync schema — PostgreSQL did not become ready in time. " +

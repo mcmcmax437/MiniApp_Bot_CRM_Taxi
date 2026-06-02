@@ -1,15 +1,37 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
-import { driverCreateSchema, driverUpdateSchema } from "@taxi/shared";
+import { driverCreateSchema, driverUpdateSchema, driverFullName } from "@taxi/shared";
 import { ownerId, parse } from "./helpers.js";
 import { computeDriverBalances } from "../services/balance.js";
+
+const driverInclude = {
+  agreements: {
+    where: { status: "ACTIVE" as const },
+    include: { car: { select: { id: true, plate: true } } },
+  },
+};
+
+function toDriverData(body: Record<string, unknown>): Record<string, unknown> {
+  const firstName = body.firstName as string | undefined;
+  const lastName = body.lastName as string | undefined;
+  if (firstName !== undefined || lastName !== undefined) {
+    return {
+      ...body,
+      fullName: driverFullName({
+        firstName: firstName ?? "",
+        lastName: lastName ?? "",
+      }),
+    };
+  }
+  return body;
+}
 
 export async function driversRoutes(app: FastifyInstance): Promise<void> {
   app.get("/drivers", async (req) => {
     return prisma.driver.findMany({
       where: { ownerId: ownerId(req) },
       orderBy: { fullName: "asc" },
-      include: { assignedCar: { select: { id: true, plate: true } } },
+      include: driverInclude,
     });
   });
 
@@ -18,8 +40,10 @@ export async function driversRoutes(app: FastifyInstance): Promise<void> {
     const driver = await prisma.driver.findFirst({
       where: { id, ownerId: ownerId(req) },
       include: {
-        assignedCar: true,
-        agreements: { orderBy: { startDate: "desc" } },
+        agreements: {
+          orderBy: { startDate: "desc" },
+          include: { car: { select: { id: true, plate: true } } },
+        },
       },
     });
     if (!driver) return reply.code(404).send({ error: "not_found" });
@@ -29,13 +53,9 @@ export async function driversRoutes(app: FastifyInstance): Promise<void> {
   app.post("/drivers", async (req, reply) => {
     const body = parse(driverCreateSchema, req.body, reply);
     if (!body) return;
-    if (body.assignedCarId) {
-      const car = await prisma.car.findFirst({
-        where: { id: body.assignedCarId, ownerId: ownerId(req) },
-      });
-      if (!car) return reply.code(400).send({ error: "invalid_car" });
-    }
-    return prisma.driver.create({ data: { ...body, ownerId: ownerId(req) } });
+    return prisma.driver.create({
+      data: { ...toDriverData(body), ownerId: ownerId(req) } as never,
+    });
   });
 
   app.patch("/drivers/:id", async (req, reply) => {
@@ -44,13 +64,15 @@ export async function driversRoutes(app: FastifyInstance): Promise<void> {
     if (!body) return;
     const existing = await prisma.driver.findFirst({ where: { id, ownerId: ownerId(req) } });
     if (!existing) return reply.code(404).send({ error: "not_found" });
-    if (body.assignedCarId) {
-      const car = await prisma.car.findFirst({
-        where: { id: body.assignedCarId, ownerId: ownerId(req) },
-      });
-      if (!car) return reply.code(400).send({ error: "invalid_car" });
-    }
-    return prisma.driver.update({ where: { id }, data: body });
+    const merged = {
+      firstName: body.firstName ?? existing.firstName,
+      lastName: body.lastName ?? existing.lastName,
+      ...body,
+    };
+    return prisma.driver.update({
+      where: { id },
+      data: toDriverData(merged) as never,
+    });
   });
 
   app.delete("/drivers/:id", async (req, reply) => {
@@ -61,7 +83,6 @@ export async function driversRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
-  // All driver balances ("who owes what").
   app.get("/balances", async (req) => {
     return computeDriverBalances(ownerId(req));
   });

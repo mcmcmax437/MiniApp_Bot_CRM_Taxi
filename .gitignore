@@ -11,7 +11,6 @@ npm-debug.log*
 
 # Prisma
 apps/api/prisma/*.db
-apps/api/prisma/migrations/**/migration_lock.toml
 
 # Local embedded Postgres data (npm run dev:db)
 .localdb/

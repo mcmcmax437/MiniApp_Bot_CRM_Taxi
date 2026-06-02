@@ -44,10 +44,10 @@ async function main(): Promise<void> {
   const driver = await prisma.driver.create({
     data: {
       ownerId: owner.id,
+      firstName: "Ivan",
+      lastName: "Petrenko",
       fullName: "Ivan Petrenko",
       phone: "+380000000000",
-      depositAmount: 200,
-      assignedCarId: car.id,
     },
   });
 
@@ -57,6 +57,7 @@ async function main(): Promise<void> {
       carId: car.id,
       driverId: driver.id,
       rentAmount: 25,
+      depositAmount: 200,
       period: "DAILY",
       startDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
       status: "ACTIVE",

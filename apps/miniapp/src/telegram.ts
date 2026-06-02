@@ -11,6 +11,7 @@ interface TelegramWebApp {
   expand: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
+  close?: () => void;
   enableClosingConfirmation?: () => void;
 }
 
@@ -38,11 +39,10 @@ export function initTelegram(): void {
 /** Match html/body to Telegram theme so edges never show the light fallback. */
 function syncDocumentTheme(): void {
   if (!tg) return;
-  const dark = tg.colorScheme === "dark";
-  const secondary = tg.themeParams.secondary_bg_color ?? (dark ? "#232e3c" : "#efeff4");
-  const bg = tg.themeParams.bg_color ?? (dark ? "#18222d" : "#ffffff");
+  const secondary = "#08111F";
+  const bg = "#08111F";
 
-  document.documentElement.style.colorScheme = tg.colorScheme;
+  document.documentElement.style.colorScheme = "dark";
   document.documentElement.style.backgroundColor = secondary;
   document.body.style.backgroundColor = secondary;
 

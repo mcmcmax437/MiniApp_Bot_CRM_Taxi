@@ -129,17 +129,34 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
     const errors: string[] = [];
     for (const [i, row] of rows.entries()) {
       const fullName = pick(row, ["fullName", "name", "ім'я", "имя", "водій", "водитель"]);
-      if (!fullName) {
+      const firstName =
+        pick(row, ["firstName", "first_name", "ім'я", "имя"]) ??
+        fullName?.split(/\s+/)[0];
+      const lastName =
+        pick(row, ["lastName", "last_name", "прізвище", "фамилия"]) ??
+        fullName?.split(/\s+/).slice(1).join(" ") ??
+        firstName;
+      if (!firstName) {
         errors.push(`Row ${i + 2}: missing name`);
         continue;
       }
+      const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
       await prisma.driver.create({
         data: {
           ownerId: oid,
-          fullName,
+          firstName,
+          lastName: lastName || firstName,
+          fullName: displayName,
           phone: pick(row, ["phone", "телефон"]) ?? null,
           telegramUsername: pick(row, ["telegram", "username"]) ?? null,
-          depositAmount: parseNum(pick(row, ["deposit", "depositAmount", "депозит"])) ?? 0,
+          pesel: pick(row, ["pesel", "PESEL", "песель"]) ?? null,
+          passportNumber: pick(row, ["passport", "passportNumber", "паспорт"]) ?? null,
+          addressCity: pick(row, ["city", "addressCity", "місто", "город"]) ?? null,
+          addressStreet: pick(row, ["street", "addressStreet", "вулиця", "улица"]) ?? null,
+          addressHouse: pick(row, ["house", "addressHouse", "будинок", "дом"]) ?? null,
+          addressFlat: pick(row, ["flat", "addressFlat", "квартира"]) ?? null,
+          fatherName: pick(row, ["fatherName", "father", "батько", "отец"]) ?? null,
+          motherName: pick(row, ["motherName", "mother", "мати", "мать"]) ?? null,
           notes: pick(row, ["notes", "нотатки", "заметки"]) ?? null,
         },
       });

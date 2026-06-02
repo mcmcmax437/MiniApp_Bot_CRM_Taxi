@@ -1,9 +1,8 @@
 import { useRef } from "react";
-import { Cell, Button, Spinner } from "@telegram-apps/telegram-ui";
 import { useTranslation } from "react-i18next";
 import { useDocuments, useUploadDocument, useDeleteDocument } from "../hooks";
-import { apiFileUrl } from "../api";
 import { formatDate } from "./ui";
+import { openDocumentFile } from "./documentUtils";
 
 export function Documents(props: { relatedType: "CAR" | "DRIVER" | "AGREEMENT"; relatedId: string }) {
   const { t } = useTranslation();
@@ -13,35 +12,38 @@ export function Documents(props: { relatedType: "CAR" | "DRIVER" | "AGREEMENT"; 
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div style={{ marginTop: 12, borderTop: "1px solid var(--tgui--outline,#d1d1d6)", paddingTop: 12 }}>
+    <div className="crm-agreement-section">
       <strong>{t("documents.title")}</strong>
-      <div style={{ marginTop: 8 }}>
-        {docs.isLoading && <Spinner size="s" />}
+      <div className="crm-doc-file-list" style={{ marginTop: 8 }}>
+        {docs.isLoading ? <p>{t("common.loading")}</p> : null}
         {docs.data?.map((d) => (
-          <Cell
-            key={d.id}
-            subtitle={formatDate(d.uploadedAt)}
-            after={
-              <Button
-                size="s"
-                mode="plain"
-                onClick={() => del.mutate(d.id)}
-                loading={del.isPending && del.variables === d.id}
-              >
-                ✕
-              </Button>
-            }
-            onClick={() => window.open(apiFileUrl(d.id), "_blank")}
-          >
-            📎 {d.fileName}
-          </Cell>
+          <div key={d.id} className="crm-doc-file">
+            <button type="button" className="crm-doc-file__main" onClick={() => void openDocumentFile(d.id, d.fileName)}>
+              <div className="crm-doc-file__icon">FILE</div>
+              <div className="crm-doc-file__text">
+                <div className="crm-doc-file__name">{d.fileName}</div>
+                <div className="crm-doc-file__date">{formatDate(d.uploadedAt)}</div>
+              </div>
+            </button>
+            <button
+              type="button"
+              className="crm-doc-file__delete"
+              disabled={del.isPending && del.variables === d.id}
+              onClick={() => {
+                if (confirm(t("common.confirmDelete"))) del.mutate(d.id);
+              }}
+              aria-label={t("common.delete")}
+            >
+              ✕
+            </button>
+          </div>
         ))}
       </div>
       <input
         ref={fileRef}
         type="file"
         accept="image/*,application/pdf"
-        style={{ display: "none" }}
+        hidden
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
@@ -52,15 +54,15 @@ export function Documents(props: { relatedType: "CAR" | "DRIVER" | "AGREEMENT"; 
           }
         }}
       />
-      <Button
-        mode="outline"
-        stretched
-        loading={upload.isPending}
+      <button
+        type="button"
+        className="crm-btn-outline"
+        disabled={upload.isPending}
         onClick={() => fileRef.current?.click()}
         style={{ marginTop: 8 }}
       >
         + {t("documents.upload")}
-      </Button>
+      </button>
     </div>
   );
 }

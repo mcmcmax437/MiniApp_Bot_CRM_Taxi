@@ -20,11 +20,29 @@ function optional(name: string, fallback: string): string {
   return process.env[name] ?? fallback;
 }
 
+function databaseUrl(): string {
+  const explicit = process.env.DATABASE_URL?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  const user = optional("POSTGRES_USER", "taxi");
+  const password = optional("POSTGRES_PASSWORD", "taxi");
+  const db = optional("POSTGRES_DB", "taxi");
+  const host = optional("POSTGRES_HOST", "localhost");
+  const port = optional("LOCAL_DB_PORT", "5432");
+
+  return (
+    `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
+    `@${host}:${port}/${db}?schema=public`
+  );
+}
+
 export const env = {
   botToken: required("BOT_TOKEN"),
   superAdminId: optional("TELEGRAM_SUPERADMIN_ID", "0"),
   publicUrl: optional("PUBLIC_URL", "http://localhost:5173"),
-  databaseUrl: required("DATABASE_URL"),
+  databaseUrl: databaseUrl(),
   port: Number(optional("API_PORT", "3000")),
   corsOrigins: optional("CORS_ORIGINS", "http://localhost:5173")
     .split(",")

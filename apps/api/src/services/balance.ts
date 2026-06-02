@@ -10,10 +10,6 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
-/**
- * Number of rent periods accrued between `start` and `asOf` (inclusive of the
- * starting period). Used to compute how much rent a driver has been charged.
- */
 export function periodsElapsed(start: Date, asOf: Date, period: RentPeriod): number {
   const from = startOfDay(start);
   const to = startOfDay(asOf);
@@ -36,8 +32,8 @@ export function periodsElapsed(start: Date, asOf: Date, period: RentPeriod): num
 }
 
 /**
- * Compute the outstanding balance for every driver of an owner.
  * balance = accrued rent - rent paid + unpaid fines  (positive => driver owes you)
+ * depositHeld = sum of deposits on active rental agreements
  */
 export async function computeDriverBalances(ownerId: string): Promise<DriverBalance[]> {
   const now = new Date();
@@ -50,11 +46,13 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
   ]);
 
   const rentDueByDriver = new Map<string, number>();
+  const depositByDriver = new Map<string, number>();
   for (const a of agreements) {
     const cap = a.endDate && a.endDate.getTime() < now.getTime() ? a.endDate : now;
     const units = periodsElapsed(a.startDate, cap, a.period);
     const due = units * a.rentAmount;
     rentDueByDriver.set(a.driverId, (rentDueByDriver.get(a.driverId) ?? 0) + due);
+    depositByDriver.set(a.driverId, (depositByDriver.get(a.driverId) ?? 0) + a.depositAmount);
   }
 
   const rentPaidByDriver = new Map<string, number>();
@@ -82,7 +80,7 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
       rentPaid,
       unpaidFines,
       balance: round2(rentDue - rentPaid + unpaidFines),
-      depositHeld: round2(d.depositAmount),
+      depositHeld: round2(depositByDriver.get(d.id) ?? 0),
     };
   });
 }

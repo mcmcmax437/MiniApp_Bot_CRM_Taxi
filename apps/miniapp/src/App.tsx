@@ -11,6 +11,7 @@ import { CarsPage } from "./pages/Cars";
 import { DriversPage } from "./pages/Drivers";
 import { FinancePage } from "./pages/Finance";
 import { ReportsPage } from "./pages/Reports";
+import { DocumentsPage } from "./pages/Documents";
 import { AdminPage } from "./pages/Admin";
 
 export function App() {
@@ -71,6 +72,7 @@ export function App() {
         <Route index element={<Dashboard />} />
         <Route path="cars" element={<CarsPage />} />
         <Route path="drivers" element={<DriversPage />} />
+        <Route path="documents" element={<DocumentsPage />} />
         <Route path="finance" element={<FinancePage />} />
         <Route path="reports" element={<ReportsPage />} />
         {owner.isSuperAdmin && <Route path="admin" element={<AdminPage />} />}
