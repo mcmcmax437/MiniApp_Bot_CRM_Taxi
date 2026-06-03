@@ -45,11 +45,19 @@ export function Modal(props: {
   );
 }
 
-export function Field(props: { label: string; children: React.ReactNode }) {
+export function Field(props: {
+  label: string;
+  children: React.ReactNode;
+  invalid?: boolean;
+  errorMessage?: string;
+}) {
   return (
-    <label className="form-stack">
+    <label className={`form-stack${props.invalid ? " crm-field--error" : ""}`}>
       <span style={{ fontSize: 13, color: "var(--tgui--hint_color, #8e8e93)" }}>{props.label}</span>
       {props.children}
+      {props.invalid && props.errorMessage ? (
+        <span className="crm-field-error">{props.errorMessage}</span>
+      ) : null}
     </label>
   );
 }
@@ -65,14 +73,20 @@ const inputStyle: React.CSSProperties = {
   fontSize: 16,
 };
 
+function inputClass(invalid?: boolean): string {
+  return invalid ? "crm-input crm-input--error" : "crm-input";
+}
+
 export function TextInput(props: {
   value: string;
   onChange: (v: string) => void;
   type?: string;
   placeholder?: string;
+  invalid?: boolean;
 }) {
   return (
     <input
+      className={inputClass(props.invalid)}
       style={inputStyle}
       type={props.type ?? "text"}
       value={props.value}
@@ -82,9 +96,14 @@ export function TextInput(props: {
   );
 }
 
-export function NumberInput(props: { value: number | ""; onChange: (v: number | "") => void }) {
+export function NumberInput(props: {
+  value: number | "";
+  onChange: (v: number | "") => void;
+  invalid?: boolean;
+}) {
   return (
     <input
+      className={inputClass(props.invalid)}
       style={inputStyle}
       type="number"
       inputMode="decimal"
@@ -94,9 +113,10 @@ export function NumberInput(props: { value: number | ""; onChange: (v: number | 
   );
 }
 
-export function DateInput(props: { value: string; onChange: (v: string) => void }) {
+export function DateInput(props: { value: string; onChange: (v: string) => void; invalid?: boolean }) {
   return (
     <input
+      className={inputClass(props.invalid)}
       style={inputStyle}
       type="date"
       value={props.value}
@@ -109,9 +129,11 @@ export function SelectInput<T extends string>(props: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
+  invalid?: boolean;
 }) {
   return (
     <select
+      className={inputClass(props.invalid)}
       style={inputStyle}
       value={props.value}
       onChange={(e) => props.onChange(e.target.value as T)}

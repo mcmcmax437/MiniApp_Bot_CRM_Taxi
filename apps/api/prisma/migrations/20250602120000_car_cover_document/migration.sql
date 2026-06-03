@@ -1,0 +1,1 @@
+ALTER TABLE "Car" ADD COLUMN IF NOT EXISTS "coverDocumentId" TEXT;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CarStatus } from "@taxi/shared";
-import { useCars, useCarCoverPhotos, useDeleteCar, useSaveCar } from "../hooks";
+import { CarStatus, carFormFieldErrors, type CarFormField } from "@taxi/shared";
+import { useCars, useCarCoverPhotos, useDeleteCar, useSaveCar, useUploadDocument } from "../hooks";
 import type { Car } from "../types";
 import {
   Modal,
@@ -12,7 +12,8 @@ import {
   SelectInput,
   FormActions,
 } from "../components/ui";
-import { Documents } from "../components/Documents";
+import { CarPhotoPicker, type PendingCarPhoto } from "../components/CarPhotoPicker";
+import { CarPhotosSection } from "../components/CarPhotosSection";
 import { AppHeader, Icon } from "../components/crm";
 import { CarCard } from "../components/CarCard";
 
@@ -43,18 +44,51 @@ export function CarsPage() {
   const cars = useCars();
   const covers = useCarCoverPhotos();
   const save = useSaveCar();
+  const upload = useUploadDocument();
   const del = useDeleteCar();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<CarForm>(emptyForm);
+  const [pendingPhotos, setPendingPhotos] = useState<PendingCarPhoto[]>([]);
+  const [coverKey, setCoverKey] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Set<CarFormField>>(new Set());
+
+  const requiredMsg = t("common.requiredField");
+
+  function patchForm(patch: Partial<CarForm>) {
+    setForm((prev) => {
+      const next = { ...prev, ...patch };
+      if (fieldErrors.size > 0) {
+        const nextErrors = new Set(fieldErrors);
+        for (const key of Object.keys(patch) as CarFormField[]) {
+          nextErrors.delete(key);
+        }
+        setFieldErrors(nextErrors);
+      }
+      return next;
+    });
+  }
+
+  function fieldInvalid(name: CarFormField): boolean {
+    return fieldErrors.has(name);
+  }
+
+  function clearPendingPhotos(photos: PendingCarPhoto[]) {
+    for (const p of photos) URL.revokeObjectURL(p.previewUrl);
+  }
 
   function openCreate() {
     setEditId(null);
     setForm(emptyForm);
+    clearPendingPhotos(pendingPhotos);
+    setPendingPhotos([]);
+    setCoverKey(null);
+    setFieldErrors(new Set());
     setOpen(true);
   }
 
   function openEdit(car: Car) {
+    setFieldErrors(new Set());
     setEditId(car.id);
     setForm({
       plate: car.plate,
@@ -70,6 +104,12 @@ export function CarsPage() {
   }
 
   function submit() {
+    const errors = carFormFieldErrors(form);
+    if (errors.size > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
     const data: Record<string, unknown> = {
       plate: form.plate.trim(),
       make: form.make || null,
@@ -80,8 +120,45 @@ export function CarsPage() {
       inspectionExpiry: form.inspectionExpiry || null,
       notes: form.notes || null,
     };
-    save.mutate({ id: editId ?? undefined, data }, { onSuccess: () => setOpen(false) });
+    save.mutate(
+      { id: editId ?? undefined, data },
+      {
+        onSuccess: async (car) => {
+          const close = () => {
+            clearPendingPhotos(pendingPhotos);
+            setPendingPhotos([]);
+            setCoverKey(null);
+            setOpen(false);
+          };
+
+          if (!editId && pendingPhotos.length > 0 && car.id) {
+            try {
+              const uploaded = await Promise.all(
+                pendingPhotos.map((p) =>
+                  upload.mutateAsync({
+                    relatedType: "CAR",
+                    relatedId: car.id,
+                    file: p.file,
+                  }),
+                ),
+              );
+              const coverIndex = pendingPhotos.findIndex((p) => p.key === coverKey);
+              const coverDoc = uploaded[coverIndex >= 0 ? coverIndex : 0];
+              if (coverDoc?.id) {
+                await save.mutateAsync({ id: car.id, data: { coverDocumentId: coverDoc.id } });
+              }
+            } finally {
+              close();
+            }
+          } else {
+            close();
+          }
+        },
+      },
+    );
   }
+
+  const editingCar = editId ? cars.data?.find((c) => c.id === editId) : undefined;
 
   return (
     <div className="crm-page">
@@ -132,7 +209,11 @@ export function CarsPage() {
         onClose={() => setOpen(false)}
         footer={
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <FormActions onCancel={() => setOpen(false)} onSave={submit} saving={save.isPending} />
+            <FormActions
+              onCancel={() => setOpen(false)}
+              onSave={submit}
+              saving={save.isPending || upload.isPending}
+            />
             {editId && (
               <button
                 type="button"
@@ -149,35 +230,60 @@ export function CarsPage() {
           </div>
         }
       >
-        <Field label={t("cars.plate")}>
-          <TextInput value={form.plate} onChange={(v) => setForm({ ...form, plate: v })} />
+        <Field label={t("cars.plate")} invalid={fieldInvalid("plate")} errorMessage={requiredMsg}>
+          <TextInput
+            value={form.plate}
+            invalid={fieldInvalid("plate")}
+            onChange={(v) => patchForm({ plate: v })}
+          />
         </Field>
-        <Field label={t("cars.make")}>
-          <TextInput value={form.make} onChange={(v) => setForm({ ...form, make: v })} />
+        <Field label={t("cars.make")} invalid={fieldInvalid("make")} errorMessage={requiredMsg}>
+          <TextInput value={form.make} invalid={fieldInvalid("make")} onChange={(v) => patchForm({ make: v })} />
         </Field>
-        <Field label={t("cars.model")}>
-          <TextInput value={form.model} onChange={(v) => setForm({ ...form, model: v })} />
+        <Field label={t("cars.model")} invalid={fieldInvalid("model")} errorMessage={requiredMsg}>
+          <TextInput value={form.model} invalid={fieldInvalid("model")} onChange={(v) => patchForm({ model: v })} />
         </Field>
-        <Field label={t("cars.year")}>
-          <NumberInput value={form.year} onChange={(v) => setForm({ ...form, year: v })} />
+        <Field label={t("cars.year")} invalid={fieldInvalid("year")} errorMessage={requiredMsg}>
+          <NumberInput value={form.year} invalid={fieldInvalid("year")} onChange={(v) => patchForm({ year: v })} />
         </Field>
         <Field label={t("cars.status")}>
           <SelectInput
             value={form.status}
-            onChange={(v) => setForm({ ...form, status: v })}
+            onChange={(v) => patchForm({ status: v })}
             options={Object.values(CarStatus).map((s) => ({ value: s, label: t(`cars.${s}`) }))}
           />
         </Field>
-        <Field label={t("cars.insurance")}>
-          <DateInput value={form.insuranceExpiry} onChange={(v) => setForm({ ...form, insuranceExpiry: v })} />
+        <Field label={t("cars.insurance")} invalid={fieldInvalid("insuranceExpiry")} errorMessage={requiredMsg}>
+          <DateInput
+            value={form.insuranceExpiry}
+            invalid={fieldInvalid("insuranceExpiry")}
+            onChange={(v) => patchForm({ insuranceExpiry: v })}
+          />
         </Field>
-        <Field label={t("cars.inspection")}>
-          <DateInput value={form.inspectionExpiry} onChange={(v) => setForm({ ...form, inspectionExpiry: v })} />
+        <Field label={t("cars.inspection")} invalid={fieldInvalid("inspectionExpiry")} errorMessage={requiredMsg}>
+          <DateInput
+            value={form.inspectionExpiry}
+            invalid={fieldInvalid("inspectionExpiry")}
+            onChange={(v) => patchForm({ inspectionExpiry: v })}
+          />
         </Field>
         <Field label={t("cars.notes")}>
-          <TextInput value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
+          <TextInput value={form.notes} onChange={(v) => patchForm({ notes: v })} />
         </Field>
-        {editId && <Documents relatedType="CAR" relatedId={editId} />}
+        {!editId ? (
+          <CarPhotoPicker
+            photos={pendingPhotos}
+            coverKey={coverKey}
+            onPhotosChange={(next) => {
+              const removed = pendingPhotos.filter((p) => !next.some((n) => n.key === p.key));
+              clearPendingPhotos(removed);
+              setPendingPhotos(next);
+            }}
+            onCoverKeyChange={setCoverKey}
+          />
+        ) : (
+          <CarPhotosSection carId={editId} coverDocumentId={editingCar?.coverDocumentId} />
+        )}
       </Modal>
     </div>
   );

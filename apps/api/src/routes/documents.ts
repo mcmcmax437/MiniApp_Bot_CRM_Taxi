@@ -6,6 +6,7 @@ import { prisma } from "../prisma.js";
 import { env } from "../env.js";
 import { ownerId } from "./helpers.js";
 import { DocumentRelatedType } from "@taxi/shared";
+import { isImageDocument } from "../services/document-image.js";
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
@@ -42,6 +43,7 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     const parts = req.parts();
     let relatedType: DocumentRelatedType | undefined;
     let relatedId: string | undefined;
+    let setAsCover = false;
     let fileBuffer: Buffer | undefined;
     let originalName = "file";
     let mimeType: string | undefined;
@@ -62,6 +64,8 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
         relatedType = part.value as DocumentRelatedType;
       } else if (part.fieldname === "relatedId") {
         relatedId = part.value as string;
+      } else if (part.fieldname === "setAsCover") {
+        setAsCover = part.value === "true" || part.value === "1";
       }
     }
 
@@ -82,7 +86,7 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     const fullPath = path.join(dir, stored);
     await writeFile(fullPath, fileBuffer);
 
-    return prisma.document.create({
+    const doc = await prisma.document.create({
       data: {
         ownerId: oid,
         relatedType,
@@ -92,6 +96,15 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
         mimeType,
       },
     });
+
+    if (setAsCover && relatedType === DocumentRelatedType.CAR && isImageDocument(doc)) {
+      await prisma.car.updateMany({
+        where: { id: relatedId, ownerId: oid },
+        data: { coverDocumentId: doc.id },
+      });
+    }
+
+    return doc;
   });
 
   app.get("/documents/:id/file", async (req, reply) => {
@@ -109,6 +122,10 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     const doc = await prisma.document.findFirst({ where: { id, ownerId: ownerId(req) } });
     if (!doc) return reply.code(404).send({ error: "not_found" });
     await prisma.document.delete({ where: { id } });
+    await prisma.car.updateMany({
+      where: { ownerId: ownerId(req), coverDocumentId: id },
+      data: { coverDocumentId: null },
+    });
     try {
       await unlink(path.resolve(env.uploadsDir, doc.filePath));
     } catch {

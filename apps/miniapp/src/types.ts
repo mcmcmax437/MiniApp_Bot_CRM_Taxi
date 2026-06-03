@@ -21,6 +21,7 @@ export interface Car {
   insuranceExpiry: string | null;
   inspectionExpiry: string | null;
   notes: string | null;
+  coverDocumentId?: string | null;
   agreements?: Array<{ driver?: { id: string; fullName: string } }>;
 }
 

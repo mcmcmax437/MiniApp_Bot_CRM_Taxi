@@ -2,6 +2,21 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import { carCreateSchema, carUpdateSchema } from "@taxi/shared";
 import { ownerId, parse, toDates } from "./helpers.js";
+import { isImageDocument } from "../services/document-image.js";
+
+async function resolveCoverDocumentId(
+  ownerId: string,
+  carId: string,
+  coverDocumentId: string | null | undefined,
+): Promise<string | null | undefined> {
+  if (coverDocumentId === undefined) return undefined;
+  if (coverDocumentId === null) return null;
+  const doc = await prisma.document.findFirst({
+    where: { id: coverDocumentId, ownerId, relatedType: "CAR", relatedId: carId },
+  });
+  if (!doc || !isImageDocument(doc)) return null;
+  return coverDocumentId;
+}
 
 export async function carsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/cars", async (req) => {
@@ -27,7 +42,8 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
   app.post("/cars", async (req, reply) => {
     const body = parse(carCreateSchema, req.body, reply);
     if (!body) return;
-    const data = toDates(body, ["insuranceExpiry", "inspectionExpiry"]);
+    const { coverDocumentId: _cover, ...rest } = body;
+    const data = toDates(rest, ["insuranceExpiry", "inspectionExpiry"]);
     return prisma.car.create({ data: { ...data, ownerId: ownerId(req) } });
   });
 
@@ -35,10 +51,24 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     const body = parse(carUpdateSchema, req.body, reply);
     if (!body) return;
-    const existing = await prisma.car.findFirst({ where: { id, ownerId: ownerId(req) } });
+    const oid = ownerId(req);
+    const existing = await prisma.car.findFirst({ where: { id, ownerId: oid } });
     if (!existing) return reply.code(404).send({ error: "not_found" });
-    const data = toDates(body, ["insuranceExpiry", "inspectionExpiry"]);
-    return prisma.car.update({ where: { id }, data });
+
+    const { coverDocumentId, ...rest } = body;
+    const resolvedCover = await resolveCoverDocumentId(oid, id, coverDocumentId);
+    if (coverDocumentId && resolvedCover === null) {
+      return reply.code(400).send({ error: "invalid_cover" });
+    }
+
+    const data = toDates(rest, ["insuranceExpiry", "inspectionExpiry"]);
+    return prisma.car.update({
+      where: { id },
+      data: {
+        ...data,
+        ...(resolvedCover !== undefined ? { coverDocumentId: resolvedCover } : {}),
+      },
+    });
   });
 
   app.delete("/cars/:id", async (req, reply) => {

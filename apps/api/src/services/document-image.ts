@@ -1,0 +1,4 @@
+export function isImageDocument(doc: { mimeType: string | null; fileName: string }): boolean {
+  if (doc.mimeType?.startsWith("image/")) return true;
+  return /\.(jpe?g|png|webp|gif|bmp|heic)$/i.test(doc.fileName);
+}

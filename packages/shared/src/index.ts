@@ -110,10 +110,54 @@ export const carCreateSchema = z.object({
   insuranceExpiry: optionalIsoDate,
   inspectionExpiry: optionalIsoDate,
   notes: z.string().trim().max(2000).optional().nullable(),
+  coverDocumentId: z.string().cuid().optional().nullable(),
 });
 export const carUpdateSchema = carCreateSchema.partial();
 export type CarCreateInput = z.infer<typeof carCreateSchema>;
 export type CarUpdateInput = z.infer<typeof carUpdateSchema>;
+
+/** Required fields for the car add/edit form (client-side validation). */
+export const carFormSchema = z.object({
+  plate: z.string().trim().min(1).max(32),
+  make: z.string().trim().min(1).max(64),
+  model: z.string().trim().min(1).max(64),
+  year: z.number().int().min(1950).max(2100),
+  status: z.nativeEnum(CarStatus),
+  insuranceExpiry: z.string().min(1),
+  inspectionExpiry: z.string().min(1),
+  notes: z.string().trim().max(2000).optional().nullable(),
+});
+
+export type CarFormField = keyof z.infer<typeof carFormSchema>;
+
+export function carFormFieldErrors(input: {
+  plate: string;
+  make: string;
+  model: string;
+  year: number | "";
+  status: CarStatus;
+  insuranceExpiry: string;
+  inspectionExpiry: string;
+  notes: string;
+}): Set<CarFormField> {
+  const result = carFormSchema.safeParse({
+    plate: input.plate,
+    make: input.make,
+    model: input.model,
+    year: input.year === "" ? undefined : input.year,
+    status: input.status,
+    insuranceExpiry: input.insuranceExpiry,
+    inspectionExpiry: input.inspectionExpiry,
+    notes: input.notes || null,
+  });
+  if (result.success) return new Set();
+  const fields = new Set<CarFormField>();
+  for (const issue of result.error.issues) {
+    const key = issue.path[0];
+    if (typeof key === "string") fields.add(key as CarFormField);
+  }
+  return fields;
+}
 
 // ---------------------------------------------------------------------------
 // Driver schemas

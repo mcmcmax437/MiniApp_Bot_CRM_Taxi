@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiUpload } from "./api";
 import type {
@@ -39,11 +40,12 @@ export function useSaveCar() {
   return useMutation({
     mutationFn: (input: { id?: string; data: Record<string, unknown> }) =>
       input.id
-        ? apiFetch(`/cars/${input.id}`, { method: "PATCH", body: input.data })
-        : apiFetch("/cars", { method: "POST", body: input.data }),
+        ? apiFetch<Car>(`/cars/${input.id}`, { method: "PATCH", body: input.data })
+        : apiFetch<Car>("/cars", { method: "POST", body: input.data }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["cars"] });
       void qc.invalidateQueries({ queryKey: ["reminders"] });
+      void qc.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 }
@@ -259,23 +261,34 @@ export function useAllDocuments() {
   });
 }
 
-/** First uploaded image per car id, for list thumbnails. */
+/** Cover image per car: chosen coverDocumentId, else newest image fallback. */
 export function useCarCoverPhotos() {
-  return useQuery({
+  const cars = useCars();
+  const docs = useQuery({
     queryKey: ["documents", "CAR", "covers"],
     queryFn: () => apiFetch<DocumentItem[]>("/documents", { query: { relatedType: "CAR" } }),
-    select: (docs) => {
-      const map = new Map<string, string>();
-      const sorted = [...docs].sort(
-        (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
-      );
-      for (const doc of sorted) {
-        if (!isImageDocument(doc)) continue;
-        if (!map.has(doc.relatedId)) map.set(doc.relatedId, doc.id);
-      }
-      return map;
-    },
   });
+
+  const data = useMemo(() => {
+    if (!cars.data) return undefined;
+    const fallback = new Map<string, string>();
+    const sorted = [...(docs.data ?? [])].sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+    );
+    for (const doc of sorted) {
+      if (!isImageDocument(doc)) continue;
+      if (!fallback.has(doc.relatedId)) fallback.set(doc.relatedId, doc.id);
+    }
+
+    const map = new Map<string, string>();
+    for (const car of cars.data) {
+      const chosen = car.coverDocumentId ?? fallback.get(car.id);
+      if (chosen) map.set(car.id, chosen);
+    }
+    return map;
+  }, [cars.data, docs.data]);
+
+  return { data, isLoading: cars.isLoading || docs.isLoading };
 }
 
 export function useDocuments(relatedType: string, relatedId: string | undefined) {
@@ -289,15 +302,22 @@ export function useDocuments(relatedType: string, relatedId: string | undefined)
 export function useUploadDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { relatedType: string; relatedId: string; file: File }) => {
+    mutationFn: (input: {
+      relatedType: string;
+      relatedId: string;
+      file: File;
+      setAsCover?: boolean;
+    }) => {
       const fd = new FormData();
       fd.append("relatedType", input.relatedType);
       fd.append("relatedId", input.relatedId);
       fd.append("file", input.file);
+      if (input.setAsCover) fd.append("setAsCover", "true");
       return apiUpload<DocumentItem>("/documents", fd);
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["documents"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
     },
   });
 }
@@ -307,6 +327,7 @@ export function useDeleteDocument() {
     mutationFn: (id: string) => apiFetch(`/documents/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["documents"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
     },
   });
 }
