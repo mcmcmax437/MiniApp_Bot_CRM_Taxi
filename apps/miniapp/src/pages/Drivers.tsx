@@ -1,6 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AgreementStatus, DriverStatus, RentPeriod } from "@taxi/shared";
+import {
+  AgreementStatus,
+  DriverStatus,
+  RentPeriod,
+  driverFormFieldErrors,
+  type DriverFormField,
+} from "@taxi/shared";
 import {
   useDrivers,
   useCars,
@@ -15,6 +21,7 @@ import {
 import type { Agreement, Driver } from "../types";
 import {
   Modal,
+  type ModalHandle,
   Field,
   TextInput,
   NumberInput,
@@ -28,6 +35,8 @@ import {
 import { Documents } from "../components/Documents";
 import { AppHeader, Icon } from "../components/crm";
 import { DriverCard, DriversEmptyState } from "../components/DriverCard";
+
+const ph = (t: (k: string) => string, key: string) => t(`drivers.placeholder.${key}`);
 
 interface DriverForm {
   firstName: string;
@@ -113,8 +122,11 @@ export function DriversPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Set<DriverFormField>>(new Set());
+  const modalRef = useRef<ModalHandle>(null);
 
   const detail = useDriver(open && editId ? editId : undefined);
+  const requiredMsg = t("common.requiredField");
 
   useEffect(() => {
     if (detail.data && editId === detail.data.id) {
@@ -150,16 +162,76 @@ export function DriversPage() {
   function openCreate() {
     setEditId(null);
     setForm(emptyForm);
+    setFieldErrors(new Set());
     setOpen(true);
   }
 
   function openEdit(d: Driver) {
     setEditId(d.id);
     setForm(driverToForm(d));
+    setFieldErrors(new Set());
     setOpen(true);
   }
 
+  function closeModal() {
+    setOpen(false);
+  }
+
+  function handleModalClosed() {
+    closeModal();
+  }
+
+  function requestCloseModal() {
+    modalRef.current?.dismiss();
+  }
+
+  function patchForm(patch: Partial<DriverForm>) {
+    setForm((prev) => {
+      const next = { ...prev, ...patch };
+      if (fieldErrors.size > 0) {
+        const nextErrors = new Set(fieldErrors);
+        for (const key of Object.keys(patch) as DriverFormField[]) {
+          nextErrors.delete(key);
+        }
+        if ("pesel" in patch || "passportNumber" in patch) {
+          const pesel = String(patch.pesel ?? next.pesel).trim();
+          const passport = String(patch.passportNumber ?? next.passportNumber).trim();
+          if (pesel || passport) {
+            nextErrors.delete("pesel");
+            nextErrors.delete("passportNumber");
+          }
+        }
+        setFieldErrors(nextErrors);
+      }
+      return next;
+    });
+  }
+
+  function fieldInvalid(name: DriverFormField): boolean {
+    return fieldErrors.has(name);
+  }
+
+  function fieldErrorMessage(name: DriverFormField): string | undefined {
+    if (!fieldErrors.has(name)) return undefined;
+    const pesel = form.pesel.trim();
+    const passport = form.passportNumber.trim();
+    if (name === "pesel") {
+      if (pesel && !/^\d{11}$/.test(pesel)) return t("drivers.invalidPesel");
+      if (!pesel && !passport) return t("drivers.needIdDocument");
+    }
+    if (name === "passportNumber" && !pesel && !passport) {
+      return t("drivers.needIdDocument");
+    }
+    return requiredMsg;
+  }
+
   function submit() {
+    const errors = driverFormFieldErrors(form);
+    if (errors.size > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
     const data: Record<string, unknown> = {
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
@@ -176,7 +248,7 @@ export function DriversPage() {
       status: form.status,
       notes: form.notes || null,
     };
-    save.mutate({ id: editId ?? undefined, data }, { onSuccess: () => setOpen(false) });
+    save.mutate({ id: editId ?? undefined, data }, { onSuccess: () => requestCloseModal() });
   }
 
   return (
@@ -274,19 +346,21 @@ export function DriversPage() {
       </div>
 
       <Modal
+        ref={modalRef}
         open={open}
         title={editId ? t("drivers.editDriver") : t("drivers.addDriver")}
-        onClose={() => setOpen(false)}
+        onClose={handleModalClosed}
+        backLabel={t("common.back")}
         footer={
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <FormActions onCancel={() => setOpen(false)} onSave={submit} saving={save.isPending} />
+            <FormActions onCancel={requestCloseModal} onSave={submit} saving={save.isPending} />
             {editId && (
               <button
                 type="button"
                 className="crm-btn-outline"
                 onClick={() => {
                   if (confirm(t("common.confirmDelete"))) {
-                    del.mutate(editId, { onSuccess: () => setOpen(false) });
+                    del.mutate(editId, { onSuccess: () => requestCloseModal() });
                   }
                 }}
               >
@@ -296,54 +370,141 @@ export function DriversPage() {
           </div>
         }
       >
-        <Field label={t("drivers.firstName")}>
-          <TextInput value={form.firstName} onChange={(v) => setForm({ ...form, firstName: v })} />
+        <Field
+          label={t("drivers.firstName")}
+          invalid={fieldInvalid("firstName")}
+          errorMessage={fieldErrorMessage("firstName")}
+        >
+          <TextInput
+            value={form.firstName}
+            placeholder={ph(t, "firstName")}
+            invalid={fieldInvalid("firstName")}
+            onChange={(v) => patchForm({ firstName: v })}
+          />
         </Field>
-        <Field label={t("drivers.lastName")}>
-          <TextInput value={form.lastName} onChange={(v) => setForm({ ...form, lastName: v })} />
+        <Field
+          label={t("drivers.lastName")}
+          invalid={fieldInvalid("lastName")}
+          errorMessage={fieldErrorMessage("lastName")}
+        >
+          <TextInput
+            value={form.lastName}
+            placeholder={ph(t, "lastName")}
+            invalid={fieldInvalid("lastName")}
+            onChange={(v) => patchForm({ lastName: v })}
+          />
         </Field>
-        <Field label={t("drivers.phone")}>
-          <TextInput value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+        <Field label={t("drivers.phone")} invalid={fieldInvalid("phone")} errorMessage={fieldErrorMessage("phone")}>
+          <TextInput
+            value={form.phone}
+            placeholder={ph(t, "phone")}
+            invalid={fieldInvalid("phone")}
+            onChange={(v) => patchForm({ phone: v })}
+          />
         </Field>
         <Field label={t("drivers.telegram")}>
           <TextInput
             value={form.telegramUsername}
-            onChange={(v) => setForm({ ...form, telegramUsername: v })}
+            placeholder={ph(t, "telegram")}
+            onChange={(v) => patchForm({ telegramUsername: v })}
           />
         </Field>
-        <Field label={t("drivers.pesel")}>
-          <TextInput value={form.pesel} onChange={(v) => setForm({ ...form, pesel: v })} />
+        <p className="crm-form-hint">{t("drivers.idDocumentHint")}</p>
+        <Field label={t("drivers.pesel")} invalid={fieldInvalid("pesel")} errorMessage={fieldErrorMessage("pesel")}>
+          <TextInput
+            value={form.pesel}
+            placeholder={ph(t, "pesel")}
+            invalid={fieldInvalid("pesel")}
+            onChange={(v) => patchForm({ pesel: v })}
+          />
         </Field>
-        <Field label={t("drivers.passportNumber")}>
-          <TextInput value={form.passportNumber} onChange={(v) => setForm({ ...form, passportNumber: v })} />
+        <Field
+          label={t("drivers.passportNumber")}
+          invalid={fieldInvalid("passportNumber")}
+          errorMessage={fieldErrorMessage("passportNumber")}
+        >
+          <TextInput
+            value={form.passportNumber}
+            placeholder={ph(t, "passportNumber")}
+            invalid={fieldInvalid("passportNumber")}
+            onChange={(v) => patchForm({ passportNumber: v })}
+          />
         </Field>
         <Field label={t("drivers.fatherName")}>
-          <TextInput value={form.fatherName} onChange={(v) => setForm({ ...form, fatherName: v })} />
+          <TextInput
+            value={form.fatherName}
+            placeholder={ph(t, "fatherName")}
+            onChange={(v) => patchForm({ fatherName: v })}
+          />
         </Field>
         <Field label={t("drivers.motherName")}>
-          <TextInput value={form.motherName} onChange={(v) => setForm({ ...form, motherName: v })} />
+          <TextInput
+            value={form.motherName}
+            placeholder={ph(t, "motherName")}
+            onChange={(v) => patchForm({ motherName: v })}
+          />
         </Field>
-        <Field label={t("drivers.addressCity")}>
-          <TextInput value={form.addressCity} onChange={(v) => setForm({ ...form, addressCity: v })} />
+        <Field
+          label={t("drivers.addressCity")}
+          invalid={fieldInvalid("addressCity")}
+          errorMessage={fieldErrorMessage("addressCity")}
+        >
+          <TextInput
+            value={form.addressCity}
+            placeholder={ph(t, "addressCity")}
+            invalid={fieldInvalid("addressCity")}
+            onChange={(v) => patchForm({ addressCity: v })}
+          />
         </Field>
-        <Field label={t("drivers.addressStreet")}>
-          <TextInput value={form.addressStreet} onChange={(v) => setForm({ ...form, addressStreet: v })} />
+        <Field
+          label={t("drivers.addressStreet")}
+          invalid={fieldInvalid("addressStreet")}
+          errorMessage={fieldErrorMessage("addressStreet")}
+        >
+          <TextInput
+            value={form.addressStreet}
+            placeholder={ph(t, "addressStreet")}
+            invalid={fieldInvalid("addressStreet")}
+            onChange={(v) => patchForm({ addressStreet: v })}
+          />
         </Field>
-        <Field label={t("drivers.addressHouse")}>
-          <TextInput value={form.addressHouse} onChange={(v) => setForm({ ...form, addressHouse: v })} />
+        <Field
+          label={t("drivers.addressHouse")}
+          invalid={fieldInvalid("addressHouse")}
+          errorMessage={fieldErrorMessage("addressHouse")}
+        >
+          <TextInput
+            value={form.addressHouse}
+            placeholder={ph(t, "addressHouse")}
+            invalid={fieldInvalid("addressHouse")}
+            onChange={(v) => patchForm({ addressHouse: v })}
+          />
         </Field>
-        <Field label={t("drivers.addressFlat")}>
-          <TextInput value={form.addressFlat} onChange={(v) => setForm({ ...form, addressFlat: v })} />
+        <Field
+          label={t("drivers.addressFlat")}
+          invalid={fieldInvalid("addressFlat")}
+          errorMessage={fieldErrorMessage("addressFlat")}
+        >
+          <TextInput
+            value={form.addressFlat}
+            placeholder={ph(t, "addressFlat")}
+            invalid={fieldInvalid("addressFlat")}
+            onChange={(v) => patchForm({ addressFlat: v })}
+          />
         </Field>
         <Field label={t("drivers.status")}>
           <SelectInput
             value={form.status}
-            onChange={(v) => setForm({ ...form, status: v })}
+            onChange={(v) => patchForm({ status: v })}
             options={Object.values(DriverStatus).map((s) => ({ value: s, label: t(`drivers.${s}`) }))}
           />
         </Field>
         <Field label={t("drivers.notes")}>
-          <TextInput value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
+          <TextInput
+            value={form.notes}
+            placeholder={ph(t, "notes")}
+            onChange={(v) => patchForm({ notes: v })}
+          />
         </Field>
 
         {editId && (
@@ -415,10 +576,18 @@ function AgreementSection(props: {
         />
       </Field>
       <Field label={t("drivers.rentAmount")}>
-        <NumberInput value={rentAmount} onChange={setRentAmount} />
+        <NumberInput
+          value={rentAmount}
+          placeholder={ph(t, "rentAmount")}
+          onChange={setRentAmount}
+        />
       </Field>
       <Field label={t("drivers.deposit")}>
-        <NumberInput value={depositAmount} onChange={setDepositAmount} />
+        <NumberInput
+          value={depositAmount}
+          placeholder={ph(t, "depositAmount")}
+          onChange={setDepositAmount}
+        />
       </Field>
       <Field label={t("drivers.period")}>
         <SelectInput
@@ -428,7 +597,7 @@ function AgreementSection(props: {
         />
       </Field>
       <Field label={t("drivers.startDate")}>
-        <DateInput value={startDate} onChange={setStartDate} />
+        <DateInput value={startDate} example={ph(t, "startDate")} onChange={setStartDate} />
       </Field>
       <button
         type="button"

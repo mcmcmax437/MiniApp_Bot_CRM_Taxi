@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../crm";
 
-export type FinanceTabId = "payments" | "expenses" | "fines" | "shifts" | "balances";
+export type FinanceTabId = "payments" | "expenses" | "fleet" | "balances";
 
 const TAB_META: Record<
   FinanceTabId,
@@ -25,21 +25,15 @@ const TAB_META: Record<
       </Icon>
     ),
   },
-  fines: {
-    color: "#ff9800",
-    icon: (c) => (
-      <Icon stroke={c} fill="none" width="18" height="18">
-        <path d="M8 4h8l2 4v10H6V4h2z" strokeWidth="1.6" strokeLinejoin="round" />
-        <path d="M10 12h4" strokeWidth="1.6" strokeLinecap="round" />
-      </Icon>
-    ),
-  },
-  shifts: {
+  fleet: {
     color: "#69f0ae",
     icon: (c) => (
       <Icon stroke={c} fill="none" width="18" height="18">
-        <path d="M7 8h10M7 12h10M7 16h6" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M5 6h14v12H5z" strokeWidth="1.6" strokeLinejoin="round" />
+        <path
+          d="M4 8h12l1 3h2v5H3v-5h1l1-3zm2 8a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
       </Icon>
     ),
   },
@@ -56,7 +50,7 @@ const TAB_META: Record<
 
 export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: FinanceTabId) => void }) {
   const { t } = useTranslation();
-  const tabs: FinanceTabId[] = ["payments", "expenses", "fines", "shifts", "balances"];
+  const tabs: FinanceTabId[] = ["payments", "expenses", "fleet", "balances"];
 
   return (
     <div className="crm-finance-tabs glass-card">
@@ -69,11 +63,9 @@ export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: Finan
               ? t("finance.payments")
               : id === "expenses"
                 ? t("finance.expenses")
-                : id === "fines"
-                  ? t("fines.title")
-                  : id === "shifts"
-                    ? t("shifts.title")
-                    : t("finance.balances");
+                : id === "fleet"
+                  ? t("fleet.title")
+                  : t("finance.balances");
 
           return (
             <button

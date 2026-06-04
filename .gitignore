@@ -12,7 +12,7 @@ npm-debug.log*
 # Prisma
 apps/api/prisma/*.db
 
-# Local embedded Postgres data (npm run dev:db)
+# Legacy embedded DB directory (unused)
 .localdb/
 apps/api/.localdb/
 

@@ -12,6 +12,10 @@ import { shiftsRoutes } from "./shifts.js";
 import { reportsRoutes } from "./reports.js";
 import { documentsRoutes } from "./documents.js";
 import { importRoutes } from "./import.js";
+import { maintenanceRoutes } from "./maintenance.js";
+import { mileageRoutes } from "./mileage.js";
+import { carDocumentsRoutes } from "./car-documents.js";
+import { reminderSettingsRoutes } from "./reminder-settings.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(
@@ -33,6 +37,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         await scoped.register(reportsRoutes);
         await scoped.register(documentsRoutes);
         await scoped.register(importRoutes);
+        await scoped.register(maintenanceRoutes);
+        await scoped.register(mileageRoutes);
+        await scoped.register(carDocumentsRoutes);
+        await scoped.register(reminderSettingsRoutes);
       });
     },
     { prefix: "/api" },

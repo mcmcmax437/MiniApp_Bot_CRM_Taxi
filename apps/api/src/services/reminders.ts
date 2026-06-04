@@ -1,50 +1,146 @@
 import { prisma } from "../prisma.js";
-import { env } from "../env.js";
 import type { ReminderItem } from "@taxi/shared";
 import { computeDriverBalances } from "./balance.js";
+import {
+  daysUntil,
+  isMaintenanceDue,
+  parseDaysBeforeList,
+} from "./maintenance.js";
+import { ensureReminderSettings } from "./reminder-settings.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
 
 function carLabel(c: { plate: string; make: string | null; model: string | null }): string {
   const m = [c.make, c.model].filter(Boolean).join(" ");
   return m ? `${c.plate} (${m})` : c.plate;
 }
 
-/** Build the reminder list for a single owner. */
-export async function buildReminders(
-  ownerId: string,
-  daysBefore = env.reminderDaysBefore,
-): Promise<ReminderItem[]> {
-  const now = new Date();
-  const threshold = new Date(now.getTime() + daysBefore * DAY_MS);
-  const items: ReminderItem[] = [];
+function pushDateReminders(
+  items: ReminderItem[],
+  kind: ReminderItem["kind"],
+  refId: string,
+  label: string,
+  dueDate: Date,
+  daysBeforeList: number[],
+): void {
+  const left = daysUntil(dueDate);
+  if (left < 0) {
+    items.push({
+      kind,
+      refId,
+      label,
+      dueDate: dueDate.toISOString(),
+      daysUntil: left,
+      detail: "overdue",
+    });
+    return;
+  }
+  for (const d of daysBeforeList) {
+    if (left <= d) {
+      items.push({
+        kind,
+        refId,
+        label,
+        dueDate: dueDate.toISOString(),
+        daysUntil: left,
+        detail: `${left}d`,
+      });
+      break;
+    }
+  }
+}
 
-  const cars = await prisma.car.findMany({
-    where: {
-      ownerId,
-      OR: [
-        { insuranceExpiry: { lte: threshold } },
-        { inspectionExpiry: { lte: threshold } },
-      ],
-    },
-  });
+/** Build the reminder list for a single owner. */
+export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
+  const settings = await ensureReminderSettings(ownerId);
+  const items: ReminderItem[] = [];
+  const now = new Date();
+
+  const cars = await prisma.car.findMany({ where: { ownerId } });
+  const insuranceDays = parseDaysBeforeList(settings.insuranceDaysBefore);
+  const inspectionDays = parseDaysBeforeList(settings.inspectionDaysBefore);
 
   for (const c of cars) {
-    if (c.insuranceExpiry && c.insuranceExpiry.getTime() <= threshold.getTime()) {
-      items.push({
-        kind: "INSURANCE",
-        refId: c.id,
-        label: carLabel(c),
-        dueDate: c.insuranceExpiry.toISOString(),
-      });
+    if (c.insuranceExpiry) {
+      pushDateReminders(items, "INSURANCE", c.id, carLabel(c), c.insuranceExpiry, insuranceDays);
     }
-    if (c.inspectionExpiry && c.inspectionExpiry.getTime() <= threshold.getTime()) {
+    if (c.inspectionExpiry) {
+      pushDateReminders(items, "INSPECTION", c.id, carLabel(c), c.inspectionExpiry, inspectionDays);
+    }
+  }
+
+  const docDays = parseDaysBeforeList(settings.documentDaysBefore);
+  const docs = await prisma.carDocument.findMany({
+    where: { ownerId, expiryDate: { not: null } },
+    include: { car: { select: { plate: true, make: true, model: true } } },
+  });
+  for (const doc of docs) {
+    if (!doc.expiryDate) continue;
+    const label = `${doc.title} — ${carLabel(doc.car)}`;
+    pushDateReminders(items, "DOCUMENT", doc.id, label, doc.expiryDate, docDays);
+  }
+
+  const maintDays = parseDaysBeforeList(settings.maintenanceDaysBefore);
+  const rules = await prisma.maintenanceRule.findMany({
+    where: { ownerId, isActive: true },
+    include: { car: { select: { plate: true, make: true, model: true, currentMileage: true } } },
+  });
+  for (const rule of rules) {
+    const label = `${rule.name} — ${carLabel(rule.car)}`;
+    if (isMaintenanceDue(rule, rule.car.currentMileage, now)) {
       items.push({
-        kind: "INSPECTION",
-        refId: c.id,
-        label: carLabel(c),
-        dueDate: c.inspectionExpiry.toISOString(),
+        kind: "MAINTENANCE",
+        refId: rule.id,
+        label,
+        dueDate: rule.nextDueDate?.toISOString() ?? null,
+        detail: "due",
       });
+      continue;
+    }
+    if (rule.nextDueDate) {
+      pushDateReminders(items, "MAINTENANCE", rule.id, label, rule.nextDueDate, maintDays);
+    }
+    if (rule.nextDueMileage != null && rule.car.currentMileage != null) {
+      const kmLeft = rule.nextDueMileage - rule.car.currentMileage;
+      if (kmLeft <= 500) {
+        items.push({
+          kind: "MAINTENANCE",
+          refId: rule.id,
+          label,
+          dueDate: null,
+          detail: `${kmLeft} km`,
+        });
+      }
+    } else if (!rule.nextDueDate && rule.nextDueMileage != null) {
+      const soon = rule.car.currentMileage == null;
+      if (soon) {
+        items.push({
+          kind: "MAINTENANCE",
+          refId: rule.id,
+          label,
+          dueDate: null,
+          detail: `${rule.nextDueMileage} km`,
+        });
+      }
+    }
+  }
+
+  if (settings.weeklyMileageEnabled) {
+    const weekAgo = new Date(now.getTime() - WEEK_MS);
+    for (const c of cars) {
+      const recent = await prisma.mileageLog.findFirst({
+        where: { carId: c.id, recordedAt: { gte: weekAgo } },
+      });
+      if (!recent) {
+        items.push({
+          kind: "MILEAGE_REPORT",
+          refId: c.id,
+          label: carLabel(c),
+          dueDate: null,
+          detail: "weekly",
+        });
+      }
     }
   }
 
@@ -64,7 +160,8 @@ export async function buildReminders(
   items.sort((a, b) => {
     const da = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
     const db = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-    return da - db;
+    if (da !== db) return da - db;
+    return (a.daysUntil ?? 999) - (b.daysUntil ?? 999);
   });
 
   return items;
@@ -72,11 +169,18 @@ export async function buildReminders(
 
 function formatReminderLine(item: ReminderItem): string {
   const date = item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : "";
+  const extra = item.daysUntil != null ? ` (${item.daysUntil}d)` : item.detail ? ` (${item.detail})` : "";
   switch (item.kind) {
     case "INSURANCE":
-      return `🛡️ Insurance expiring: <b>${item.label}</b> — ${date}`;
+      return `🛡️ Insurance: <b>${item.label}</b> — ${date}${extra}`;
     case "INSPECTION":
-      return `🔧 Inspection expiring: <b>${item.label}</b> — ${date}`;
+      return `🔧 Inspection: <b>${item.label}</b> — ${date}${extra}`;
+    case "DOCUMENT":
+      return `📄 Document: <b>${item.label}</b> — ${date}${extra}`;
+    case "MAINTENANCE":
+      return `🔩 Maintenance: <b>${item.label}</b>${date ? ` — ${date}` : ""}${extra}`;
+    case "MILEAGE_REPORT":
+      return `📊 Mileage update needed: <b>${item.label}</b>`;
     case "OVERDUE_PAYMENT":
       return `💸 Outstanding balance: <b>${item.label}</b> — ${item.amount?.toFixed(2)}`;
     default:
@@ -100,6 +204,42 @@ export async function runReminderJob(
       log(`Sent ${items.length} reminders to owner ${owner.id}`);
     } catch (err) {
       log(`Failed to send reminders to owner ${owner.id}`, err);
+    }
+  }
+}
+
+/** Weekly mileage report nudge on configured weekday. */
+export async function runWeeklyMileageJob(
+  sendMessage: (chatId: bigint, text: string) => Promise<void>,
+  log: (msg: string, meta?: unknown) => void = () => {},
+): Promise<void> {
+  const weekday = new Date().getDay();
+  const owners = await prisma.owner.findMany({
+    where: { status: "ACTIVE" },
+    include: { reminderSettings: true },
+  });
+
+  for (const owner of owners) {
+    const settings = owner.reminderSettings ?? (await ensureReminderSettings(owner.id));
+    if (!settings.weeklyMileageEnabled || settings.weeklyMileageWeekday !== weekday) continue;
+
+    const cars = await prisma.car.findMany({ where: { ownerId: owner.id } });
+    if (cars.length === 0) continue;
+
+    const lines = cars.map((c) => `• ${carLabel(c)}`);
+    const text = [
+      "<b>Weekly mileage report</b>",
+      "",
+      "Please update the odometer reading for each vehicle in TaxiCRM.",
+      "",
+      ...lines,
+    ].join("\n");
+
+    try {
+      await sendMessage(owner.telegramUserId, text);
+      log(`Sent weekly mileage prompt to owner ${owner.id}`);
+    } catch (err) {
+      log(`Failed weekly mileage for owner ${owner.id}`, err);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useId, useRef, type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { Field } from "./ui";
 
@@ -11,37 +11,44 @@ export interface PendingCarPhoto {
 export function CarPhotoPicker(props: {
   photos: PendingCarPhoto[];
   coverKey: string | null;
-  onPhotosChange: (photos: PendingCarPhoto[]) => void;
+  onPhotosChange: Dispatch<SetStateAction<PendingCarPhoto[]>>;
   onCoverKeyChange: (key: string | null) => void;
 }) {
   const { t } = useTranslation();
+  const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
 
   function addFiles(files: FileList | null) {
     if (!files?.length) return;
-    const next = [...props.photos];
-    let cover = props.coverKey;
+    const added: PendingCarPhoto[] = [];
     for (const file of Array.from(files)) {
       if (!file.type.startsWith("image/")) continue;
       const key = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      next.push({ key, file, previewUrl: URL.createObjectURL(file) });
-      if (!cover) cover = key;
+      added.push({ key, file, previewUrl: URL.createObjectURL(file) });
     }
-    props.onPhotosChange(next);
-    props.onCoverKeyChange(cover);
+    if (added.length === 0) return;
+
+    props.onPhotosChange((prev) => {
+      const next = [...prev, ...added];
+      if (!props.coverKey && next[0]) {
+        props.onCoverKeyChange(next[0].key);
+      }
+      return next;
+    });
+
     if (fileRef.current) fileRef.current.value = "";
   }
 
   function removePhoto(key: string) {
-    const removed = props.photos.find((p) => p.key === key);
-    if (removed) URL.revokeObjectURL(removed.previewUrl);
-    const next = props.photos.filter((p) => p.key !== key);
-    let cover = props.coverKey;
-    if (cover === key) {
-      cover = next[0]?.key ?? null;
-    }
-    props.onPhotosChange(next);
-    props.onCoverKeyChange(cover);
+    props.onPhotosChange((prev) => {
+      const removed = prev.find((p) => p.key === key);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      const next = prev.filter((p) => p.key !== key);
+      let cover = props.coverKey;
+      if (cover === key) cover = next[0]?.key ?? null;
+      props.onCoverKeyChange(cover);
+      return next;
+    });
   }
 
   return (
@@ -79,19 +86,20 @@ export function CarPhotoPicker(props: {
       ) : (
         <div className="crm-car-photo-picker__placeholder">{t("cars.noPhoto")}</div>
       )}
-      <div className="crm-car-photo-picker__actions" style={{ marginTop: 10 }}>
-        <button type="button" className="crm-btn-outline" onClick={() => fileRef.current?.click()}>
+      <div className="crm-car-photo-picker__actions">
+        <label htmlFor={inputId} className="crm-btn-outline crm-car-photo-picker__add-label">
           + {t("cars.addPhotos")}
-        </button>
+        </label>
+        <input
+          id={inputId}
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/*"
+          multiple
+          className="crm-file-input-hidden"
+          onChange={(e) => addFiles(e.target.files)}
+        />
       </div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={(e) => addFiles(e.target.files)}
-      />
     </Field>
   );
 }

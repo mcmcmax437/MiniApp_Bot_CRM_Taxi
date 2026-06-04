@@ -4,8 +4,9 @@
  */
 import { spawnSync } from "node:child_process";
 import { apiDir, ensureDatabaseUrl } from "./load-env.mjs";
+import { isMysqlAuthPluginError } from "./mysql-url.mjs";
 
-const MIGRATION_NAME = "20250601120000_driver_profile_and_agreement_deposit";
+const MIGRATION_NAME = "20250603000000_init";
 
 function runPrisma(args) {
   const result = spawnSync("npx", ["prisma", ...args], {
@@ -23,10 +24,20 @@ function runPrisma(args) {
   return { code: result.status ?? 1, output };
 }
 
-function fail(message) {
+function fail(message, hint) {
   console.error(`\n❌ ${message}`);
-  console.error("   Local reset (wipes test data): delete the apps/api/.localdb folder, then run npm run dev again.\n");
+  if (hint) console.error(hint);
+  console.error(
+    "   Docker reset: `docker compose down -v` then `npm run dev`.\n" +
+      "   Auth help: `npm run db:auth-help -w @taxi/api`\n",
+  );
   process.exit(1);
+}
+
+function failAuthPlugin() {
+  console.error("\n❌ MySQL authentication plugin is not supported by Prisma on this server.");
+  console.error("   Fix: run `npm run db:auth-help -w @taxi/api` and execute the SQL in MySQL as admin.\n");
+  process.exit(2);
 }
 
 ensureDatabaseUrl();
@@ -43,23 +54,37 @@ if (deploy.code === 0) {
   process.exit(0);
 }
 
-const deployOutput = deploy.output.toLowerCase();
+const deployOutput = deploy.output;
 
-if (deployOutput.includes("p1001") || deployOutput.includes("can't reach database")) {
-  console.error("PostgreSQL is not reachable yet.");
+if (isMysqlAuthPluginError(deployOutput)) {
+  failAuthPlugin();
+}
+
+const deployLower = deployOutput.toLowerCase();
+
+if (deployLower.includes("p1001") || deployLower.includes("can't reach database")) {
+  console.error("MySQL is not reachable yet.");
   process.exit(1);
+}
+
+if (deployLower.includes("p1000") || deployLower.includes("authentication failed")) {
+  fail(
+    "MySQL rejected the username or password from .env.",
+    "   Check MYSQL_USER / MYSQL_PASSWORD (or DATABASE_URL) match your local MySQL account.",
+  );
 }
 
 // Fresh database: tables do not exist yet — bootstrap with db push, then record migration.
 const looksLikeFreshDb =
-  deployOutput.includes("does not exist") ||
-  deployOutput.includes("p3018") ||
-  deployOutput.includes("no migration found");
+  deployLower.includes("does not exist") ||
+  deployLower.includes("p3018") ||
+  deployLower.includes("no migration found");
 
 if (looksLikeFreshDb) {
   console.log("Fresh database detected — creating tables…");
   const push = runPrisma(["db", "push", "--skip-generate"]);
   if (push.code !== 0) {
+    if (isMysqlAuthPluginError(push.output)) failAuthPlugin();
     fail("Could not create the initial database schema.");
   }
 

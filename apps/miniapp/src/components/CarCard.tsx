@@ -91,3 +91,25 @@ function DateInfo(props: {
     </div>
   );
 }
+
+export function CarsEmptyState(props: { onAdd: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="crm-car-empty">
+      <div className="crm-car-empty__icon">
+        <Icon width="72" height="72" fill="rgba(68, 138, 255, 0.85)">
+          <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM5 11l1.5-4.5h11L19 11H5z" />
+        </Icon>
+        <span className="crm-car-empty__plus">+</span>
+      </div>
+      <h3 className="crm-car-empty__title">{t("cars.noCarsYet")}</h3>
+      <p className="crm-car-empty__subtitle">{t("cars.addFirstCar")}</p>
+      <button type="button" className="crm-btn-primary" onClick={props.onAdd}>
+        <Icon width="18" height="18" stroke="#fff" fill="none">
+          <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
+        </Icon>
+        <span>{t("cars.addCar")}</span>
+      </button>
+    </div>
+  );
+}

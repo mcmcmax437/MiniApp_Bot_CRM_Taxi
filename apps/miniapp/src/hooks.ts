@@ -35,6 +35,14 @@ export function useSetLocale() {
 export function useCars() {
   return useQuery({ queryKey: ["cars"], queryFn: () => apiFetch<Car[]>("/cars") });
 }
+
+export function useCar(id: string | undefined) {
+  return useQuery({
+    queryKey: ["cars", id],
+    queryFn: () => apiFetch<Car>(`/cars/${id}`),
+    enabled: Boolean(id),
+  });
+}
 export function useSaveCar() {
   const qc = useQueryClient();
   return useMutation({
@@ -42,8 +50,9 @@ export function useSaveCar() {
       input.id
         ? apiFetch<Car>(`/cars/${input.id}`, { method: "PATCH", body: input.data })
         : apiFetch<Car>("/cars", { method: "POST", body: input.data }),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: ["cars"] });
+      if (vars.id) void qc.invalidateQueries({ queryKey: ["cars", vars.id] });
       void qc.invalidateQueries({ queryKey: ["reminders"] });
       void qc.invalidateQueries({ queryKey: ["documents"] });
     },
@@ -53,7 +62,10 @@ export function useDeleteCar() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/cars/${id}`, { method: "DELETE" }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["cars"] }),
+    onSuccess: (_data, id) => {
+      void qc.invalidateQueries({ queryKey: ["cars"] });
+      void qc.removeQueries({ queryKey: ["cars", id] });
+    },
   });
 }
 
@@ -250,6 +262,114 @@ export function useDeleteShift() {
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/shifts/${id}`, { method: "DELETE" }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["shifts"] }),
+  });
+}
+
+// --- Car tracking -----------------------------------------------------------
+export function useMaintenanceRules(carId: string | undefined) {
+  return useQuery({
+    queryKey: ["maintenance-rules", carId],
+    queryFn: () => apiFetch<import("./types.js").MaintenanceRule[]>("/maintenance-rules", { query: { carId } }),
+    enabled: Boolean(carId),
+  });
+}
+export function useCreateMaintenanceRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch("/maintenance-rules", { method: "POST", body: data }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["maintenance-rules"] }),
+  });
+}
+export function useDeleteMaintenanceRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/maintenance-rules/${id}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["maintenance-rules"] }),
+  });
+}
+export function useMaintenanceRecords(carId: string | undefined) {
+  return useQuery({
+    queryKey: ["maintenance-records", carId],
+    queryFn: () =>
+      apiFetch<import("./types.js").MaintenanceRecord[]>("/maintenance-records", { query: { carId } }),
+    enabled: Boolean(carId),
+  });
+}
+export function useCompleteMaintenance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch("/maintenance-records", { method: "POST", body: data }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["maintenance-records"] });
+      void qc.invalidateQueries({ queryKey: ["maintenance-rules"] });
+      void qc.invalidateQueries({ queryKey: ["mileage"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
+      void qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
+export function useCarDocuments(carId: string | undefined) {
+  return useQuery({
+    queryKey: ["car-documents", carId],
+    queryFn: () => apiFetch<import("./types.js").CarDocument[]>("/car-documents", { query: { carId } }),
+    enabled: Boolean(carId),
+  });
+}
+export function useSaveCarDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id?: string; data: Record<string, unknown> }) =>
+      input.id
+        ? apiFetch(`/car-documents/${input.id}`, { method: "PATCH", body: input.data })
+        : apiFetch("/car-documents", { method: "POST", body: input.data }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["car-documents"] });
+      void qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
+export function useDeleteCarDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/car-documents/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["car-documents"] });
+      void qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
+export function useMileageLogs(carId: string | undefined) {
+  return useQuery({
+    queryKey: ["mileage", carId],
+    queryFn: () => apiFetch<import("./types.js").MileageLog[]>("/mileage", { query: { carId } }),
+    enabled: Boolean(carId),
+  });
+}
+export function useLogMileage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiFetch("/mileage", { method: "POST", body: data }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["mileage"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
+      void qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
+export function useReminderSettings() {
+  return useQuery({
+    queryKey: ["reminder-settings"],
+    queryFn: () => apiFetch<import("@taxi/shared").ReminderSettings>("/reminder-settings"),
+  });
+}
+export function useSaveReminderSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      apiFetch("/reminder-settings", { method: "PATCH", body: data }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["reminder-settings"] }),
   });
 }
 

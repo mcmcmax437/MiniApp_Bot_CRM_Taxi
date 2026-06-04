@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -74,6 +74,19 @@ enum DocumentRelatedType {
   AGREEMENT
 }
 
+enum MaintenanceIntervalKind {
+  DAYS
+  MONTHS
+  MILEAGE
+  YEARLY
+}
+
+enum MileageSource {
+  MANUAL
+  WEEKLY
+  MAINTENANCE
+}
+
 model Owner {
   id                    String      @id @default(cuid())
   telegramUserId        BigInt      @unique
@@ -91,8 +104,13 @@ model Owner {
   payments   Payment[]
   expenses   Expense[]
   fines      Fine[]
-  shifts     Shift[]
-  documents  Document[]
+  shifts              Shift[]
+  documents           Document[]
+  reminderSettings    OwnerReminderSettings?
+  carDocuments        CarDocument[]
+  maintenanceRules    MaintenanceRule[]
+  maintenanceRecords  MaintenanceRecord[]
+  mileageLogs         MileageLog[]
 }
 
 model Car {
@@ -108,17 +126,114 @@ model Car {
   inspectionExpiry DateTime?
   notes            String?
   coverDocumentId  String?
+  currentMileage   Int?
+  mileageUpdatedAt DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  agreements RentalAgreement[]
-  payments   Payment[]
-  expenses   Expense[]
-  fines      Fine[]
-  shifts     Shift[]
+  agreements         RentalAgreement[]
+  payments           Payment[]
+  expenses           Expense[]
+  fines              Fine[]
+  shifts             Shift[]
+  documents          CarDocument[]
+  maintenanceRules   MaintenanceRule[]
+  maintenanceRecords MaintenanceRecord[]
+  mileageLogs        MileageLog[]
 
   @@index([ownerId])
   @@index([ownerId, status])
+}
+
+model OwnerReminderSettings {
+  id                    String  @id @default(cuid())
+  ownerId               String  @unique
+  owner                 Owner   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  insuranceDaysBefore   String  @default("14,7,3")
+  inspectionDaysBefore  String  @default("7,3,1")
+  documentDaysBefore    String  @default("14,7,3")
+  maintenanceDaysBefore String  @default("7,3,1")
+  weeklyMileageEnabled  Boolean @default(true)
+  weeklyMileageWeekday  Int     @default(1)
+  updatedAt             DateTime @updatedAt
+}
+
+model CarDocument {
+  id         String   @id @default(cuid())
+  ownerId    String
+  owner      Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId      String
+  car        Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  title      String
+  expiryDate DateTime?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([carId])
+}
+
+model MaintenanceRule {
+  id                   String                  @id @default(cuid())
+  ownerId              String
+  owner                Owner                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId                String
+  car                  Car                     @relation(fields: [carId], references: [id], onDelete: Cascade)
+  name                 String
+  description          String?
+  intervalKind         MaintenanceIntervalKind
+  intervalValue        Int
+  yearlyMonth          Int?
+  isMandatory          Boolean                 @default(true)
+  isActive             Boolean                 @default(true)
+  lastCompletedAt      DateTime?
+  lastCompletedMileage Int?
+  nextDueDate          DateTime?
+  nextDueMileage       Int?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  records              MaintenanceRecord[]
+
+  @@index([ownerId])
+  @@index([carId])
+}
+
+model MaintenanceRecord {
+  id          String           @id @default(cuid())
+  ownerId     String
+  owner       Owner            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId       String
+  car         Car              @relation(fields: [carId], references: [id], onDelete: Cascade)
+  ruleId      String?
+  rule        MaintenanceRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  title       String
+  completedAt DateTime
+  mileageAt   Int?
+  cost        Float?
+  notes       String?
+  createdAt   DateTime         @default(now())
+
+  @@index([ownerId])
+  @@index([carId])
+  @@index([ruleId])
+}
+
+model MileageLog {
+  id         String        @id @default(cuid())
+  ownerId    String
+  owner      Owner         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId      String
+  car        Car           @relation(fields: [carId], references: [id], onDelete: Cascade)
+  driverId   String?
+  odometer   Int
+  recordedAt DateTime
+  source     MileageSource @default(MANUAL)
+  note       String?
+  createdAt  DateTime      @default(now())
+
+  @@index([ownerId])
+  @@index([carId, recordedAt])
 }
 
 model Driver {

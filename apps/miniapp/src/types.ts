@@ -9,6 +9,9 @@ import type {
   FineStatus,
   DocumentRelatedType,
   OwnerStatus,
+  MaintenanceIntervalKind,
+  MileageSource,
+  ReminderSettings,
 } from "@taxi/shared";
 
 export interface Car {
@@ -22,7 +25,12 @@ export interface Car {
   inspectionExpiry: string | null;
   notes: string | null;
   coverDocumentId?: string | null;
-  agreements?: Array<{ driver?: { id: string; fullName: string } }>;
+  currentMileage?: number | null;
+  mileageUpdatedAt?: string | null;
+  agreements?: Array<{
+    id?: string;
+    driver?: { id: string; fullName: string; phone?: string | null };
+  }>;
 }
 
 export interface Driver {
@@ -44,6 +52,51 @@ export interface Driver {
   notes: string | null;
   createdAt?: string;
   agreements?: Agreement[];
+}
+
+export interface MaintenanceRule {
+  id: string;
+  carId: string;
+  name: string;
+  description: string | null;
+  intervalKind: MaintenanceIntervalKind;
+  intervalValue: number;
+  yearlyMonth: number | null;
+  isMandatory: boolean;
+  isActive: boolean;
+  lastCompletedAt: string | null;
+  lastCompletedMileage: number | null;
+  nextDueDate: string | null;
+  nextDueMileage: number | null;
+}
+
+export interface MaintenanceRecord {
+  id: string;
+  carId: string;
+  ruleId: string | null;
+  title: string;
+  completedAt: string;
+  mileageAt: number | null;
+  cost: number | null;
+  notes: string | null;
+}
+
+export interface CarDocument {
+  id: string;
+  carId: string;
+  title: string;
+  expiryDate: string | null;
+  notes: string | null;
+}
+
+export interface MileageLog {
+  id: string;
+  carId: string;
+  driverId: string | null;
+  odometer: number;
+  recordedAt: string;
+  source: MileageSource;
+  note: string | null;
 }
 
 export interface Agreement {

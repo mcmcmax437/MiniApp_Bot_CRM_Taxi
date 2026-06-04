@@ -8,6 +8,7 @@ import { tg } from "./telegram";
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { CarsPage } from "./pages/Cars";
+import { CarDetailPage } from "./pages/CarDetail";
 import { DriversPage } from "./pages/Drivers";
 import { FinancePage } from "./pages/Finance";
 import { ReportsPage } from "./pages/Reports";
@@ -71,6 +72,7 @@ export function App() {
       <Route element={<Layout isSuperAdmin={owner.isSuperAdmin} />}>
         <Route index element={<Dashboard />} />
         <Route path="cars" element={<CarsPage />} />
+        <Route path="cars/:id" element={<CarDetailPage />} />
         <Route path="drivers" element={<DriversPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="finance" element={<FinancePage />} />

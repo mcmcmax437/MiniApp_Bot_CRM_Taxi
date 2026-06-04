@@ -45,6 +45,11 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     });
     if (duplicate) return reply.code(400).send({ error: "agreement_exists" });
 
+    const carBusy = await prisma.rentalAgreement.findFirst({
+      where: { ownerId: oid, carId: body.carId, status: "ACTIVE" },
+    });
+    if (carBusy) return reply.code(400).send({ error: "car_already_rented" });
+
     const data = toDates(body, ["startDate", "endDate"]);
     const created = await prisma.$transaction(async (tx) => {
       const agreement = await tx.rentalAgreement.create({ data: { ...data, ownerId: oid } });

@@ -34,7 +34,15 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/cars/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const car = await prisma.car.findFirst({ where: { id, ownerId: ownerId(req) } });
+    const car = await prisma.car.findFirst({
+      where: { id, ownerId: ownerId(req) },
+      include: {
+        agreements: {
+          where: { status: "ACTIVE" },
+          include: { driver: { select: { id: true, fullName: true, phone: true } } },
+        },
+      },
+    });
     if (!car) return reply.code(404).send({ error: "not_found" });
     return car;
   });
@@ -44,6 +52,9 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     if (!body) return;
     const { coverDocumentId: _cover, ...rest } = body;
     const data = toDates(rest, ["insuranceExpiry", "inspectionExpiry"]);
+    if (body.currentMileage != null) {
+      (data as { mileageUpdatedAt?: Date }).mileageUpdatedAt = new Date();
+    }
     return prisma.car.create({ data: { ...data, ownerId: ownerId(req) } });
   });
 
@@ -62,12 +73,16 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const data = toDates(rest, ["insuranceExpiry", "inspectionExpiry"]);
+    const patch: Record<string, unknown> = {
+      ...data,
+      ...(resolvedCover !== undefined ? { coverDocumentId: resolvedCover } : {}),
+    };
+    if (body.currentMileage !== undefined && body.currentMileage != null) {
+      patch.mileageUpdatedAt = new Date();
+    }
     return prisma.car.update({
       where: { id },
-      data: {
-        ...data,
-        ...(resolvedCover !== undefined ? { coverDocumentId: resolvedCover } : {}),
-      },
+      data: patch,
     });
   });
 

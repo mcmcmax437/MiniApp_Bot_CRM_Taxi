@@ -1,59 +1,82 @@
-// Zero-install local PostgreSQL for development.
-// Downloads a real PostgreSQL binary on first run, stores data in apps/api/.localdb,
-// and keeps the server running until you press Ctrl+C.
-import EmbeddedPostgres from "embedded-postgres";
-import { existsSync } from "node:fs";
+/**
+ * Ensure local MySQL is running (Docker Compose). Exits when the port is ready.
+ */
+import { spawnSync } from "node:child_process";
+import { createConnection } from "node:net";
+import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.resolve(__dirname, "..", ".localdb");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+dotenv.config({ path: path.join(root, ".env") });
 
-const USER = process.env.POSTGRES_USER || "taxi";
-const PASSWORD = process.env.POSTGRES_PASSWORD || "taxi";
-const PORT = Number(process.env.LOCAL_DB_PORT || 5432);
-const DB = process.env.POSTGRES_DB || "taxi";
+const PORT = Number(process.env.LOCAL_DB_PORT || 3306);
+const USER = process.env.MYSQL_USER || "taxi";
+const PASSWORD = process.env.MYSQL_PASSWORD || "taxi";
+const DB = process.env.MYSQL_DATABASE || "taxi";
 
-const pg = new EmbeddedPostgres({
-  databaseDir: dataDir,
-  user: USER,
-  password: PASSWORD,
-  port: PORT,
-  persistent: true,
-});
+function isPortOpen(port) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ port, host: "127.0.0.1" });
+    socket.on("connect", () => {
+      socket.end();
+      resolve(true);
+    });
+    socket.on("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
 
-const firstRun = !existsSync(dataDir);
+function waitForPort(port, timeoutMs = 120_000) {
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      const socket = createConnection({ port, host: "127.0.0.1" });
+      socket.on("connect", () => {
+        socket.end();
+        resolve();
+      });
+      socket.on("error", () => {
+        socket.destroy();
+        if (Date.now() - start > timeoutMs) {
+          reject(new Error(`Timed out waiting for MySQL on port ${port}`));
+          return;
+        }
+        setTimeout(tryConnect, 500);
+      });
+    };
+    tryConnect();
+  });
+}
 
 async function main() {
-  if (firstRun) {
-    console.log("First run: initialising local PostgreSQL (this downloads a binary once)...");
-    await pg.initialise();
+  if (await isPortOpen(PORT)) {
+    console.log(`MySQL already running on port ${PORT}.`);
+  } else {
+    console.log("Starting MySQL via Docker Compose (first run may download the image)…");
+    const result = spawnSync("docker", ["compose", "up", "-d", "db"], {
+      cwd: root,
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+    if (result.status !== 0) {
+      console.error("");
+      console.error("Could not start MySQL via Docker (is Docker Desktop installed?).");
+      console.error(`If MySQL is already running on port ${PORT}, fix auth for Prisma:`);
+      console.error("  npm run db:auth-help -w @taxi/api");
+      console.error("");
+      process.exit(1);
+    }
+    console.log("Waiting for MySQL to accept connections…");
+    await waitForPort(PORT);
   }
-  await pg.start();
-  try {
-    await pg.createDatabase(DB);
-    console.log(`Created database "${DB}".`);
-  } catch {
-    // database already exists
-  }
+
   console.log("");
-  console.log(`Local PostgreSQL is running on port ${PORT}.`);
-  console.log(`DATABASE_URL=postgresql://${USER}:${PASSWORD}@localhost:${PORT}/${DB}?schema=public`);
-  console.log("Leave this window open. Press Ctrl+C to stop.");
+  console.log(`MySQL is ready on port ${PORT}.`);
+  console.log(`DATABASE_URL=mysql://${USER}:${PASSWORD}@localhost:${PORT}/${DB}`);
 }
-
-async function shutdown() {
-  console.log("\nStopping local PostgreSQL...");
-  try {
-    await pg.stop();
-  } catch {
-    /* ignore */
-  }
-  process.exit(0);
-}
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
 
 main().catch((err) => {
   console.error(err);

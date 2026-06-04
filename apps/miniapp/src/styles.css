@@ -755,6 +755,93 @@ body {
   cursor: pointer;
 }
 
+.crm-car-detail-hero {
+  margin-top: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: #08121f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.crm-car-detail-hero__img,
+.crm-car-detail-hero .crm-doc-thumb,
+.crm-car-detail-hero .crm-doc-thumb__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+
+.crm-car-detail-hero__placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.crm-car-detail-edit {
+  width: 100%;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.crm-car-detail-section {
+  margin-top: 14px;
+  padding: 16px;
+}
+
+.crm-car-detail-section__title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.crm-car-detail-dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crm-car-detail-dl__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.crm-car-detail-dl__row dt {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.crm-car-detail-dl__row dd {
+  margin: 0;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.92);
+  word-break: break-word;
+}
+
+.crm-car-detail-drivers {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crm-car-detail-drivers li {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 15px;
+}
+
 .crm-car-card__thumb .crm-doc-thumb,
 .crm-car-card__thumb .crm-doc-thumb--placeholder {
   width: 100%;
@@ -1147,6 +1234,90 @@ body {
 
 .crm-driver-empty .crm-btn-primary {
   margin-top: 22px;
+}
+
+.crm-car-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 16px 24px;
+}
+
+.crm-car-empty__icon {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(68, 138, 255, 0.08);
+}
+
+.crm-car-empty__plus {
+  position: absolute;
+  right: 34px;
+  bottom: 34px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #448aff;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.crm-car-empty__title {
+  margin: 20px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.crm-car-empty__subtitle {
+  margin: 8px 0 0;
+  color: var(--taxi-text-muted);
+  font-size: 15px;
+  max-width: 280px;
+}
+
+.crm-car-empty .crm-btn-primary {
+  margin-top: 22px;
+}
+
+.crm-fleet-search {
+  margin-top: 4px;
+}
+
+.crm-fleet-section-title {
+  margin: 20px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.crm-fleet-section-hint {
+  margin: 6px 0 12px;
+  color: var(--taxi-text-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.crm-fleet-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.crm-fleet-row .crm-finance-item {
+  width: 100%;
+}
+
+.crm-fleet-row__action {
+  width: 100%;
+  justify-content: center;
 }
 
 .crm-agreement-section {
@@ -2041,6 +2212,175 @@ div.crm-finance-item {
   }
 }
 
+.crm-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.crm-section-head .crm-car-detail-section__title {
+  margin: 0;
+}
+
+.crm-tracking-history,
+.crm-tracking-rules {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crm-tracking-history li,
+.crm-tracking-rules__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-tracking-rules__item {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.crm-tracking-history__meta,
+.crm-tracking-rules__due {
+  font-size: 12px;
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.crm-tracking-presets {
+  margin-bottom: 12px;
+}
+
+.crm-tracking-presets__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.crm-chip-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.crm-chip-btn:disabled {
+  opacity: 0.5;
+}
+
+.crm-tracking-complete-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.crm-icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--taxi-text-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.crm-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.crm-badge--muted {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--taxi-text-muted);
+}
+
+.crm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.crm-reminder-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.crm-reminder-days {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crm-reminder-days__label {
+  font-size: 13px;
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.54));
+}
+
+.crm-reminder-days__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crm-reminder-day-chip {
+  border: 1px solid var(--taxi-border, rgba(255, 255, 255, 0.12));
+  background: var(--taxi-surface-raised, rgba(255, 255, 255, 0.06));
+  color: inherit;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.crm-reminder-day-chip--on {
+  border-color: var(--taxi-accent, #ffc107);
+  background: rgba(255, 193, 7, 0.18);
+  color: var(--taxi-text, #fff);
+}
+
+.crm-reminder-days__warn {
+  margin: 0;
+}
+
+.crm-file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.crm-car-photo-picker__add-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
 /* Legacy / other pages */
 .row-actions {
   display: flex;
@@ -2068,6 +2408,173 @@ div.crm-finance-item {
 .crm-input--error {
   border-color: #ff453a !important;
   box-shadow: 0 0 0 1px rgba(255, 69, 58, 0.35);
+}
+
+.crm-input::placeholder {
+  color: var(--tgui--hint_color, #8e8e93);
+  opacity: 0.55;
+}
+
+.crm-date-field {
+  position: relative;
+}
+
+/* Hide browser dd.mm.yyyy mask when empty so the example date is readable */
+.crm-input-date--empty::-webkit-datetime-edit,
+.crm-input-date--empty::-webkit-datetime-edit-fields-wrapper,
+.crm-input-date--empty::-webkit-datetime-edit-text,
+.crm-input-date--empty::-webkit-datetime-edit-month-field,
+.crm-input-date--empty::-webkit-datetime-edit-day-field,
+.crm-input-date--empty::-webkit-datetime-edit-year-field {
+  color: transparent;
+}
+
+.crm-input-date--empty:focus::-webkit-datetime-edit,
+.crm-input-date--empty:focus::-webkit-datetime-edit-fields-wrapper,
+.crm-input-date--empty:focus::-webkit-datetime-edit-text,
+.crm-input-date--empty:focus::-webkit-datetime-edit-month-field,
+.crm-input-date--empty:focus::-webkit-datetime-edit-day-field,
+.crm-input-date--empty:focus::-webkit-datetime-edit-year-field {
+  color: inherit;
+}
+
+.crm-date-field__example {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 16px;
+  color: var(--tgui--hint_color, #8e8e93);
+  opacity: 0.55;
+  z-index: 1;
+}
+
+.taxi-crm-theme .crm-date-field__example {
+  color: var(--taxi-text-muted);
+}
+
+.crm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+
+.crm-modal-overlay--active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.crm-modal-sheet {
+  background: var(--tgui--bg_color, #fff);
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+.crm-modal-overlay--active .crm-modal-sheet {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crm-modal-overlay,
+  .crm-modal-sheet {
+    transition: none;
+  }
+
+  .crm-modal-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .crm-modal-sheet {
+    transform: none;
+  }
+}
+
+.crm-modal-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.crm-modal-head__title {
+  margin: 0;
+  font-size: 18px;
+  width: 100%;
+}
+
+.crm-modal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--tgui--link_color, #007aff);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 0;
+  margin: 0;
+}
+
+.crm-modal-back__chevron {
+  font-size: 22px;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+.crm-modal-footer {
+  margin-top: 16px;
+}
+
+.taxi-crm-theme .crm-modal-sheet {
+  background: linear-gradient(160deg, var(--taxi-glass-from), var(--taxi-glass-to));
+  color: var(--taxi-text);
+  border-top: 1px solid var(--taxi-border);
+}
+
+.taxi-crm-theme .crm-modal-head__title {
+  color: var(--taxi-text);
+}
+
+.taxi-crm-theme .crm-modal-back {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.taxi-crm-theme .crm-input {
+  border-color: var(--taxi-border);
+  background: var(--taxi-surface-raised);
+  color: var(--taxi-text);
+}
+
+.taxi-crm-theme .crm-input::placeholder {
+  color: var(--taxi-text-muted);
+}
+
+.taxi-crm-theme .form-stack > span:first-child {
+  color: var(--taxi-text-muted);
+}
+
+.taxi-crm-theme input[type="number"].crm-input::-webkit-inner-spin-button,
+.taxi-crm-theme input[type="number"].crm-input::-webkit-outer-spin-button {
+  opacity: 0.5;
 }
 
 .amount-pos {

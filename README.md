@@ -8,7 +8,7 @@ access to other car owners, each with fully isolated data.
 ## Stack
 
 - **Bot**: [grammY](https://grammy.dev) (long polling)
-- **API**: [Fastify](https://fastify.dev) + [Prisma](https://www.prisma.io) + PostgreSQL
+- **API**: [Fastify](https://fastify.dev) + [Prisma](https://www.prisma.io) + MySQL
 - **Mini App**: React + Vite + [@telegram-apps/telegram-ui](https://github.com/Telegram-Mini-Apps/TelegramUI), i18n (UK/RU/EN)
 - **Shared**: TypeScript types + zod schemas (`packages/shared`)
 - **Deploy**: Docker Compose + Caddy (automatic HTTPS) on a VPS
@@ -48,7 +48,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-This starts PostgreSQL, the API (which applies DB migrations automatically on boot),
+This starts MySQL, the API (which applies DB migrations automatically on boot),
 the bot, and Caddy (HTTPS + static Mini App + `/api` reverse proxy). Point your domain's
 DNS A record at the VPS first so Caddy can issue a certificate.
 
@@ -58,18 +58,18 @@ Optionally seed demo data for the super-admin owner:
 docker compose exec api npm run seed -w @taxi/api
 ```
 
-## 4. Local testing (no Docker, no Telegram)
+## 4. Local testing (Docker + MySQL, no Telegram)
 
-You can run and test everything on your machine in a normal browser. A real
-PostgreSQL is downloaded automatically the first time (no install needed), and a
-dev auth bypass lets you open the app without Telegram.
+You can run and test everything on your machine in a normal browser. **Docker Desktop**
+is required for local dev: `npm run dev` starts MySQL in Docker automatically.
+A dev auth bypass lets you open the app without Telegram.
 
 ```bash
 npm install
 npm run prisma:generate
 
 # 1) Copy the example env and set DEV_BYPASS_AUTH=true for browser testing.
-#    Database connection is built from POSTGRES_* — you do not need DATABASE_URL locally.
+#    Database connection is built from MYSQL_* — you do not need DATABASE_URL locally.
 cp .env.example .env
 ```
 
@@ -79,9 +79,9 @@ Then run everything with **one command**:
 npm run dev
 ```
 
-This starts the local PostgreSQL (downloads once), syncs the schema, the API
-(`http://localhost:3000`), and the Mini App (`http://localhost:5173`). Open the
-Mini App URL in your browser. Press Ctrl+C in that terminal to stop all services.
+This starts MySQL in Docker, syncs the schema, the API (`http://localhost:3000`),
+and the Mini App (`http://localhost:5173`). Open the Mini App URL in your browser.
+Press Ctrl+C to stop the API and Mini App (MySQL keeps running in Docker).
 
 Optional demo data (run once):
 
@@ -89,28 +89,34 @@ Optional demo data (run once):
 npm run seed
 ```
 
-> The local database lives in `apps/api/.localdb` (git-ignored). Delete that folder
-> to reset all local data. You do not need to run the bot or install PostgreSQL
-> manually for browser testing.
+> To reset all local data: `docker compose down -v` (removes the MySQL volume).
+
+### MySQL auth error (`sha256_password` / `Unknown authentication plugin`)
+
+If `npm run dev` fails with that message, your local MySQL user must use
+`mysql_native_password` (required by Prisma). Run:
+
+```bash
+npm run db:auth-help -w @taxi/api
+```
+
+Copy the printed SQL into MySQL Workbench or `mysql` CLI as **admin**, then run `npm run dev` again.
 
 ### Browse the database in Beekeeper Studio
 
-While `npm run dev` is running, add a **PostgreSQL** connection in Beekeeper:
+While `npm run dev` is running, add a **MySQL** connection in Beekeeper:
 
 | Field | Value |
 |-------|-------|
 | Host | `localhost` |
-| Port | `5432` |
+| Port | `3306` |
 | User | `taxi` |
-| Password | `taxi` |
+| Password | value from `MYSQL_PASSWORD` in `.env` |
 | Database | `taxi` |
-| SSL | off / disable |
 
-Then expand: **taxi → Schemas → public → Tables**. You will see tables such as
-`Owner`, `Car`, `Driver`, `Payment`, `Expense`, etc. Double-click a table to view
-and edit rows. Use the SQL tab to run queries (e.g. `SELECT * FROM "Car";`).
-
-Note: Prisma uses quoted PascalCase table names, so in SQL use `"Car"` not `car`.
+You will see tables such as `Owner`, `Car`, `Driver`, `Payment`, `Expense`, etc.
+Double-click a table to view
+and edit rows. Use the SQL tab to run queries (for example, ``SELECT * FROM `Car`;``).
 
 ### Testing inside Telegram (local — no deploy)
 
@@ -159,7 +165,7 @@ needs to be published.
 ## 5. Production / VPS deployment
 
 For production, use the Docker workflow in section 3 above (`docker compose up -d --build`),
-which provisions PostgreSQL, the API, the bot, and Caddy (automatic HTTPS) together. Keep
+which provisions MySQL, the API, the bot, and Caddy (automatic HTTPS) together. Keep
 `DEV_BYPASS_AUTH=false` in production.
 
 ## How it works

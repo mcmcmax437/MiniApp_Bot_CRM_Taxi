@@ -1,49 +1,83 @@
-import React from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Button } from "@telegram-apps/telegram-ui";
 import { useTranslation } from "react-i18next";
 
-export function Modal(props: {
+const MODAL_CLOSE_MS = 300;
+
+export type ModalHandle = { dismiss: () => void };
+
+export type ModalProps = {
   open: boolean;
   title: string;
+  /** Called after the slide-down exit animation finishes. */
   onClose: () => void;
+  backLabel?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-}) {
-  if (!props.open) return null;
+};
+
+export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, ref) {
+  const [render, setRender] = useState(props.open);
+  const [active, setActive] = useState(false);
+  const exitingRef = useRef(false);
+
+  const dismiss = useCallback(() => {
+    if (!render || exitingRef.current) return;
+    exitingRef.current = true;
+    setActive(false);
+  }, [render]);
+
+  useImperativeHandle(ref, () => ({ dismiss }), [dismiss]);
+
+  useEffect(() => {
+    if (props.open) {
+      exitingRef.current = false;
+      setRender(true);
+      const frame = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setActive(true));
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+    if (render) dismiss();
+  }, [props.open, render, dismiss]);
+
+  useEffect(() => {
+    if (!active && render && exitingRef.current) {
+      const timer = window.setTimeout(() => {
+        exitingRef.current = false;
+        setRender(false);
+        props.onClose();
+      }, MODAL_CLOSE_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [active, render, props.onClose]);
+
+  if (!render) return null;
+
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.4)",
-        zIndex: 100,
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-      }}
-      onClick={props.onClose}
+      className={`crm-modal-overlay${active ? " crm-modal-overlay--active" : ""}`}
+      onClick={dismiss}
+      aria-hidden={!active}
     >
-      <div
-        style={{
-          background: "var(--tgui--bg_color, #fff)",
-          width: "100%",
-          maxWidth: 520,
-          maxHeight: "92vh",
-          overflowY: "auto",
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          padding: "16px",
-          paddingBottom: "max(16px, env(safe-area-inset-bottom))",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 style={{ margin: "4px 0 12px", fontSize: 18 }}>{props.title}</h3>
+      <div className="crm-modal-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="crm-modal-head">
+          {props.backLabel ? (
+            <button type="button" className="crm-modal-back" onClick={dismiss}>
+              <span className="crm-modal-back__chevron" aria-hidden>
+                ‹
+              </span>
+              {props.backLabel}
+            </button>
+          ) : null}
+          <h3 className="crm-modal-head__title">{props.title}</h3>
+        </div>
         {props.children}
-        <div style={{ marginTop: 16 }}>{props.footer}</div>
+        {props.footer ? <div className="crm-modal-footer">{props.footer}</div> : null}
       </div>
     </div>
   );
-}
+});
 
 export function Field(props: {
   label: string;
@@ -99,6 +133,7 @@ export function TextInput(props: {
 export function NumberInput(props: {
   value: number | "";
   onChange: (v: number | "") => void;
+  placeholder?: string;
   invalid?: boolean;
 }) {
   return (
@@ -108,20 +143,40 @@ export function NumberInput(props: {
       type="number"
       inputMode="decimal"
       value={props.value}
+      placeholder={props.placeholder}
       onChange={(e) => props.onChange(e.target.value === "" ? "" : Number(e.target.value))}
     />
   );
 }
 
-export function DateInput(props: { value: string; onChange: (v: string) => void; invalid?: boolean }) {
+export function DateInput(props: {
+  value: string;
+  onChange: (v: string) => void;
+  /** Example date shown when empty (avoids clashing with the browser date mask). */
+  example?: string;
+  /** @deprecated Use `example` */
+  placeholder?: string;
+  invalid?: boolean;
+}) {
+  const [focused, setFocused] = useState(false);
+  const example = props.example ?? props.placeholder;
+  const empty = !props.value;
+  const showExample = empty && Boolean(example) && !focused;
+  const dateClass = `${inputClass(props.invalid)} crm-input-date${empty ? " crm-input-date--empty" : ""}`;
+
   return (
-    <input
-      className={inputClass(props.invalid)}
-      style={inputStyle}
-      type="date"
-      value={props.value}
-      onChange={(e) => props.onChange(e.target.value)}
-    />
+    <div className="crm-date-field">
+      <input
+        className={dateClass}
+        style={inputStyle}
+        type="date"
+        value={props.value}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={(e) => props.onChange(e.target.value)}
+      />
+      {showExample ? <span className="crm-date-field__example">{example}</span> : null}
+    </div>
   );
 }
 

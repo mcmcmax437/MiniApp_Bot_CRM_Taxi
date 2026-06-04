@@ -1,8 +1,9 @@
 /**
- * One-command local dev: embedded Postgres → schema sync → API + Mini App.
+ * One-command local dev: MySQL (Docker) → schema sync → API + Mini App.
  * Usage: npm run dev
  */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { isMysqlAuthPluginError } from "../apps/api/scripts/mysql-url.mjs";
 import { createConnection } from "node:net";
 import dotenv from "dotenv";
 import path from "node:path";
@@ -11,9 +12,8 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 dotenv.config({ path: path.join(root, ".env") });
 
-const PORT = Number(process.env.LOCAL_DB_PORT || 5432);
+const PORT = Number(process.env.LOCAL_DB_PORT || 3306);
 const children = [];
-let weStartedDb = false;
 
 function isPortOpen(port) {
   return new Promise((resolve) => {
@@ -70,36 +70,55 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Port open ≠ Postgres ready for queries (especially after unclean shutdown). Retry schema sync. */
+const apiDir = path.join(root, "apps", "api");
+
+function runDbSync() {
+  return spawnSync("node", ["scripts/sync-schema.mjs"], {
+    cwd: apiDir,
+    env: process.env,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
+}
+
+/** Port open ≠ MySQL ready for queries. Retry only when the server is still starting. */
 async function syncSchema(maxAttempts = 30) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      await run("npm", ["run", "db:sync", "-w", "@taxi/api"], { track: false });
+    const result = runDbSync();
+    const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+
+    if (result.status === 0) {
       return;
-    } catch (err) {
-      const msg = String(err?.message ?? err);
-      const schemaError =
-        msg.includes("firstName") ||
-        msg.includes("cannot be executed") ||
-        msg.includes("Could not apply database migrations");
+    }
 
-      if (schemaError) {
-        throw err;
-      }
+    if (
+      result.status === 2 ||
+      isMysqlAuthPluginError(output) ||
+      output.includes("Could not apply database migrations") ||
+      output.includes("MySQL rejected the username")
+    ) {
+      if (output.trim()) process.stdout.write(output.endsWith("\n") ? output : `${output}\n`);
+      process.exit(result.status === 2 ? 2 : 1);
+    }
 
+    if (output.includes("MySQL is not reachable yet")) {
       if (attempt === maxAttempts) {
         throw new Error(
-          "Could not sync schema — PostgreSQL did not become ready in time. " +
-            "Stop any old dev processes, delete apps/api/.localdb if needed, and run npm run dev again.",
+          "Could not sync schema — MySQL did not become ready in time. " +
+            "Ensure Docker is running, then try: docker compose up -d db",
         );
       }
       if (attempt === 1) {
-        console.log("      Waiting for PostgreSQL to finish starting…");
+        console.log("      Waiting for MySQL to finish starting…");
       } else if (attempt % 5 === 0) {
         console.log(`      Still waiting… (${attempt}/${maxAttempts})`);
       }
       await sleep(1000);
+      continue;
     }
+
+    if (output.trim()) process.stdout.write(output.endsWith("\n") ? output : `${output}\n`);
+    process.exit(result.status ?? 1);
   }
 }
 
@@ -115,7 +134,7 @@ function waitForPort(port, timeoutMs = 120_000) {
       socket.on("error", () => {
         socket.destroy();
         if (Date.now() - start > timeoutMs) {
-          reject(new Error(`Timed out waiting for PostgreSQL on port ${port}`));
+          reject(new Error(`Timed out waiting for MySQL on port ${port}`));
           return;
         }
         setTimeout(tryConnect, 500);
@@ -139,18 +158,19 @@ function shutdown(code = 0) {
 process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
-async function ensurePostgres() {
+async function ensureMysql() {
   if (await isPortOpen(PORT)) {
-    console.log(`[1/4] PostgreSQL already running on port ${PORT} (reusing it).`);
-    console.log("      Tip: if the app misbehaves, stop all terminals and run npm run dev again.\n");
+    console.log(`[1/4] MySQL already running on port ${PORT} (reusing it).`);
+    console.log(
+      "      If schema sync fails: `npm run db:auth-help -w @taxi/api` (local MySQL auth/credentials).\n",
+    );
     return;
   }
 
-  console.log("[1/4] Starting local PostgreSQL…");
-  weStartedDb = true;
-  spawnBg("npm", ["run", "dev:db"], "db");
+  console.log("[1/4] Starting MySQL (Docker)…");
+  await run("npm", ["run", "dev:db", "-w", "@taxi/api"], { track: false });
   await waitForPort(PORT);
-  console.log(`      PostgreSQL listening on port ${PORT}.\n`);
+  console.log(`      MySQL listening on port ${PORT}.\n`);
 }
 
 async function main() {
@@ -158,7 +178,7 @@ async function main() {
 
   console.log("\n🚕 Taxi Fleet Manager — local dev\n");
 
-  await ensurePostgres();
+  await ensureMysql();
 
   console.log("[2/4] Syncing database schema…");
   await syncSchema();
@@ -179,7 +199,7 @@ async function main() {
     console.log("\n✅ Ready — open http://localhost:5173 in your browser.");
   }
 
-  console.log("   Press Ctrl+C here to stop everything.\n");
+  console.log("   Press Ctrl+C here to stop API/Mini App (MySQL keeps running in Docker).\n");
 }
 
 function printTelegramSetup() {

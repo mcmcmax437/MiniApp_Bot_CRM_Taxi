@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useBalances, useReminders, useReport, useSetLocale } from "../hooks";
 import { formatMoney, formatDate } from "../components/ui";
 import { ImportSection } from "../components/ImportSection";
+import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
 import { AppHeader, Icon, SectionCard, StatCard } from "../components/crm";
 import i18n from "../i18n";
 
@@ -104,7 +105,11 @@ export function Dashboard() {
                     {t(`reminder.${r.kind}`)}: {r.label}
                   </div>
                   <div className="crm-list-item__subtitle">
-                    {r.dueDate ? formatDate(r.dueDate) : r.amount != null ? formatMoney(r.amount) : ""}
+                    {r.daysUntil != null
+                      ? t("reminder.daysUntil", { count: r.daysUntil })
+                      : null}
+                    {r.daysUntil != null && (r.dueDate || r.detail) ? " · " : null}
+                    {r.dueDate ? formatDate(r.dueDate) : r.detail ?? (r.amount != null ? formatMoney(r.amount) : "")}
                   </div>
                 </div>
               </div>
@@ -161,6 +166,8 @@ export function Dashboard() {
         )}
       </SectionCard>
 
+      <ReminderSettingsCard />
+
       <ImportSection />
 
       <SectionCard
@@ -202,5 +209,8 @@ export function Dashboard() {
 function iconFor(kind: string): string {
   if (kind === "INSURANCE") return "🛡️";
   if (kind === "INSPECTION") return "🔧";
+  if (kind === "DOCUMENT") return "📄";
+  if (kind === "MAINTENANCE") return "🛠️";
+  if (kind === "MILEAGE_REPORT") return "📊";
   return "💸";
 }

@@ -65,20 +65,21 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
 
   const tgUser = validated.user;
   const name = fullNameOf(tgUser) || tgUser.username || null;
+  const superAdmin = isSuperAdmin(tgUser.id);
 
   const owner = await prisma.owner.upsert({
     where: { telegramUserId: tgUser.id },
     update: {
       username: tgUser.username ?? null,
       ...(name ? { name } : {}),
+      ...(superAdmin ? { status: "ACTIVE" as const } : {}),
     },
     create: {
       telegramUserId: tgUser.id,
       name,
       username: tgUser.username ?? null,
       locale: deriveLocale(tgUser.language_code),
-      // The very first user matching the configured super-admin id is auto-activated.
-      status: isSuperAdmin(tgUser.id) ? "ACTIVE" : "PENDING",
+      status: superAdmin ? "ACTIVE" : "PENDING",
     },
   });
 

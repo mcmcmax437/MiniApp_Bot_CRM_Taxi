@@ -77,6 +77,22 @@ export const DocumentRelatedType = {
 } as const;
 export type DocumentRelatedType = (typeof DocumentRelatedType)[keyof typeof DocumentRelatedType];
 
+export const MaintenanceIntervalKind = {
+  DAYS: "DAYS",
+  MONTHS: "MONTHS",
+  MILEAGE: "MILEAGE",
+  YEARLY: "YEARLY",
+} as const;
+export type MaintenanceIntervalKind =
+  (typeof MaintenanceIntervalKind)[keyof typeof MaintenanceIntervalKind];
+
+export const MileageSource = {
+  MANUAL: "MANUAL",
+  WEEKLY: "WEEKLY",
+  MAINTENANCE: "MAINTENANCE",
+} as const;
+export type MileageSource = (typeof MileageSource)[keyof typeof MileageSource];
+
 export const Locale = {
   uk: "uk",
   ru: "ru",
@@ -111,6 +127,7 @@ export const carCreateSchema = z.object({
   inspectionExpiry: optionalIsoDate,
   notes: z.string().trim().max(2000).optional().nullable(),
   coverDocumentId: z.string().cuid().optional().nullable(),
+  currentMileage: z.number().int().min(0).optional().nullable(),
 });
 export const carUpdateSchema = carCreateSchema.partial();
 export type CarCreateInput = z.infer<typeof carCreateSchema>;
@@ -191,6 +208,79 @@ export const driverCreateSchema = z.object({
 export const driverUpdateSchema = driverCreateSchema.partial();
 export type DriverCreateInput = z.infer<typeof driverCreateSchema>;
 export type DriverUpdateInput = z.infer<typeof driverUpdateSchema>;
+
+/** Required / validated fields for the driver add/edit form (client-side). */
+export const driverFormSchema = z
+  .object({
+    firstName: z.string().trim().min(1).max(64),
+    lastName: z.string().trim().min(1).max(64),
+    phone: z.string().trim().min(1).max(32),
+    telegramUsername: z.string().trim().max(64).optional().nullable(),
+    pesel: z.string().trim().max(11).optional().nullable(),
+    passportNumber: z.string().trim().max(32).optional().nullable(),
+    addressCity: z.string().trim().min(1).max(128),
+    addressStreet: z.string().trim().min(1).max(128),
+    addressHouse: z.string().trim().min(1).max(32),
+    addressFlat: z.string().trim().min(1).max(32),
+    fatherName: z.string().trim().max(128).optional().nullable(),
+    motherName: z.string().trim().max(128).optional().nullable(),
+    status: z.nativeEnum(DriverStatus),
+    notes: z.string().trim().max(2000).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    const pesel = data.pesel?.trim() ?? "";
+    const passport = data.passportNumber?.trim() ?? "";
+    if (!pesel && !passport) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pesel"] });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["passportNumber"] });
+    }
+    if (pesel && !/^\d{11}$/.test(pesel)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pesel"] });
+    }
+  });
+
+export type DriverFormField = keyof z.infer<typeof driverFormSchema>;
+
+export function driverFormFieldErrors(input: {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  telegramUsername: string;
+  pesel: string;
+  passportNumber: string;
+  addressCity: string;
+  addressStreet: string;
+  addressHouse: string;
+  addressFlat: string;
+  fatherName: string;
+  motherName: string;
+  status: DriverStatus;
+  notes: string;
+}): Set<DriverFormField> {
+  const result = driverFormSchema.safeParse({
+    firstName: input.firstName,
+    lastName: input.lastName,
+    phone: input.phone,
+    telegramUsername: input.telegramUsername || null,
+    pesel: input.pesel || null,
+    passportNumber: input.passportNumber || null,
+    addressCity: input.addressCity,
+    addressStreet: input.addressStreet,
+    addressHouse: input.addressHouse,
+    addressFlat: input.addressFlat,
+    fatherName: input.fatherName || null,
+    motherName: input.motherName || null,
+    status: input.status,
+    notes: input.notes || null,
+  });
+  if (result.success) return new Set();
+  const fields = new Set<DriverFormField>();
+  for (const issue of result.error.issues) {
+    const key = issue.path[0];
+    if (typeof key === "string") fields.add(key as DriverFormField);
+  }
+  return fields;
+}
 
 // ---------------------------------------------------------------------------
 // Rental agreement schemas
@@ -277,6 +367,61 @@ export type ShiftCreateInput = z.infer<typeof shiftCreateSchema>;
 export type ShiftUpdateInput = z.infer<typeof shiftUpdateSchema>;
 
 // ---------------------------------------------------------------------------
+// Car tracking schemas
+// ---------------------------------------------------------------------------
+
+export const maintenanceRuleCreateSchema = z.object({
+  carId: z.string().cuid(),
+  name: z.string().trim().min(1).max(128),
+  description: z.string().trim().max(2000).optional().nullable(),
+  intervalKind: z.nativeEnum(MaintenanceIntervalKind),
+  intervalValue: z.number().int().min(1),
+  yearlyMonth: z.number().int().min(1).max(12).optional().nullable(),
+  isMandatory: z.boolean().default(true),
+  isActive: z.boolean().default(true),
+});
+export const maintenanceRuleUpdateSchema = maintenanceRuleCreateSchema
+  .omit({ carId: true })
+  .partial();
+export type MaintenanceRuleCreateInput = z.infer<typeof maintenanceRuleCreateSchema>;
+
+export const maintenanceRecordCreateSchema = z.object({
+  carId: z.string().cuid(),
+  ruleId: z.string().cuid().optional().nullable(),
+  title: z.string().trim().min(1).max(128),
+  completedAt: isoDate,
+  mileageAt: z.number().int().min(0).optional().nullable(),
+  cost: money.optional().nullable(),
+  notes: z.string().trim().max(2000).optional().nullable(),
+});
+
+export const carDocumentCreateSchema = z.object({
+  carId: z.string().cuid(),
+  title: z.string().trim().min(1).max(128),
+  expiryDate: optionalIsoDate,
+  notes: z.string().trim().max(2000).optional().nullable(),
+});
+export const carDocumentUpdateSchema = carDocumentCreateSchema.omit({ carId: true }).partial();
+
+export const mileageLogCreateSchema = z.object({
+  carId: z.string().cuid(),
+  driverId: z.string().cuid().optional().nullable(),
+  odometer: z.number().int().min(0),
+  recordedAt: isoDate.optional(),
+  source: z.nativeEnum(MileageSource).default(MileageSource.MANUAL),
+  note: z.string().trim().max(500).optional().nullable(),
+});
+
+export const reminderSettingsUpdateSchema = z.object({
+  insuranceDaysBefore: z.string().trim().max(64).optional(),
+  inspectionDaysBefore: z.string().trim().max(64).optional(),
+  documentDaysBefore: z.string().trim().max(64).optional(),
+  maintenanceDaysBefore: z.string().trim().max(64).optional(),
+  weeklyMileageEnabled: z.boolean().optional(),
+  weeklyMileageWeekday: z.number().int().min(0).max(6).optional(),
+});
+
+// ---------------------------------------------------------------------------
 // Admin schemas
 // ---------------------------------------------------------------------------
 
@@ -324,9 +469,26 @@ export interface ReportSummary {
 }
 
 export interface ReminderItem {
-  kind: "INSURANCE" | "INSPECTION" | "OVERDUE_PAYMENT";
+  kind:
+    | "INSURANCE"
+    | "INSPECTION"
+    | "DOCUMENT"
+    | "MAINTENANCE"
+    | "OVERDUE_PAYMENT"
+    | "MILEAGE_REPORT";
   refId: string;
   label: string;
   dueDate: string | null;
   amount?: number;
+  daysUntil?: number;
+  detail?: string;
+}
+
+export interface ReminderSettings {
+  insuranceDaysBefore: string;
+  inspectionDaysBefore: string;
+  documentDaysBefore: string;
+  maintenanceDaysBefore: string;
+  weeklyMileageEnabled: boolean;
+  weeklyMileageWeekday: number;
 }

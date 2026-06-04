@@ -20,29 +20,43 @@ function optional(name: string, fallback: string): string {
   return process.env[name] ?? fallback;
 }
 
+function assertMysqlOnly(url: string): void {
+  if (/^postgres(ql)?:\/\//i.test(url)) {
+    throw new Error(
+      "DATABASE_URL uses PostgreSQL. This project uses MySQL only — use MYSQL_* in .env or mysql://…",
+    );
+  }
+}
+
 function databaseUrl(): string {
   const explicit = process.env.DATABASE_URL?.trim();
   if (explicit) {
+    assertMysqlOnly(explicit);
     return explicit;
   }
 
-  const user = optional("POSTGRES_USER", "taxi");
-  const password = optional("POSTGRES_PASSWORD", "taxi");
-  const db = optional("POSTGRES_DB", "taxi");
-  const host = optional("POSTGRES_HOST", "localhost");
-  const port = optional("LOCAL_DB_PORT", "5432");
+  const user = optional("MYSQL_USER", "taxi");
+  const password = optional("MYSQL_PASSWORD", "taxi");
+  const db = optional("MYSQL_DATABASE", "taxi");
+  const host = optional("MYSQL_HOST", "localhost");
+  const port = optional("LOCAL_DB_PORT", "3306");
 
-  return (
-    `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
-    `@${host}:${port}/${db}?schema=public`
-  );
+  const base =
+    `mysql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
+    `@${host}:${port}/${db}`;
+  const joiner = base.includes("?") ? "&" : "?";
+  return `${base}${joiner}allowPublicKeyRetrieval=true`;
 }
+
+// Prisma reads DATABASE_URL from the environment (schema.prisma), not from env.databaseUrl.
+const resolvedDatabaseUrl = databaseUrl();
+process.env.DATABASE_URL = resolvedDatabaseUrl;
 
 export const env = {
   botToken: required("BOT_TOKEN"),
   superAdminId: optional("TELEGRAM_SUPERADMIN_ID", "0"),
   publicUrl: optional("PUBLIC_URL", "http://localhost:5173"),
-  databaseUrl: databaseUrl(),
+  databaseUrl: resolvedDatabaseUrl,
   port: Number(optional("API_PORT", "3000")),
   corsOrigins: optional("CORS_ORIGINS", "http://localhost:5173")
     .split(",")
