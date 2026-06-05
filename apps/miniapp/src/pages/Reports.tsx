@@ -1,13 +1,19 @@
 import { useState } from "react";
-import { List, Section, Cell, Button, Spinner } from "@telegram-apps/telegram-ui";
 import { useTranslation } from "react-i18next";
 import { useReport } from "../hooks";
-import { Field, DateInput, formatMoney } from "../components/ui";
+import { formatMoney } from "../components/ui";
+import { AppHeader } from "../components/crm";
+import {
+  ReportFiltersCard,
+  ReportSummaryCard,
+  ReportSectionCard,
+} from "../components/reports/ReportSections";
 
 function firstOfMonth(): string {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
+
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -19,68 +25,42 @@ export function ReportsPage() {
   const [applied, setApplied] = useState({ from: firstOfMonth(), to: today() });
   const report = useReport(applied.from, applied.to);
 
+  const income = report.data ? formatMoney(report.data.income) : formatMoney(0);
+  const expenses = report.data ? formatMoney(report.data.expenses) : formatMoney(0);
+  const profit = report.data ? formatMoney(report.data.profit) : formatMoney(0);
+
   return (
-    <List>
-      <Section header={`${t("reports.from")} / ${t("reports.to")}`}>
-        <div style={{ padding: "0 16px" }}>
-          <Field label={t("reports.from")}>
-            <DateInput value={from} onChange={setFrom} />
-          </Field>
-          <Field label={t("reports.to")}>
-            <DateInput value={to} onChange={setTo} />
-          </Field>
-          <Button stretched onClick={() => setApplied({ from, to })} style={{ marginTop: 8 }}>
-            {t("reports.apply")}
-          </Button>
-        </div>
-      </Section>
+    <div className="crm-page crm-page--reports">
+      <div className="crm-page-header-block">
+        <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
+      </div>
 
-      {report.isLoading && (
-        <Section>
-          <Cell before={<Spinner size="s" />}>{t("common.loading")}</Cell>
-        </Section>
-      )}
+      <ReportFiltersCard
+        from={from}
+        to={to}
+        onFromChange={setFrom}
+        onToChange={setTo}
+        onApply={() => setApplied({ from, to })}
+        applying={report.isFetching}
+      />
 
-      {report.data && (
-        <>
-          <div className="stat-grid">
-            <div className="stat-card">
-              <div className="value amount-neg">{formatMoney(report.data.income)}</div>
-              <div className="label">{t("reports.income")}</div>
-            </div>
-            <div className="stat-card">
-              <div className="value amount-pos">{formatMoney(report.data.expenses)}</div>
-              <div className="label">{t("reports.expenses")}</div>
-            </div>
-            <div className="stat-card">
-              <div className="value">{formatMoney(report.data.profit)}</div>
-              <div className="label">{t("reports.profit")}</div>
-            </div>
-          </div>
+      <ReportSummaryCard income={income} expenses={expenses} profit={profit} loading={report.isLoading} />
 
-          <Section header={t("reports.byCar")}>
-            {report.data.byCar.length === 0 && <Cell>{t("common.empty")}</Cell>}
-            {report.data.byCar.map((c) => (
-              <Cell
-                key={c.carId}
-                subtitle={`${t("reports.income")}: ${formatMoney(c.income)} • ${t("reports.expenses")}: ${formatMoney(c.expenses)}`}
-                after={<strong>{formatMoney(c.profit)}</strong>}
-              >
-                {c.label}
-              </Cell>
-            ))}
-          </Section>
+      <ReportSectionCard
+        title={t("reports.byCar")}
+        subtitle={t("reports.byCarSubtitle")}
+        tone="car"
+        carRows={report.data?.byCar}
+        loading={report.isLoading}
+      />
 
-          <Section header={t("reports.byDriver")}>
-            {report.data.byDriver.length === 0 && <Cell>{t("common.empty")}</Cell>}
-            {report.data.byDriver.map((d) => (
-              <Cell key={d.driverId} after={<strong>{formatMoney(d.income)}</strong>}>
-                {d.label}
-              </Cell>
-            ))}
-          </Section>
-        </>
-      )}
-    </List>
+      <ReportSectionCard
+        title={t("reports.byDriver")}
+        subtitle={t("reports.byDriverSubtitle")}
+        tone="driver"
+        driverRows={report.data?.byDriver}
+        loading={report.isLoading}
+      />
+    </div>
   );
 }

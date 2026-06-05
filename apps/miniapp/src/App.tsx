@@ -14,6 +14,7 @@ import { FinancePage } from "./pages/Finance";
 import { ReportsPage } from "./pages/Reports";
 import { DocumentsPage } from "./pages/Documents";
 import { AdminPage } from "./pages/Admin";
+import { RemindersPage } from "./pages/Reminders";
 
 export function App() {
   const { t } = useTranslation();
@@ -71,6 +72,7 @@ export function App() {
     <Routes>
       <Route element={<Layout isSuperAdmin={owner.isSuperAdmin} />}>
         <Route index element={<Dashboard />} />
+        <Route path="reminders" element={<RemindersPage />} />
         <Route path="cars" element={<CarsPage />} />
         <Route path="cars/:id" element={<CarDetailPage />} />
         <Route path="drivers" element={<DriversPage />} />

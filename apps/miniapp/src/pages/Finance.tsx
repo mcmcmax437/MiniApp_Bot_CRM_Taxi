@@ -13,6 +13,7 @@ import {
   useDeleteExpense,
 } from "../hooks";
 import { FleetTab } from "../components/finance/FleetTab";
+import { TaxesTab } from "../components/finance/TaxesTab";
 import {
   Modal,
   Field,
@@ -54,6 +55,7 @@ export function FinancePage() {
 
       {tab === "payments" && <PaymentsTab />}
       {tab === "expenses" && <ExpensesTab />}
+      {tab === "taxes" && <TaxesTab />}
       {tab === "fleet" && <FleetTab />}
       {tab === "balances" && <BalancesTab />}
     </div>
@@ -320,7 +322,7 @@ function ExpensesTab() {
     note: "",
   });
 
-  const all = expenses.data ?? [];
+  const all = (expenses.data ?? []).filter((e) => e.category !== ExpenseCategory.TAX);
   const total = all.reduce((s, e) => s + e.amount, 0);
   const monthItems = all.filter((e) => financeInPeriod(e.date, "month"));
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
@@ -465,7 +467,9 @@ function ExpensesTab() {
           <SelectInput
             value={form.category}
             onChange={(v) => setForm({ ...form, category: v })}
-            options={Object.values(ExpenseCategory).map((x) => ({ value: x, label: t(`finance.${x}`) }))}
+            options={Object.values(ExpenseCategory)
+              .filter((x) => x !== ExpenseCategory.TAX)
+              .map((x) => ({ value: x, label: t(`finance.${x}`) }))}
           />
         </Field>
         <Field label={t("finance.car")}>

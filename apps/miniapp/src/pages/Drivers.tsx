@@ -35,6 +35,8 @@ import {
 import { Documents } from "../components/Documents";
 import { AppHeader, Icon } from "../components/crm";
 import { DriverCard, DriversEmptyState } from "../components/DriverCard";
+import { SwipeToDelete } from "../components/SwipeToDelete";
+import { confirmAction } from "../telegram";
 
 const ph = (t: (k: string) => string, key: string) => t(`drivers.placeholder.${key}`);
 
@@ -117,6 +119,7 @@ export function DriversPage() {
   const del = useDeleteDriver();
 
   const [open, setOpen] = useState(false);
+  const [viewOnly, setViewOnly] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<DriverForm>(emptyForm);
   const [search, setSearch] = useState("");
@@ -161,20 +164,35 @@ export function DriversPage() {
 
   function openCreate() {
     setEditId(null);
+    setViewOnly(false);
     setForm(emptyForm);
+    setFieldErrors(new Set());
+    setOpen(true);
+  }
+
+  function openView(d: Driver) {
+    setEditId(d.id);
+    setViewOnly(true);
+    setForm(driverToForm(d));
     setFieldErrors(new Set());
     setOpen(true);
   }
 
   function openEdit(d: Driver) {
     setEditId(d.id);
+    setViewOnly(false);
     setForm(driverToForm(d));
     setFieldErrors(new Set());
     setOpen(true);
   }
 
+  function switchToEdit() {
+    setViewOnly(false);
+  }
+
   function closeModal() {
     setOpen(false);
+    setViewOnly(false);
   }
 
   function handleModalClosed() {
@@ -333,43 +351,82 @@ export function DriversPage() {
         </div>
       )}
 
-      <div className="crm-driver-list">
-        {filteredDrivers.map((d) => (
-          <DriverCard
-            key={d.id}
-            driver={d}
-            balance={balanceById.get(d.id)}
-            tripsThisMonth={tripsByDriver.get(d.id) ?? 0}
-            onClick={() => openEdit(d)}
-          />
-        ))}
-      </div>
+      {filteredDrivers.length > 0 && (
+        <div className="crm-driver-list">
+          {filteredDrivers.map((d) => (
+            <SwipeToDelete
+              key={d.id}
+              className="crm-swipe-row--driver"
+              onPress={() => openView(d)}
+              onEdit={() => openEdit(d)}
+              onDelete={() => {
+                del.mutate(d.id, {
+                  onSuccess: () => {
+                    if (editId === d.id) requestCloseModal();
+                  },
+                });
+              }}
+            >
+              <DriverCard
+                driver={d}
+                balance={balanceById.get(d.id)}
+                tripsThisMonth={tripsByDriver.get(d.id) ?? 0}
+              />
+            </SwipeToDelete>
+          ))}
+        </div>
+      )}
 
       <Modal
         ref={modalRef}
         open={open}
-        title={editId ? t("drivers.editDriver") : t("drivers.addDriver")}
+        title={
+          viewOnly ? t("drivers.viewDriver") : editId ? t("drivers.editDriver") : t("drivers.addDriver")
+        }
         onClose={handleModalClosed}
         backLabel={t("common.back")}
         footer={
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <FormActions onCancel={requestCloseModal} onSave={submit} saving={save.isPending} />
-            {editId && (
-              <button
-                type="button"
-                className="crm-btn-outline"
-                onClick={() => {
-                  if (confirm(t("common.confirmDelete"))) {
-                    del.mutate(editId, { onSuccess: () => requestCloseModal() });
-                  }
-                }}
-              >
-                {t("common.delete")}
+          viewOnly ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button type="button" className="crm-btn-primary" onClick={switchToEdit}>
+                {t("common.edit")}
               </button>
-            )}
-          </div>
+              <button type="button" className="crm-btn-outline" onClick={requestCloseModal}>
+                {t("common.back")}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <FormActions onCancel={requestCloseModal} onSave={submit} saving={save.isPending} />
+              {editId && (
+                <button
+                  type="button"
+                  className="crm-btn-outline"
+                  onClick={async () => {
+                    const ok = await confirmAction(
+                      t("common.confirmDelete"),
+                      t("common.delete"),
+                      t("common.cancel"),
+                    );
+                    if (ok) del.mutate(editId, { onSuccess: () => requestCloseModal() });
+                  }}
+                >
+                  {t("common.delete")}
+                </button>
+              )}
+            </div>
+          )
         }
       >
+        {viewOnly ? (
+          <DriverViewPanel
+            form={form}
+            driver={detail.data}
+            balance={editId ? balanceById.get(editId) : undefined}
+            tripsThisMonth={editId ? (tripsByDriver.get(editId) ?? 0) : 0}
+          />
+        ) : (
+          <>
         <Field
           label={t("drivers.firstName")}
           invalid={fieldInvalid("firstName")}
@@ -515,7 +572,70 @@ export function DriversPage() {
           />
         )}
         {editId && <Documents relatedType="DRIVER" relatedId={editId} />}
+          </>
+        )}
       </Modal>
+    </div>
+  );
+}
+
+function DriverViewPanel(props: {
+  form: DriverForm;
+  driver?: Driver;
+  balance?: { balance: number; depositHeld: number };
+  tripsThisMonth: number;
+}) {
+  const { t } = useTranslation();
+  const name = [props.form.firstName, props.form.lastName].filter(Boolean).join(" ") || "—";
+  const address = [props.form.addressCity, props.form.addressStreet, props.form.addressHouse, props.form.addressFlat]
+    .filter(Boolean)
+    .join(", ");
+
+  const activeAgreements = (props.driver?.agreements ?? []).filter((a) => a.status === "ACTIVE");
+
+  return (
+    <div className="crm-driver-view">
+      <div className="crm-driver-view__name">{name}</div>
+      <div className="crm-driver-view__grid">
+        <DriverViewRow label={t("drivers.phone")} value={props.form.phone || "—"} />
+        <DriverViewRow label={t("drivers.telegram")} value={props.form.telegramUsername || "—"} />
+        <DriverViewRow label={t("drivers.status")} value={t(`drivers.${props.form.status}`)} />
+        <DriverViewRow label={t("drivers.tripsMonth")} value={String(props.tripsThisMonth)} />
+        <DriverViewRow label={t("drivers.balance")} value={formatMoney(props.balance?.balance ?? 0)} />
+        <DriverViewRow label={t("drivers.deposit")} value={formatMoney(props.balance?.depositHeld ?? 0)} />
+        {props.form.pesel ? <DriverViewRow label={t("drivers.pesel")} value={props.form.pesel} /> : null}
+        {props.form.passportNumber ? (
+          <DriverViewRow label={t("drivers.passportNumber")} value={props.form.passportNumber} />
+        ) : null}
+        {address ? <DriverViewRow label={t("drivers.addressCity")} value={address} /> : null}
+      </div>
+      {activeAgreements.length > 0 ? (
+        <div className="crm-driver-view__section">
+          <div className="crm-driver-view__section-title">{t("drivers.rentAgreement")}</div>
+          {activeAgreements.map((a) => (
+            <div key={a.id} className="crm-driver-view__agreement">
+              {a.car?.plate ?? "—"} · {formatMoney(a.rentAmount)} / {t(`drivers.${a.period}`)}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="crm-driver-view__hint">{t("drivers.noAgreement")}</p>
+      )}
+      {props.form.notes ? (
+        <div className="crm-driver-view__section">
+          <div className="crm-driver-view__section-title">{t("drivers.notes")}</div>
+          <p className="crm-driver-view__notes">{props.form.notes}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DriverViewRow(props: { label: string; value: string }) {
+  return (
+    <div className="crm-driver-view__row">
+      <div className="crm-driver-view__label">{props.label}</div>
+      <div className="crm-driver-view__value">{props.value}</div>
     </div>
   );
 }

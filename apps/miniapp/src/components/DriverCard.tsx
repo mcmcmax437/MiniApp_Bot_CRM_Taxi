@@ -4,6 +4,7 @@ import type { DriverBalance } from "@taxi/shared";
 import type { Driver } from "../types";
 import { formatDate, formatMoney } from "./ui";
 import { Icon } from "./crm";
+import { CardOpenHint } from "./CardOpenHint";
 
 function initials(name: string): string {
   return name
@@ -25,7 +26,6 @@ export function DriverCard(props: {
   driver: Driver;
   balance?: DriverBalance;
   tripsThisMonth: number;
-  onClick: () => void;
 }) {
   const { t } = useTranslation();
   const { driver } = props;
@@ -37,7 +37,7 @@ export function DriverCard(props: {
         t("drivers.noActiveCar");
 
   return (
-    <button type="button" className="crm-driver-card" onClick={props.onClick}>
+    <div className="crm-driver-card">
       <div className="crm-driver-card__top">
         <div className="crm-driver-card__avatar" style={{ backgroundColor: avatarColor(driver.fullName) }}>
           {initials(driver.fullName) || "?"}
@@ -51,9 +51,7 @@ export function DriverCard(props: {
           </div>
         </div>
 
-        <Icon className="crm-driver-card__chevron" stroke="rgba(255,255,255,0.45)" fill="none" width="28" height="28">
-          <path d="M10 8l4 4-4 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </Icon>
+        <CardOpenHint />
       </div>
 
       {driver.phone ? (
@@ -104,7 +102,7 @@ export function DriverCard(props: {
           }
         />
       </div>
-    </button>
+    </div>
   );
 }
 

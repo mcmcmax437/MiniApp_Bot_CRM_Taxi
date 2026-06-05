@@ -5,6 +5,7 @@ import type { Car } from "../types";
 import { formatDate } from "./ui";
 import { Icon } from "./crm";
 import { DocumentThumbnail } from "./DocumentThumbnail";
+import { CardOpenHint } from "./CardOpenHint";
 
 const statusClass: Record<CarStatus, string> = {
   [CarStatus.AVAILABLE]: "crm-car-status--available",
@@ -13,13 +14,13 @@ const statusClass: Record<CarStatus, string> = {
   [CarStatus.INACTIVE]: "crm-car-status--inactive",
 };
 
-export function CarCard(props: { car: Car; coverDocumentId?: string; onClick: () => void }) {
+export function CarCard(props: { car: Car; coverDocumentId?: string }) {
   const { t } = useTranslation();
   const { car } = props;
   const subtitle = [car.make, car.model, car.year].filter(Boolean).join(" ");
 
   return (
-    <button type="button" className="crm-car-card" onClick={props.onClick}>
+    <div className="crm-car-card">
       <div className="crm-car-card__top">
         <div className="crm-car-card__thumb">
           {props.coverDocumentId ? (
@@ -42,9 +43,7 @@ export function CarCard(props: { car: Car; coverDocumentId?: string; onClick: ()
           </div>
         </div>
 
-        <Icon className="crm-car-card__chevron" stroke="rgba(255,255,255,0.45)" fill="none" width="28" height="28">
-          <path d="M10 8l4 4-4 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </Icon>
+        <CardOpenHint />
       </div>
 
       <div className="crm-car-card__dates">
@@ -71,7 +70,7 @@ export function CarCard(props: { car: Car; coverDocumentId?: string; onClick: ()
           }
         />
       </div>
-    </button>
+    </div>
   );
 }
 

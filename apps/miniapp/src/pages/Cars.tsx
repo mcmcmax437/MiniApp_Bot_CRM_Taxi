@@ -1,18 +1,22 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useCars, useCarCoverPhotos } from "../hooks";
+import { useCars, useCarCoverPhotos, useDeleteCar } from "../hooks";
 import { AppHeader, Icon } from "../components/crm";
 import { CarCard, CarsEmptyState } from "../components/CarCard";
 import { CarFormModal } from "../components/CarFormModal";
+import { SwipeToDelete } from "../components/SwipeToDelete";
 
 export function CarsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const cars = useCars();
   const covers = useCarCoverPhotos();
+  const del = useDeleteCar();
   const [createOpen, setCreateOpen] = useState(false);
+  const [editCarId, setEditCarId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const editCar = (cars.data ?? []).find((car) => car.id === editCarId);
 
   const hasCars = (cars.data?.length ?? 0) > 0;
 
@@ -92,12 +96,15 @@ export function CarsPage() {
       {filteredCars.length > 0 && (
         <div className="crm-car-list">
           {filteredCars.map((car) => (
-            <CarCard
+            <SwipeToDelete
               key={car.id}
-              car={car}
-              coverDocumentId={covers.data?.get(car.id)}
-              onClick={() => navigate(`/cars/${car.id}`)}
-            />
+              className="crm-swipe-row--car"
+              onPress={() => navigate(`/cars/${car.id}`)}
+              onEdit={() => setEditCarId(car.id)}
+              onDelete={() => del.mutate(car.id)}
+            >
+              <CarCard car={car} coverDocumentId={covers.data?.get(car.id)} />
+            </SwipeToDelete>
           ))}
         </div>
       )}
@@ -107,6 +114,15 @@ export function CarsPage() {
         mode="create"
         onClose={() => setCreateOpen(false)}
         onSaved={(car) => navigate(`/cars/${car.id}`)}
+      />
+
+      <CarFormModal
+        open={editCarId !== null}
+        mode="edit"
+        car={editCar}
+        onClose={() => setEditCarId(null)}
+        onSaved={() => setEditCarId(null)}
+        onDeleted={() => setEditCarId(null)}
       />
     </div>
   );

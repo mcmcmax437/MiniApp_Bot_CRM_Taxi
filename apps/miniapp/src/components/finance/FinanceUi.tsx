@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../crm";
 
-export type FinanceTabId = "payments" | "expenses" | "fleet" | "balances";
+export type FinanceTabId = "payments" | "expenses" | "taxes" | "fleet" | "balances";
 
 const TAB_META: Record<
   FinanceTabId,
@@ -22,6 +22,15 @@ const TAB_META: Record<
     icon: (c) => (
       <Icon stroke={c} fill="none" width="18" height="18">
         <path d="M12 3c-1.5 3-4 5-4 8a4 4 0 0 0 8 0c0-3-2.5-5-4-8z" strokeWidth="1.6" strokeLinejoin="round" />
+      </Icon>
+    ),
+  },
+  taxes: {
+    color: "#ffb74d",
+    icon: (c) => (
+      <Icon stroke={c} fill="none" width="18" height="18">
+        <path d="M6 8h12v10H6z" strokeWidth="1.6" strokeLinejoin="round" />
+        <path d="M9 8V6a3 3 0 0 1 6 0v2" strokeWidth="1.6" />
       </Icon>
     ),
   },
@@ -50,7 +59,7 @@ const TAB_META: Record<
 
 export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: FinanceTabId) => void }) {
   const { t } = useTranslation();
-  const tabs: FinanceTabId[] = ["payments", "expenses", "fleet", "balances"];
+  const tabs: FinanceTabId[] = ["payments", "expenses", "taxes", "fleet", "balances"];
 
   return (
     <div className="crm-finance-tabs glass-card">
@@ -63,9 +72,11 @@ export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: Finan
               ? t("finance.payments")
               : id === "expenses"
                 ? t("finance.expenses")
-                : id === "fleet"
-                  ? t("fleet.title")
-                  : t("finance.balances");
+                : id === "taxes"
+                  ? t("finance.taxes")
+                  : id === "fleet"
+                    ? t("fleet.title")
+                    : t("finance.balances");
 
           return (
             <button

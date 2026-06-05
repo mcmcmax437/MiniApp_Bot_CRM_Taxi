@@ -1,5 +1,4 @@
 import type { ReactNode, SVGProps } from "react";
-import { tg } from "../telegram";
 
 export function Icon(props: SVGProps<SVGSVGElement> & { children: ReactNode }) {
   const { children, ...rest } = props;
@@ -25,23 +24,6 @@ export function AppHeader(props: { title: string; subtitle: string }) {
         <h1 className="crm-header__title">{props.title}</h1>
         <p className="crm-header__subtitle">{props.subtitle}</p>
       </div>
-      <button type="button" className="crm-header__action" aria-label="Menu">
-        <Icon width="20" height="20">
-          <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-          <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-        </Icon>
-      </button>
-      <button
-        type="button"
-        className="crm-header__action"
-        aria-label="Close"
-        onClick={() => tg?.close?.()}
-      >
-        <Icon width="20" height="20">
-          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </Icon>
-      </button>
     </header>
   );
 }

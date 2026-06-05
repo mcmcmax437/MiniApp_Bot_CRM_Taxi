@@ -1,13 +1,16 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { useBalances, useReminders, useReport, useSetLocale } from "../hooks";
-import { formatMoney, formatDate } from "../components/ui";
+import { formatMoney } from "../components/ui";
 import { ImportSection } from "../components/ImportSection";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
+import { ReminderList } from "../components/ReminderList";
 import { AppHeader, Icon, SectionCard, StatCard } from "../components/crm";
 import i18n from "../i18n";
 
 export function Dashboard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const report = useReport();
   const reminders = useReminders();
   const balances = useBalances();
@@ -75,7 +78,7 @@ export function Dashboard() {
         }
         action={
           reminders.data && reminders.data.length > 0 ? (
-            <button type="button" className="crm-link-btn">
+            <button type="button" className="crm-link-btn" onClick={() => navigate("/reminders")}>
               {t("dashboard.viewAll")}
             </button>
           ) : null
@@ -96,25 +99,7 @@ export function Dashboard() {
             <p className="crm-empty-box__subtitle">{t("dashboard.caughtUp")}</p>
           </div>
         ) : (
-          <div className="crm-list">
-            {reminders.data?.slice(0, 20).map((r, idx) => (
-              <div key={`${r.kind}-${r.refId}-${idx}`} className="crm-list-item glass-card">
-                <span className="crm-list-item__icon">{iconFor(r.kind)}</span>
-                <div>
-                  <div className="crm-list-item__title">
-                    {t(`reminder.${r.kind}`)}: {r.label}
-                  </div>
-                  <div className="crm-list-item__subtitle">
-                    {r.daysUntil != null
-                      ? t("reminder.daysUntil", { count: r.daysUntil })
-                      : null}
-                    {r.daysUntil != null && (r.dueDate || r.detail) ? " · " : null}
-                    {r.dueDate ? formatDate(r.dueDate) : r.detail ?? (r.amount != null ? formatMoney(r.amount) : "")}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ReminderList items={reminders.data ?? []} limit={20} />
         )}
       </SectionCard>
 
@@ -206,11 +191,3 @@ export function Dashboard() {
   );
 }
 
-function iconFor(kind: string): string {
-  if (kind === "INSURANCE") return "🛡️";
-  if (kind === "INSPECTION") return "🔧";
-  if (kind === "DOCUMENT") return "📄";
-  if (kind === "MAINTENANCE") return "🛠️";
-  if (kind === "MILEAGE_REPORT") return "📊";
-  return "💸";
-}
