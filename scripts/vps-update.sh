@@ -2,7 +2,7 @@
 # Runs ON the VPS after git pull. Called by GitHub Actions or manually.
 set -euo pipefail
 
-APP_DIR="${VPS_APP_DIR:-/opt/taxi-crm}"
+APP_DIR="${VPS_APP_DIR:-/usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 
 cd "$APP_DIR"

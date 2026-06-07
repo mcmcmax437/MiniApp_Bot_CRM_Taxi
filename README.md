@@ -181,7 +181,7 @@ record at the VPS before requesting a certificate.
    ```
 
    Or copy `scripts/vps-git-bootstrap.sh` to the server and run it. It backs up the existing
-   `/opt/taxi-crm/.env`, clones the repo, and runs the first build.
+   `/usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi/.env`, clones the repo, and runs the first build.
 
 2. In GitHub → **Settings → Secrets and variables → Actions**, add:
 
@@ -193,7 +193,7 @@ record at the VPS before requesting a certificate.
 
 3. Push to `main`. The workflow `.github/workflows/deploy.yml` runs `scripts/vps-update.sh` on the server.
 
-**Server `.env`** (create once at `/opt/taxi-crm/.env`, production values only):
+**Server `.env`** (create once at `/usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi/.env`, production values only):
 
 ```env
 BOT_TOKEN=...

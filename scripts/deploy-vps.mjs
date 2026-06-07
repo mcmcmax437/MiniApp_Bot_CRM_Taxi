@@ -25,7 +25,8 @@ const envPath = path.join(rootDir, ".env");
 
 const step = process.argv[2] || "all";
 const sshTarget = process.env.VPS_SSH_TARGET?.trim() || "vps";
-const appDir = process.env.VPS_APP_DIR?.trim() || "/opt/taxi-crm";
+const appDir =
+  process.env.VPS_APP_DIR?.trim() || "/usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi";
 
 function loadEnvFile() {
   if (!fs.existsSync(envPath)) {
