@@ -27,4 +27,6 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
             "${VPS_USER}@${VPS_HOST}" \
-            'bash /usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi/scripts/vps-update.sh'
+            'cd /usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi' \
+            'chmod +x ./scripts/vps-update.sh' \
+            './scripts/vps-update.sh'
