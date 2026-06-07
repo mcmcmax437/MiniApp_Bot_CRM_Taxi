@@ -35,6 +35,10 @@ NODE_ENV=production npm run db:sync -w @taxi/api
 echo "==> Build Mini App"
 VITE_API_BASE=/api npm run build -w @taxi/miniapp
 
+# nginx (www-data) must traverse the project root to serve dist/
+chmod o+rx "$APP_DIR"
+chmod -R a+rX apps/miniapp/dist
+
 mkdir -p apps/api/uploads
 
 echo "==> Restart PM2"

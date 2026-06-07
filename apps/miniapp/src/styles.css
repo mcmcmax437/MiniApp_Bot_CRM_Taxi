@@ -11,10 +11,18 @@ body,
 
 html {
   color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   background: #08111f;
+  font-family: var(--taxi-font, "Inter Variable", "Inter", sans-serif);
+  font-size: 16px;
+  line-height: 1.45;
+  letter-spacing: -0.011em;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
 }
 
 #root {
@@ -22,6 +30,8 @@ body {
 }
 
 .taxi-crm-theme {
+  --taxi-font: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   --taxi-bg: #08111f;
   --taxi-nav-bg: #09111c;
   --taxi-glass-from: #13263e;
@@ -47,6 +57,27 @@ body {
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   background: var(--taxi-bg, #08111f);
   color: var(--taxi-text, #fff);
+  font-family: var(--taxi-font);
+  font-synthesis: none;
+}
+
+.taxi-crm-theme,
+.taxi-crm-theme button,
+.taxi-crm-theme input,
+.taxi-crm-theme select,
+.taxi-crm-theme textarea {
+  font-family: inherit;
+}
+
+.taxi-crm-theme h1,
+.taxi-crm-theme h2,
+.taxi-crm-theme h3,
+.taxi-crm-theme .crm-page-title,
+.taxi-crm-theme .crm-section__title,
+.taxi-crm-theme .crm-modal-head__title {
+  font-family: var(--taxi-font);
+  letter-spacing: -0.022em;
+  font-weight: 650;
 }
 
 .page {
