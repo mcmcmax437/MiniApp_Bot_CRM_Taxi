@@ -198,9 +198,9 @@ record at the VPS before requesting a certificate.
 ```env
 BOT_TOKEN=...
 TELEGRAM_SUPERADMIN_ID=...
-DOMAIN=taxi.tereshkovych.com.ua
-PUBLIC_URL=https://taxi.tereshkovych.com.ua
-CORS_ORIGINS=https://taxi.tereshkovych.com.ua
+DOMAIN=taxi.example.com
+PUBLIC_URL=https://taxi.example.com
+CORS_ORIGINS=https://taxi.example.com
 MYSQL_USER=taxi
 MYSQL_PASSWORD=...
 MYSQL_DATABASE=taxi
