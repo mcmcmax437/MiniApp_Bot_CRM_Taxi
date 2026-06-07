@@ -19,12 +19,17 @@ function isHeicBlob(blob: Blob, fileName?: string): boolean {
   return false;
 }
 
-/** Browsers cannot render HEIC in <img>; convert to JPEG for previews. */
+/** Browsers cannot render HEIC in <img>; server converts HEIC to JPEG, client fallback if needed. */
 export async function blobForImagePreview(blob: Blob, fileName?: string): Promise<Blob> {
   if (!isHeicBlob(blob, fileName)) return blob;
-  const heic2any = (await import("heic2any")).default;
-  const converted = await heic2any({ blob, toType: "image/jpeg", quality: 0.92 });
-  return Array.isArray(converted) ? converted[0]! : converted;
+  if (blob.type === "image/jpeg" || blob.type === "image/jpg") return blob;
+  try {
+    const heic2any = (await import("heic2any")).default;
+    const converted = await heic2any({ blob, toType: "image/jpeg", quality: 0.92 });
+    return Array.isArray(converted) ? converted[0]! : converted;
+  } catch {
+    return blob;
+  }
 }
 
 export async function fetchDocumentBlob(documentId: string, fileName?: string): Promise<Blob> {

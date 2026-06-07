@@ -23,12 +23,16 @@ export async function apiFetch<T>(
     }
   }
 
+  const headers: Record<string, string> = {
+    Authorization: `tma ${getInitData()}`,
+  };
+  if (options.body != null) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(url.toString(), {
     method: options.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `tma ${getInitData()}`,
-    },
+    headers,
     body: options.body != null ? JSON.stringify(options.body) : undefined,
   });
 

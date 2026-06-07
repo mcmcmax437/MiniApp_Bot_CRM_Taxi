@@ -1,12 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { createReadStream } from "node:fs";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "../prisma.js";
 import { env } from "../env.js";
 import { ownerId } from "./helpers.js";
 import { DocumentRelatedType } from "@taxi/shared";
 import { isImageDocument } from "../services/document-image.js";
+import { heicBufferToJpeg, isHeicFile } from "../services/heic.js";
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
@@ -114,21 +115,34 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: "invalid_related_id" });
     }
 
+    let storedBuffer = fileBuffer;
+    let storedFileName = originalName;
+    let storedMimeType = mimeType;
+    if (isHeicFile(originalName, mimeType)) {
+      try {
+        storedBuffer = await heicBufferToJpeg(fileBuffer);
+        storedFileName = originalName.replace(/\.heif?c$/i, ".jpg");
+        storedMimeType = "image/jpeg";
+      } catch (err) {
+        req.log.warn({ err, originalName }, "HEIC conversion failed on upload");
+      }
+    }
+
     const dir = path.resolve(env.uploadsDir, oid);
     await mkdir(dir, { recursive: true });
-    const safeName = originalName.replace(/[^\w.\-]/g, "_").slice(-80);
+    const safeName = storedFileName.replace(/[^\w.\-]/g, "_").slice(-80);
     const stored = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
     const fullPath = path.join(dir, stored);
-    await writeFile(fullPath, fileBuffer);
+    await writeFile(fullPath, storedBuffer);
 
     const doc = await prisma.document.create({
       data: {
         ownerId: oid,
         relatedType,
         relatedId,
-        fileName: originalName,
+        fileName: storedFileName,
         filePath: path.relative(path.resolve(env.uploadsDir), fullPath),
-        mimeType,
+        mimeType: storedMimeType,
       },
     });
 
@@ -148,6 +162,19 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     if (!doc) return reply.code(404).send({ error: "not_found" });
     const fullPath = path.resolve(env.uploadsDir, doc.filePath);
     const mimeType = resolveMimeType(doc);
+    if (isHeicFile(doc.fileName, doc.mimeType)) {
+      try {
+        const jpeg = await heicBufferToJpeg(await readFile(fullPath));
+        const previewName = doc.fileName.replace(/\.heif?c$/i, ".jpg");
+        reply.header("Content-Disposition", contentDispositionInline(previewName));
+        reply.type("image/jpeg");
+        reply.header("Cache-Control", "private, max-age=3600");
+        return reply.send(jpeg);
+      } catch (err) {
+        req.log.warn({ err, documentId: id }, "HEIC conversion failed on download");
+        return reply.code(422).send({ error: "heic_conversion_failed" });
+      }
+    }
     reply.header("Content-Disposition", contentDispositionInline(doc.fileName));
     reply.type(mimeType);
     if (mimeType.startsWith("image/")) {
