@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useDocuments, useUploadDocument, useDeleteDocument } from "../hooks";
 import { formatDate } from "./ui";
 import { openDocumentFile } from "./documentUtils";
+import { confirmAction } from "../telegram";
 
 export function Documents(props: { relatedType: "CAR" | "DRIVER" | "AGREEMENT"; relatedId: string }) {
   const { t } = useTranslation();
@@ -29,8 +30,13 @@ export function Documents(props: { relatedType: "CAR" | "DRIVER" | "AGREEMENT"; 
               type="button"
               className="crm-doc-file__delete"
               disabled={del.isPending && del.variables === d.id}
-              onClick={() => {
-                if (confirm(t("common.confirmDelete"))) del.mutate(d.id);
+              onClick={async () => {
+                const ok = await confirmAction(
+                  t("common.confirmDelete"),
+                  t("common.delete"),
+                  t("common.cancel"),
+                );
+                if (ok) del.mutate(d.id);
               }}
               aria-label={t("common.delete")}
             >

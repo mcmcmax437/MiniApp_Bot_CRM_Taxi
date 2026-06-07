@@ -14,6 +14,7 @@ import { AppHeader, Icon } from "../components/crm";
 import { DocumentThumbnail } from "../components/DocumentThumbnail";
 import { isImageDocument, isPdfDocument, openDocumentFile } from "../components/documentUtils";
 import { formatDate } from "../components/ui";
+import { confirmAction } from "../telegram";
 
 type Category = "ALL" | DocumentRelatedType;
 
@@ -198,12 +199,36 @@ export function DocumentsPage() {
                 <h3 className="crm-doc-section__title">{t("documents.photos")}</h3>
                 <div className="crm-doc-grid">
                   {imageDocs.map((doc) => (
-                    <DocumentThumbnail
-                      key={doc.id}
-                      documentId={doc.id}
-                      alt={doc.fileName}
-                      onClick={() => void openDocumentFile(doc.id, doc.fileName)}
-                    />
+                    <div key={doc.id} className="crm-car-photo-tile">
+                      <button
+                        type="button"
+                        className="crm-car-photo-tile__select"
+                        onClick={() => void openDocumentFile(doc.id, doc.fileName)}
+                      >
+                        <DocumentThumbnail
+                          documentId={doc.id}
+                          fileName={doc.fileName}
+                          alt={doc.fileName}
+                          className="crm-car-photo-tile__img"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        className="crm-car-photo-tile__remove"
+                        disabled={del.isPending && del.variables === doc.id}
+                        onClick={async () => {
+                          const ok = await confirmAction(
+                            t("common.confirmDelete"),
+                            t("common.delete"),
+                            t("common.cancel"),
+                          );
+                          if (ok) del.mutate(doc.id);
+                        }}
+                        aria-label={t("common.delete")}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   ))}
                 </div>
               </section>
@@ -219,8 +244,13 @@ export function DocumentsPage() {
                       doc={doc}
                       deleting={del.isPending && del.variables === doc.id}
                       onOpen={() => void openDocumentFile(doc.id, doc.fileName)}
-                      onDelete={() => {
-                        if (confirm(t("common.confirmDelete"))) del.mutate(doc.id);
+                      onDelete={async () => {
+                        const ok = await confirmAction(
+                          t("common.confirmDelete"),
+                          t("common.delete"),
+                          t("common.cancel"),
+                        );
+                        if (ok) del.mutate(doc.id);
                       }}
                     />
                   ))}

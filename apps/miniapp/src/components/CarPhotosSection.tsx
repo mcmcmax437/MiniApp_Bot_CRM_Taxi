@@ -11,6 +11,7 @@ import { isImageDocument, isPdfDocument } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
 import { formatDate } from "./ui";
 import { openDocumentFile } from "./documentUtils";
+import { confirmAction } from "../telegram";
 
 export function CarPhotosSection(props: { carId: string; coverDocumentId: string | null | undefined }) {
   const { t } = useTranslation();
@@ -58,8 +59,13 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
                 doc={doc}
                 isCover={props.coverDocumentId === doc.id}
                 onSetCover={() => setCover(doc.id)}
-                onDelete={() => {
-                  if (confirm(t("common.confirmDelete"))) del.mutate(doc.id);
+                onDelete={async () => {
+                  const ok = await confirmAction(
+                    t("common.confirmDelete"),
+                    t("common.delete"),
+                    t("common.cancel"),
+                  );
+                  if (ok) del.mutate(doc.id);
                 }}
                 deleting={del.isPending && del.variables === doc.id}
               />
@@ -106,7 +112,18 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
           <strong>{t("documents.files")}</strong>
           <div className="crm-doc-file-list" style={{ marginTop: 8 }}>
             {files.map((d) => (
-              <FileRow key={d.id} doc={d} onDelete={() => del.mutate(d.id)} />
+              <FileRow
+                key={d.id}
+                doc={d}
+                onDelete={async () => {
+                  const ok = await confirmAction(
+                    t("common.confirmDelete"),
+                    t("common.delete"),
+                    t("common.cancel"),
+                  );
+                  if (ok) del.mutate(d.id);
+                }}
+              />
             ))}
           </div>
         </div>
@@ -167,8 +184,13 @@ function FileRow(props: { doc: DocumentItem; onDelete: () => void }) {
       <button
         type="button"
         className="crm-doc-file__delete"
-        onClick={() => {
-          if (confirm(t("common.confirmDelete"))) props.onDelete();
+        onClick={async () => {
+          const ok = await confirmAction(
+            t("common.confirmDelete"),
+            t("common.delete"),
+            t("common.cancel"),
+          );
+          if (ok) props.onDelete();
         }}
         aria-label={t("common.delete")}
       >
