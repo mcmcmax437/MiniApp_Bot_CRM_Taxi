@@ -127,7 +127,12 @@ function CarImageTile(props: {
   return (
     <div className={`crm-car-photo-tile${props.isCover ? " crm-car-photo-tile--cover" : ""}`}>
       <button type="button" className="crm-car-photo-tile__select" onClick={props.onSetCover}>
-        <DocumentThumbnail documentId={props.doc.id} alt={props.doc.fileName} className="crm-car-photo-tile__img" />
+        <DocumentThumbnail
+          documentId={props.doc.id}
+          fileName={props.doc.fileName}
+          alt={props.doc.fileName}
+          className="crm-car-photo-tile__img"
+        />
         {props.isCover ? <span className="crm-car-photo-tile__badge">{t("cars.coverPhoto")}</span> : null}
       </button>
       <button

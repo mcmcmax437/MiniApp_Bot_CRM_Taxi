@@ -10,6 +10,19 @@ import { isImageDocument } from "../services/document-image.js";
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
+function resolveMimeType(doc: { mimeType: string | null; fileName: string }): string {
+  if (doc.mimeType?.trim()) return doc.mimeType;
+  const lower = doc.fileName.toLowerCase();
+  if (lower.endsWith(".heic")) return "image/heic";
+  if (lower.endsWith(".heif")) return "image/heif";
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (/\.jpe?g$/.test(lower)) return "image/jpeg";
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  return "application/octet-stream";
+}
+
 async function relatedExists(
   oid: string,
   type: DocumentRelatedType,
@@ -60,6 +73,18 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
         fileBuffer = Buffer.concat(chunks);
         originalName = part.filename || originalName;
         mimeType = part.mimetype;
+        if (
+          (!mimeType || mimeType === "application/octet-stream") &&
+          /\.heic$/i.test(originalName)
+        ) {
+          mimeType = "image/heic";
+        }
+        if (
+          (!mimeType || mimeType === "application/octet-stream") &&
+          /\.heif$/i.test(originalName)
+        ) {
+          mimeType = "image/heif";
+        }
       } else if (part.fieldname === "relatedType") {
         relatedType = part.value as DocumentRelatedType;
       } else if (part.fieldname === "relatedId") {
@@ -112,8 +137,12 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     const doc = await prisma.document.findFirst({ where: { id, ownerId: ownerId(req) } });
     if (!doc) return reply.code(404).send({ error: "not_found" });
     const fullPath = path.resolve(env.uploadsDir, doc.filePath);
+    const mimeType = resolveMimeType(doc);
     reply.header("Content-Disposition", `inline; filename="${doc.fileName}"`);
-    reply.type(doc.mimeType ?? "application/octet-stream");
+    reply.type(mimeType);
+    if (mimeType.startsWith("image/")) {
+      reply.header("Cache-Control", "private, max-age=3600");
+    }
     return reply.send(createReadStream(fullPath));
   });
 

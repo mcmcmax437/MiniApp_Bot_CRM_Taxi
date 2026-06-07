@@ -5,6 +5,7 @@ import { Icon } from "./crm";
 export function DocumentThumbnail(props: {
   documentId: string;
   alt: string;
+  fileName?: string;
   className?: string;
   onClick?: () => void;
 }) {
@@ -14,7 +15,7 @@ export function DocumentThumbnail(props: {
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    void fetchDocumentBlob(props.documentId)
+    void fetchDocumentBlob(props.documentId, props.fileName ?? props.alt)
       .then((blob) => {
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
@@ -28,7 +29,7 @@ export function DocumentThumbnail(props: {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [props.documentId]);
+  }, [props.documentId, props.fileName, props.alt]);
 
   if (!src) {
     return (
