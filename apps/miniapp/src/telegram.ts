@@ -1,12 +1,16 @@
 // Lightweight wrapper around the Telegram WebApp global injected by
 // telegram-web-app.js. Falls back to dev values when opened in a normal browser.
 
+import { requestInAppConfirm } from "./confirmBridge";
+
 interface TelegramWebApp {
   initData: string;
   initDataUnsafe: { user?: { id: number; first_name?: string; language_code?: string } };
   colorScheme: "light" | "dark";
   themeParams: Record<string, string>;
   platform: string;
+  viewportHeight?: number;
+  viewportStableHeight?: number;
   ready: () => void;
   expand: () => void;
   setHeaderColor?: (color: string) => void;
@@ -15,6 +19,8 @@ interface TelegramWebApp {
   enableClosingConfirmation?: () => void;
   contentSafeAreaInset?: { top: number; bottom: number; left: number; right: number };
   safeAreaInset?: { top: number; bottom: number; left: number; right: number };
+  onEvent?: (eventType: string, callback: () => void) => void;
+  offEvent?: (eventType: string, callback: () => void) => void;
   showPopup?: (
     params: {
       title?: string;
@@ -24,6 +30,8 @@ interface TelegramWebApp {
     callback?: (buttonId: string) => void,
   ) => void;
 }
+
+const DESKTOP_PLATFORMS = new Set(["tdesktop", "macos", "web", "weba", "unigram", "unknown"]);
 
 declare global {
   interface Window {
@@ -42,8 +50,18 @@ export function initTelegram(): void {
     tg.enableClosingConfirmation?.();
     syncDocumentTheme();
     syncSafeAreaInsets();
+    syncViewportHeight();
+    tg.onEvent?.("viewportChanged", syncViewportHeight);
   } catch {
     /* noop */
+  }
+}
+
+function syncViewportHeight(): void {
+  if (!tg) return;
+  const height = tg.viewportStableHeight ?? tg.viewportHeight;
+  if (height && height > 0) {
+    document.documentElement.style.setProperty("--tg-viewport-height", `${height}px`);
   }
 }
 
@@ -89,21 +107,39 @@ export function getTelegramLocale(): string | undefined {
 
 export const isInsideTelegram = Boolean(tg && tg.initData);
 
-/** Works in Telegram WebView where `window.confirm` is often blocked. */
+function prefersInAppConfirm(): boolean {
+  const platform = getPlatform().toLowerCase();
+  return DESKTOP_PLATFORMS.has(platform) || !tg?.showPopup;
+}
+
+/** Works in Telegram WebView where native dialogs are often blocked or never callback on desktop. */
 export function confirmAction(message: string, confirmLabel: string, cancelLabel: string): Promise<boolean> {
-  if (tg?.showPopup) {
-    return new Promise((resolve) => {
-      tg.showPopup!(
-        {
-          message,
-          buttons: [
-            { id: "confirm", type: "destructive", text: confirmLabel },
-            { id: "cancel", type: "cancel", text: cancelLabel },
-          ],
-        },
-        (buttonId) => resolve(buttonId === "confirm"),
-      );
-    });
+  if (prefersInAppConfirm()) {
+    return requestInAppConfirm(message, confirmLabel, cancelLabel);
   }
-  return Promise.resolve(window.confirm(message));
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(ok);
+    };
+
+    const timer = window.setTimeout(() => {
+      requestInAppConfirm(message, confirmLabel, cancelLabel).then(finish);
+    }, 350);
+
+    tg!.showPopup!(
+      {
+        message,
+        buttons: [
+          { id: "confirm", type: "destructive", text: confirmLabel },
+          { id: "cancel", type: "cancel", text: cancelLabel },
+        ],
+      },
+      (buttonId) => finish(buttonId === "confirm"),
+    );
+  });
 }

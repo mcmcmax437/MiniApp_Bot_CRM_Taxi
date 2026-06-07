@@ -9,6 +9,7 @@ import "./styles.css";
 import "./i18n";
 import { initTelegram, getPlatform } from "./telegram";
 import { App } from "./App";
+import { ConfirmHost } from "./components/ConfirmHost";
 
 initTelegram();
 
@@ -28,7 +29,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         platform={platform}
         style={{
           width: "100%",
-          minHeight: "100vh",
+          minHeight: "var(--tg-viewport-height, 100vh)",
           background: "#08111F",
           fontFamily: '"Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         }}
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <HashRouter>
           <App />
         </HashRouter>
+        <ConfirmHost />
       </AppRoot>
     </QueryClientProvider>
   </React.StrictMode>,

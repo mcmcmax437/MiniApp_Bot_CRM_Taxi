@@ -156,7 +156,11 @@ function CarImageTile(props: {
         type="button"
         className="crm-car-photo-tile__remove"
         disabled={props.deleting}
-        onClick={props.onDelete}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          void props.onDelete();
+        }}
         aria-label={t("common.delete")}
       >
         ✕

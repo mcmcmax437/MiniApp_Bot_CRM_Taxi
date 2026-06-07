@@ -3,7 +3,8 @@ body,
 #root {
   margin: 0;
   padding: 0;
-  height: 100%;
+  height: var(--tg-viewport-height, 100%);
+  min-height: var(--tg-viewport-height, 100%);
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -50,7 +51,7 @@ body {
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: var(--tg-viewport-height, 100vh);
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -753,6 +754,56 @@ body {
   flex-shrink: 0;
 }
 
+.crm-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 12px;
+  background: #ff5252;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.crm-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.crm-confirm-sheet {
+  width: min(100%, 360px);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--taxi-surface-raised, #101c2e);
+  color: var(--taxi-text, #fff);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.crm-confirm-sheet__message {
+  margin: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.crm-confirm-sheet__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .crm-btn-outline {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1015,15 +1066,17 @@ body {
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 24px;
-  height: 24px;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.72);
   color: #fff;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   line-height: 1;
+  touch-action: manipulation;
 }
 
 .crm-car-cover-upload-opt {
@@ -2876,7 +2929,7 @@ div.crm-finance-item {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: var(--tg-viewport-height, 100vh);
   padding: 24px;
   text-align: center;
   background: var(--taxi-bg, #08111f);

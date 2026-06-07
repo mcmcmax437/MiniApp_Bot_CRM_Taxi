@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Placeholder, Spinner } from "@telegram-apps/telegram-ui";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { useMe } from "./hooks";
@@ -29,7 +28,8 @@ export function App() {
   if (me.isLoading) {
     return (
       <div className="center-screen">
-        <Spinner size="l" />
+        <span className="crm-spinner" style={{ width: 32, height: 32 }} />
+        <p style={{ marginTop: 16, color: "var(--taxi-text-muted)" }}>{t("common.loading")}</p>
       </div>
     );
   }
@@ -39,12 +39,11 @@ export function App() {
     const noInitData = !tg?.initData;
     return (
       <div className="center-screen">
-        <Placeholder
-          header={t("pending.title")}
-          description={noInitData ? t("pending.notInTelegram") : status}
-        >
-          <span style={{ fontSize: 56 }}>🚕</span>
-        </Placeholder>
+        <span style={{ fontSize: 56 }}>🚕</span>
+        <h2 style={{ margin: "16px 0 8px", fontSize: 20 }}>{t("pending.title")}</h2>
+        <p style={{ margin: 0, color: "var(--taxi-text-muted)", maxWidth: 320 }}>
+          {noInitData ? t("pending.notInTelegram") : status}
+        </p>
       </div>
     );
   }
@@ -55,13 +54,12 @@ export function App() {
     const suspended = owner.status === "SUSPENDED";
     return (
       <div className="center-screen">
-        <Placeholder
-          header={suspended ? t("pending.title") : t("pending.title")}
-          description={suspended ? t("pending.suspended") : t("pending.text")}
-        >
-          <span style={{ fontSize: 56 }}>{suspended ? "⛔" : "⏳"}</span>
-        </Placeholder>
-        <p style={{ marginTop: 16, color: "var(--tgui--hint_color)" }}>
+        <span style={{ fontSize: 56 }}>{suspended ? "⛔" : "⏳"}</span>
+        <h2 style={{ margin: "16px 0 8px", fontSize: 20 }}>{t("pending.title")}</h2>
+        <p style={{ margin: 0, color: "var(--taxi-text-muted)", maxWidth: 320 }}>
+          {suspended ? t("pending.suspended") : t("pending.text")}
+        </p>
+        <p style={{ marginTop: 16, color: "var(--taxi-text-muted)" }}>
           {t("pending.yourId")}: <code>{owner.telegramUserId}</code>
         </p>
       </div>
