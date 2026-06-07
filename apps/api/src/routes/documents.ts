@@ -23,6 +23,16 @@ function resolveMimeType(doc: { mimeType: string | null; fileName: string }): st
   return "application/octet-stream";
 }
 
+/** HTTP headers allow ASCII only in quoted filename=; use RFC 5987 filename* for Unicode. */
+function contentDispositionInline(fileName: string): string {
+  const ascii = fileName
+    .replace(/[\r\n"\\]/g, "")
+    .replace(/[^\x20-\x7E]/g, "_")
+    .trim()
+    .slice(0, 180) || "file";
+  return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+}
+
 async function relatedExists(
   oid: string,
   type: DocumentRelatedType,
@@ -138,7 +148,7 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     if (!doc) return reply.code(404).send({ error: "not_found" });
     const fullPath = path.resolve(env.uploadsDir, doc.filePath);
     const mimeType = resolveMimeType(doc);
-    reply.header("Content-Disposition", `inline; filename="${doc.fileName}"`);
+    reply.header("Content-Disposition", contentDispositionInline(doc.fileName));
     reply.type(mimeType);
     if (mimeType.startsWith("image/")) {
       reply.header("Cache-Control", "private, max-age=3600");
