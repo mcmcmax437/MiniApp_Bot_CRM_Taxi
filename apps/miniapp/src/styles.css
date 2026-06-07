@@ -95,16 +95,6 @@ body {
   gap: 16px;
 }
 
-.dashboard-start-circle {
-  width: min(72vw, 220px);
-  height: min(72vw, 220px);
-  margin: 8px auto 4px;
-  border-radius: 50%;
-  background: #ff3b30;
-  box-shadow: 0 12px 40px rgba(255, 59, 48, 0.35);
-  flex-shrink: 0;
-}
-
 .crm-page > .crm-stat-grid,
 .crm-page > .crm-section {
   margin-top: 4px;
