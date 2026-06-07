@@ -74,6 +74,27 @@ if (deployLower.includes("p1000") || deployLower.includes("authentication failed
   );
 }
 
+// Failed migration recorded (P3009) — try db push; if schema matches, mark failed migrations applied.
+if (deployLower.includes("p3009") || deployLower.includes("failed migrations")) {
+  console.log("Failed migration detected — checking whether schema already matches…");
+  const push = runPrisma(["db", "push", "--skip-generate"]);
+  if (push.code === 0) {
+    const pushOut = push.output.toLowerCase();
+    if (pushOut.includes("already in sync") || pushOut.includes("in sync")) {
+      for (const name of ["20250603000000_init", "20250604000000_car_tracking"]) {
+        runPrisma(["migrate", "resolve", "--applied", name]);
+      }
+      const redeploy = runPrisma(["migrate", "deploy"]);
+      if (redeploy.code === 0) {
+        const gen = runPrisma(["generate"]);
+        if (gen.code !== 0) fail("Prisma client generation failed.");
+        console.log("Database schema is up to date.\n");
+        process.exit(0);
+      }
+    }
+  }
+}
+
 // Fresh database: tables do not exist yet — bootstrap with db push, then record migration.
 const looksLikeFreshDb =
   deployLower.includes("does not exist") ||

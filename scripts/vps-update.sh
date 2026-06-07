@@ -22,6 +22,9 @@ git fetch origin "$BRANCH"
 git checkout "$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
+echo "==> Apply production .env (VPS_MYSQL_* → MYSQL_*)"
+node scripts/vps-apply-production-env.mjs
+
 echo "==> Install dependencies"
 npm ci
 
