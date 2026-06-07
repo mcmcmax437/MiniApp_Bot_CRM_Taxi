@@ -32,6 +32,8 @@ export function Dashboard() {
     <div className="crm-page">
       <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
 
+      <div className="dashboard-start-circle" aria-hidden="true" />
+
       <div className="crm-stat-grid">
         <StatCard
           label={t("dashboard.income")}
