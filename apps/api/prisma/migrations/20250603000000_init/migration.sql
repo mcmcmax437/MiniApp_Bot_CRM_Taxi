@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE `Owner` (
     `id` VARCHAR(191) NOT NULL,
     `telegramUserId` BIGINT NOT NULL,

@@ -8,6 +8,7 @@ COPY package.json ./
 COPY packages ./packages
 COPY apps/miniapp ./apps/miniapp
 RUN npm install
+ENV VITE_API_BASE=/api
 RUN npm run build -w @taxi/miniapp
 
 # --- Stage 2: Caddy serving static files + API reverse proxy ---

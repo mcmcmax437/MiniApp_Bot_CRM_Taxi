@@ -9,6 +9,9 @@ npm-debug.log*
 .env.*
 !.env.example
 
+deploy/.deploy-bundle.tgz
+deploy/.nginx-ip.conf
+
 # Prisma
 apps/api/prisma/*.db
 

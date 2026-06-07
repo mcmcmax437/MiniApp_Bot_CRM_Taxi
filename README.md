@@ -164,9 +164,76 @@ needs to be published.
 
 ## 5. Production / VPS deployment
 
-For production, use the Docker workflow in section 3 above (`docker compose up -d --build`),
-which provisions MySQL, the API, the bot, and Caddy (automatic HTTPS) together. Keep
-`DEV_BYPASS_AUTH=false` in production.
+Telegram Mini Apps require **HTTPS** on a real domain. Point your domain's DNS **A** (or **AAAA**)
+record at the VPS before requesting a certificate.
+
+### Option A — Git push → VPS (recommended)
+
+**Normal workflow:** commit → `git push` → GitHub Actions SSHs to the VPS → `git pull` → build → PM2 restart.
+
+**One-time server setup** (after the repo is on GitHub):
+
+1. On the VPS, clone the repo and keep `.env` on the server only (never commit `.env`):
+
+   ```bash
+   ssh vps
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/mcmcmax437/MiniApp_Bot_CRM_Taxi/main/scripts/vps-git-bootstrap.sh)"
+   ```
+
+   Or copy `scripts/vps-git-bootstrap.sh` to the server and run it. It backs up the existing
+   `/opt/taxi-crm/.env`, clones the repo, and runs the first build.
+
+2. In GitHub → **Settings → Secrets and variables → Actions**, add:
+
+   | Secret | Example |
+   |--------|---------|
+   | `VPS_HOST` | `173.242.52.16` |
+   | `VPS_USER` | `root` |
+   | `VPS_SSH_PRIVATE_KEY` | contents of your private SSH key (the one that can `ssh vps`) |
+
+3. Push to `main`. The workflow `.github/workflows/deploy.yml` runs `scripts/vps-update.sh` on the server.
+
+**Server `.env`** (create once at `/opt/taxi-crm/.env`, production values only):
+
+```env
+BOT_TOKEN=...
+TELEGRAM_SUPERADMIN_ID=...
+DOMAIN=taxi.tereshkovych.com.ua
+PUBLIC_URL=https://taxi.tereshkovych.com.ua
+CORS_ORIGINS=https://taxi.tereshkovych.com.ua
+MYSQL_USER=taxi
+MYSQL_PASSWORD=...
+MYSQL_DATABASE=taxi
+MYSQL_HOST=127.0.0.1
+NODE_ENV=production
+RUN_SCHEDULER=true
+DEV_BYPASS_AUTH=false
+VITE_API_BASE=/api
+```
+
+4. In @BotFather, set the Mini App / menu button URL to `PUBLIC_URL`.
+
+### Option A2 — Manual deploy from your PC (fallback)
+
+If GitHub Actions is not set up yet:
+
+```bash
+npm run deploy:vps        # upload + build (no git)
+npm run deploy:vps:ssl    # HTTPS
+```
+
+| Command | Purpose |
+|---------|---------|
+| `git push origin main` | **Preferred** — triggers GitHub deploy |
+| `npm run deploy:vps` | Manual fallback (tar upload from PC) |
+| `npm run deploy:vps:ssl` | Let's Encrypt HTTPS |
+
+### Option B — Docker Compose + Caddy
+
+If Docker is installed on the VPS, use section 3 (`docker compose up -d --build`). Caddy
+provisions HTTPS automatically when `DOMAIN` in `.env` points at the server.
+
+Keep `DEV_BYPASS_AUTH=false` in production for either option.
 
 ## How it works
 

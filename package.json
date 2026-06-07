@@ -24,7 +24,13 @@
     "prisma:generate": "npm run prisma:generate -w @taxi/api",
     "prisma:migrate": "npm run prisma:migrate -w @taxi/api",
     "prisma:deploy": "npm run prisma:deploy -w @taxi/api",
-    "seed": "npm run seed -w @taxi/api"
+    "seed": "npm run seed -w @taxi/api",
+    "db:vps:test": "node scripts/vps-db.mjs test",
+    "db:vps:sync": "node scripts/vps-db.mjs sync",
+    "db:vps:tunnel": "node scripts/vps-db.mjs tunnel",
+    "deploy:vps": "node scripts/deploy-vps.mjs",
+    "deploy:vps:app": "node scripts/deploy-vps.mjs app",
+    "deploy:vps:ssl": "node scripts/deploy-vps.mjs ssl"
   },
   "engines": {
     "node": ">=20"

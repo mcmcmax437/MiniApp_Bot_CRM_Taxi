@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Runs ON the VPS after git pull. Called by GitHub Actions or manually.
+set -euo pipefail
+
+APP_DIR="${VPS_APP_DIR:-/opt/taxi-crm}"
+BRANCH="${DEPLOY_BRANCH:-main}"
+
+cd "$APP_DIR"
+
+if [[ ! -f .env ]]; then
+  echo "Missing $APP_DIR/.env — create it once on the server (not in git)."
+  exit 1
+fi
+
+if [[ ! -d .git ]]; then
+  echo "Not a git repo. Run: bash scripts/vps-git-bootstrap.sh"
+  exit 1
+fi
+
+echo "==> Pull $BRANCH"
+git fetch origin "$BRANCH"
+git checkout "$BRANCH"
+git pull --ff-only origin "$BRANCH"
+
+echo "==> Install dependencies"
+npm ci
+
+echo "==> Prisma + database"
+npm run prisma:generate -w @taxi/api
+NODE_ENV=production npm run db:sync -w @taxi/api
+
+echo "==> Build Mini App"
+VITE_API_BASE=/api npm run build -w @taxi/miniapp
+
+mkdir -p apps/api/uploads
+
+echo "==> Restart PM2"
+pm2 startOrReload deploy/ecosystem.config.cjs
+pm2 save
+
+echo "==> Deploy done ($(git rev-parse --short HEAD))"
