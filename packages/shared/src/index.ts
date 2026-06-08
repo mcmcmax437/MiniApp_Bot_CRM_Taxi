@@ -41,10 +41,11 @@ export type AgreementStatus = (typeof AgreementStatus)[keyof typeof AgreementSta
 export const PaymentMethod = {
   CASH: "CASH",
   BANK: "BANK",
-  CARD: "CARD",
-  OTHER: "OTHER",
 } as const;
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+/** Payment methods offered in the UI (cash and bank transfer). */
+export const PAYMENT_METHODS = [PaymentMethod.CASH, PaymentMethod.BANK] as const;
 
 export const PaymentType = {
   RENT: "RENT",
@@ -366,6 +367,8 @@ export const expenseCreateSchema = z.object({
   amount: money,
   date: isoDate,
   note: z.string().trim().max(2000).optional().nullable(),
+  paidByPartner: z.boolean().default(false),
+  partnerSettled: z.boolean().default(false),
 });
 export const expenseUpdateSchema = expenseCreateSchema.partial();
 export type ExpenseCreateInput = z.infer<typeof expenseCreateSchema>;

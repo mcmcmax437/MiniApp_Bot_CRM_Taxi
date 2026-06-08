@@ -151,6 +151,8 @@ export interface Expense {
   amount: number;
   date: string;
   note: string | null;
+  paidByPartner: boolean;
+  partnerSettled: boolean;
   createdAt?: string;
   car?: { id: string; plate: string } | null;
 }

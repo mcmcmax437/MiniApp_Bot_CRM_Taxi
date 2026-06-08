@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PaymentMethod, PaymentType, ExpenseCategory } from "@taxi/shared";
+import { PAYMENT_METHODS, PaymentMethod, PaymentType, ExpenseCategory } from "@taxi/shared";
 import {
   usePayments,
   useExpenses,
@@ -134,7 +134,7 @@ function PaymentsTab() {
       carId: p.carId ?? "",
       amount: p.amount,
       date: p.date.slice(0, 10),
-      method: p.method,
+      method: p.method === PaymentMethod.CASH ? PaymentMethod.CASH : PaymentMethod.BANK,
       type: p.type,
       note: p.note ?? "",
     });
@@ -301,18 +301,24 @@ function ExpensesTab() {
     amount: number | "";
     date: string;
     note: string;
+    paidByPartner: boolean;
+    partnerSettled: boolean;
   }>({
     carId: "",
     category: ExpenseCategory.FUEL,
     amount: "",
     date: todayInput(),
     note: "",
+    paidByPartner: false,
+    partnerSettled: false,
   });
 
   const all = (expenses.data ?? []).filter((e) => e.category !== ExpenseCategory.TAX);
   const total = all.reduce((s, e) => s + e.amount, 0);
   const monthItems = all.filter((e) => financeInPeriod(e.date, "month"));
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
+  const partnerUnsettled = all.filter((e) => e.paidByPartner && !e.partnerSettled);
+  const partnerUnsettledSum = partnerUnsettled.reduce((s, e) => s + e.amount, 0);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -326,7 +332,15 @@ function ExpensesTab() {
 
   function openCreate() {
     setEditId(null);
-    setForm({ carId: "", category: ExpenseCategory.FUEL, amount: "", date: todayInput(), note: "" });
+    setForm({
+      carId: "",
+      category: ExpenseCategory.FUEL,
+      amount: "",
+      date: todayInput(),
+      note: "",
+      paidByPartner: false,
+      partnerSettled: false,
+    });
     setOpen(true);
   }
 
@@ -341,6 +355,8 @@ function ExpensesTab() {
           amount: form.amount,
           date: form.date,
           note: form.note || null,
+          paidByPartner: form.paidByPartner,
+          partnerSettled: form.paidByPartner ? form.partnerSettled : false,
         },
       },
       { onSuccess: () => setOpen(false) },
@@ -350,6 +366,21 @@ function ExpensesTab() {
   return (
     <>
       <FinanceAddButton label={t("finance.addExpense")} onClick={openCreate} />
+
+      {partnerUnsettled.length > 0 ? (
+        <div className="crm-partner-banner glass-card">
+          <Icon name="information-circle" size={22} color="#ffb74d" />
+          <div>
+            <div className="crm-partner-banner__title">{t("finance.partnerUnsettledTitle")}</div>
+            <div className="crm-partner-banner__subtitle">
+              {t("finance.partnerUnsettledSummary", {
+                count: partnerUnsettled.length,
+                amount: formatMoney(partnerUnsettledSum),
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <FinanceStatsRow>
         <FinanceStatCard
@@ -394,26 +425,45 @@ function ExpensesTab() {
         />
       ) : (
         <FinanceList loading={expenses.isLoading}>
-          {filtered.map((e) => (
-            <FinanceListItem
-              key={e.id}
-              title={t(`finance.${e.category}`)}
-              subtitle={`${formatDate(e.date)} • ${e.car?.plate ?? t("common.none")}`}
-              amount={formatMoney(e.amount)}
-              amountTone="expense"
-              onClick={() => {
-                setEditId(e.id);
-                setForm({
-                  carId: e.carId ?? "",
-                  category: e.category,
-                  amount: e.amount,
-                  date: e.date.slice(0, 10),
-                  note: e.note ?? "",
-                });
-                setOpen(true);
-              }}
-            />
-          ))}
+          {filtered.map((e) => {
+            const partnerOpen = e.paidByPartner && !e.partnerSettled;
+            return (
+              <FinanceListItem
+                key={e.id}
+                title={t(`finance.${e.category}`)}
+                subtitle={`${formatDate(e.date)} • ${e.car?.plate ?? t("common.none")}`}
+                badge={
+                  partnerOpen
+                    ? t("finance.partnerUnsettledBadge")
+                    : e.paidByPartner && e.partnerSettled
+                      ? t("finance.partnerSettledBadge")
+                      : undefined
+                }
+                className={
+                  partnerOpen
+                    ? "crm-finance-item--partner-unsettled"
+                    : e.paidByPartner && e.partnerSettled
+                      ? "crm-finance-item--partner-settled"
+                      : undefined
+                }
+                amount={formatMoney(e.amount)}
+                amountTone="expense"
+                onClick={() => {
+                  setEditId(e.id);
+                  setForm({
+                    carId: e.carId ?? "",
+                    category: e.category,
+                    amount: e.amount,
+                    date: e.date.slice(0, 10),
+                    note: e.note ?? "",
+                    paidByPartner: e.paidByPartner,
+                    partnerSettled: e.partnerSettled,
+                  });
+                  setOpen(true);
+                }}
+              />
+            );
+          })}
         </FinanceList>
       )}
 
@@ -466,6 +516,30 @@ function ExpensesTab() {
         <Field label={t("finance.note")}>
           <TextInput value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
         </Field>
+        <label className="crm-checkbox-field">
+          <input
+            type="checkbox"
+            checked={form.paidByPartner}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                paidByPartner: e.target.checked,
+                partnerSettled: e.target.checked ? form.partnerSettled : false,
+              })
+            }
+          />
+          <span>{t("finance.paidByPartner")}</span>
+        </label>
+        {form.paidByPartner ? (
+          <label className="crm-checkbox-field">
+            <input
+              type="checkbox"
+              checked={form.partnerSettled}
+              onChange={(e) => setForm({ ...form, partnerSettled: e.target.checked })}
+            />
+            <span>{t("finance.partnerSettled")}</span>
+          </label>
+        ) : null}
       </Modal>
     </>
   );
@@ -591,7 +665,7 @@ function PaymentModal(props: {
         <SelectInput
           value={form.method}
           onChange={(v) => setForm({ ...form, method: v })}
-          options={Object.values(PaymentMethod).map((x) => ({ value: x, label: t(`finance.${x}`) }))}
+          options={PAYMENT_METHODS.map((x) => ({ value: x, label: t(`finance.${x}`) }))}
         />
       </Field>
       <Field label={t("finance.note")}>

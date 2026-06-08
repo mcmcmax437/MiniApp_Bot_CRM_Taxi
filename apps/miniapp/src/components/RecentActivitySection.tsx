@@ -15,6 +15,7 @@ interface ActivityItem {
   subtitle: string;
   amount: number;
   sortAt: number;
+  partnerUnsettled?: boolean;
 }
 
 function paymentSortTime(p: Payment): number {
@@ -57,6 +58,9 @@ export function RecentActivitySection() {
 
     for (const e of expenses.data ?? []) {
       const parts = [formatDate(e.date), e.car?.plate, e.note].filter(Boolean);
+      if (e.paidByPartner && !e.partnerSettled) {
+        parts.push(t("finance.partnerUnsettledBadge"));
+      }
       rows.push({
         id: `expense-${e.id}`,
         kind: "expense",
@@ -64,6 +68,7 @@ export function RecentActivitySection() {
         subtitle: parts.join(" · "),
         amount: e.amount,
         sortAt: expenseSortTime(e),
+        partnerUnsettled: e.paidByPartner && !e.partnerSettled,
       });
     }
 
@@ -93,7 +98,10 @@ export function RecentActivitySection() {
       ) : (
         <ul className="crm-activity-feed">
           {items.map((item) => (
-            <li key={item.id} className={`crm-activity-feed__item crm-activity-feed__item--${item.kind}`}>
+            <li
+              key={item.id}
+              className={`crm-activity-feed__item crm-activity-feed__item--${item.kind}${item.partnerUnsettled ? " crm-activity-feed__item--partner-unsettled" : ""}`}
+            >
               <div className="crm-activity-feed__main">
                 <div className="crm-activity-feed__title">{item.title}</div>
                 <div className="crm-activity-feed__meta">{item.subtitle}</div>

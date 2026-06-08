@@ -199,9 +199,12 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
           driverId,
           amount,
           date,
-          method: (Object.values(PaymentMethod) as string[]).includes(methodRaw)
-            ? (methodRaw as PaymentMethod)
-            : PaymentMethod.CASH,
+          method:
+            methodRaw === PaymentMethod.CASH
+              ? PaymentMethod.CASH
+              : methodRaw === PaymentMethod.BANK || methodRaw === "CARD" || methodRaw === "OTHER"
+                ? PaymentMethod.BANK
+                : PaymentMethod.CASH,
           type: (Object.values(PaymentType) as string[]).includes(typeRaw)
             ? (typeRaw as PaymentType)
             : PaymentType.RENT,

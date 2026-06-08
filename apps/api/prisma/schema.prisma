@@ -43,8 +43,6 @@ enum AgreementStatus {
 enum PaymentMethod {
   CASH
   BANK
-  CARD
-  OTHER
 }
 
 enum PaymentType {
@@ -340,10 +338,12 @@ model Expense {
   carId     String?
   car       Car?            @relation(fields: [carId], references: [id], onDelete: SetNull)
   category  ExpenseCategory @default(OTHER)
-  amount    Float
-  date      DateTime
-  note      String?
-  createdAt DateTime        @default(now())
+  amount          Float
+  date            DateTime
+  note            String?
+  paidByPartner   Boolean         @default(false)
+  partnerSettled  Boolean         @default(false)
+  createdAt       DateTime        @default(now())
 
   @@index([ownerId])
   @@index([ownerId, date])

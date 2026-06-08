@@ -17,6 +17,7 @@ const ALL_MIGRATIONS = [
   "20250607000000_car_vin_tracker",
   "20250608000000_driver_postal_code",
   "20250609000000_document_meta",
+  "20250610000000_payment_partner_expense",
 ];
 
 function failedMigrationName(output) {

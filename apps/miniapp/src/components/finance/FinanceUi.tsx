@@ -232,16 +232,22 @@ export function FinanceList(props: { loading?: boolean; children: ReactNode }) {
 export function FinanceListItem(props: {
   title: string;
   subtitle?: string;
+  badge?: string;
   amount?: string;
   amountTone?: "income" | "expense" | "neutral";
+  className?: string;
   onClick?: () => void;
 }) {
   const tone = props.amountTone ?? "neutral";
   const Tag = props.onClick ? "button" : "div";
+  const rootClass = ["crm-finance-item", props.className].filter(Boolean).join(" ");
   return (
-    <Tag type={props.onClick ? "button" : undefined} className="crm-finance-item" onClick={props.onClick}>
+    <Tag type={props.onClick ? "button" : undefined} className={rootClass} onClick={props.onClick}>
       <div className="crm-finance-item__main">
-        <div className="crm-finance-item__title">{props.title}</div>
+        <div className="crm-finance-item__title-row">
+          <div className="crm-finance-item__title">{props.title}</div>
+          {props.badge ? <span className="crm-finance-item__badge">{props.badge}</span> : null}
+        </div>
         {props.subtitle ? <div className="crm-finance-item__subtitle">{props.subtitle}</div> : null}
       </div>
       {props.amount ? (
