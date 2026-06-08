@@ -1662,10 +1662,35 @@ body {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .crm-fleet-row .crm-finance-item {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.crm-fleet-row .crm-finance-item__main {
+  min-width: 0;
+}
+
+.crm-fleet-row .crm-finance-item__title,
+.crm-fleet-row .crm-finance-item__subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-fleet-row .crm-finance-item__amount {
+  max-width: 46%;
+  white-space: normal;
+  text-align: right;
+  word-break: break-word;
+  line-height: 1.25;
 }
 
 .crm-fleet-row__action {
@@ -1724,7 +1749,7 @@ body {
     display: none;
   }
 
-  .crm-filter-btn span {
+  .crm-filter-btn__label {
     display: none;
   }
 
@@ -2033,42 +2058,60 @@ body {
 /* Finance page */
 .crm-finance-tabs {
   margin-top: 16px;
-  padding: 6px;
+  padding: 8px;
   overflow: hidden;
 }
 
 .crm-finance-tabs__scroll {
   display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.crm-finance-tabs__scroll::-webkit-scrollbar {
-  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .crm-finance-tab {
-  flex: 1 0 auto;
-  min-width: max-content;
+  flex: 1 1 calc(33.333% - 6px);
+  min-width: 96px;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 0;
-  border-radius: 16px;
-  padding: 10px 12px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.crm-finance-tab__icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.crm-finance-tab__label {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .crm-finance-tab--active {
-  background: #153d7a;
+  background: linear-gradient(135deg, #1a4f9c, #153d7a);
+  border-color: rgba(91, 157, 255, 0.45);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(21, 61, 122, 0.35);
+}
+
+.crm-finance-tab--active .crm-finance-tab__icon {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .crm-finance-add-btn {
@@ -2254,12 +2297,18 @@ body {
   flex-direction: column;
   gap: 10px;
   margin-top: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .crm-finance-item {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: center;
   text-align: left;
@@ -2269,6 +2318,10 @@ body {
   color: inherit;
   padding: 14px 16px;
   cursor: pointer;
+}
+
+.crm-finance-item__main {
+  min-width: 0;
 }
 
 div.crm-finance-item {
@@ -2311,22 +2364,29 @@ div.crm-finance-item {
 }
 
 @media (max-width: 640px) {
-  .crm-finance-tab span {
-    display: none;
-  }
-
   .crm-finance-tab {
-    min-width: 44px;
-    padding: 10px;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
   }
 
-  .crm-finance-filter-btn span {
+  .crm-finance-filter-btn__label {
     display: none;
   }
 
   .crm-finance-filter-btn {
     min-width: 52px;
     padding: 0 12px;
+  }
+
+  .crm-fleet-row .crm-finance-item {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .crm-fleet-row .crm-finance-item__amount {
+    max-width: none;
+    text-align: left;
+    font-size: 14px;
   }
 }
 

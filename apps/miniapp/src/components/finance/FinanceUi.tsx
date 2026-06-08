@@ -57,9 +57,10 @@ export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: Finan
               type="button"
               className={`crm-finance-tab${active ? " crm-finance-tab--active" : ""}`}
               onClick={() => props.onChange(id)}
+              aria-current={active ? "page" : undefined}
             >
-              {meta.icon(active ? "#fff" : meta.color)}
-              <span>{label}</span>
+              <span className="crm-finance-tab__icon">{meta.icon(active ? "#fff" : meta.color)}</span>
+              <span className="crm-finance-tab__label">{label}</span>
             </button>
           );
         })}
@@ -140,7 +141,7 @@ export function FinanceSearchRow(props: {
           onClick={() => props.onPeriodOpenChange(!props.periodOpen)}
         >
           <Icon name="calendar-01" size={18} color="rgba(255,255,255,0.7)" />
-          <span>{t("finance.period")}</span>
+          <span className="crm-finance-filter-btn__label">{t("finance.period")}</span>
           <Icon name="arrow-down-01" size={16} color="rgba(255,255,255,0.5)" />
         </button>
         {props.periodOpen ? (
@@ -170,7 +171,7 @@ export function FinanceSearchRow(props: {
             onClick={props.onFilterClick}
           >
             <Icon name="filter" size={18} color="rgba(255,255,255,0.7)" />
-            <span>{props.filterLabel ?? t("finance.filter")}</span>
+            <span className="crm-finance-filter-btn__label">{props.filterLabel ?? t("finance.filter")}</span>
           </button>
           {props.filterMenu}
         </div>

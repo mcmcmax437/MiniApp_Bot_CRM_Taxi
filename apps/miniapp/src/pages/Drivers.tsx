@@ -304,7 +304,7 @@ export function DriversPage() {
             onClick={() => setFilterOpen((v) => !v)}
           >
             <Icon name="filter" size={20} color="rgba(255,255,255,0.7)" />
-            <span>{t("drivers.filter")}</span>
+            <span className="crm-filter-btn__label">{t("drivers.filter")}</span>
           </button>
 
           {filterOpen ? (
