@@ -231,6 +231,7 @@ export const driverCreateSchema = z.object({
   pesel: z.string().trim().max(11).optional().nullable(),
   passportNumber: z.string().trim().max(32).optional().nullable(),
   addressCity: z.string().trim().max(128).optional().nullable(),
+  addressPostalCode: z.string().trim().max(16).optional().nullable(),
   addressStreet: z.string().trim().max(128).optional().nullable(),
   addressHouse: z.string().trim().max(32).optional().nullable(),
   addressFlat: z.string().trim().max(32).optional().nullable(),
@@ -248,11 +249,12 @@ export const driverFormSchema = z
   .object({
     firstName: z.string().trim().min(1).max(64),
     lastName: z.string().trim().min(1).max(64),
-    phone: z.string().trim().min(1).max(32),
+    phone: z.string().trim().max(32).optional().nullable(),
     telegramUsername: z.string().trim().max(64).optional().nullable(),
     pesel: z.string().trim().max(11).optional().nullable(),
     passportNumber: z.string().trim().max(32).optional().nullable(),
     addressCity: z.string().trim().min(1).max(128),
+    addressPostalCode: z.string().trim().min(1).max(16),
     addressStreet: z.string().trim().min(1).max(128),
     addressHouse: z.string().trim().min(1).max(32),
     addressFlat: z.string().trim().min(1).max(32),
@@ -283,6 +285,7 @@ export function driverFormFieldErrors(input: {
   pesel: string;
   passportNumber: string;
   addressCity: string;
+  addressPostalCode: string;
   addressStreet: string;
   addressHouse: string;
   addressFlat: string;
@@ -294,11 +297,12 @@ export function driverFormFieldErrors(input: {
   const result = driverFormSchema.safeParse({
     firstName: input.firstName,
     lastName: input.lastName,
-    phone: input.phone,
+    phone: input.phone || null,
     telegramUsername: input.telegramUsername || null,
     pesel: input.pesel || null,
     passportNumber: input.passportNumber || null,
     addressCity: input.addressCity,
+    addressPostalCode: input.addressPostalCode,
     addressStreet: input.addressStreet,
     addressHouse: input.addressHouse,
     addressFlat: input.addressFlat,

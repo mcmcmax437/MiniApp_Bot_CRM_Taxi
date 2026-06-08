@@ -152,6 +152,9 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
           pesel: pick(row, ["pesel", "PESEL", "песель"]) ?? null,
           passportNumber: pick(row, ["passport", "passportNumber", "паспорт"]) ?? null,
           addressCity: pick(row, ["city", "addressCity", "місто", "город"]) ?? null,
+          addressPostalCode:
+            pick(row, ["postalCode", "addressPostalCode", "zip", "postcode", "індекс", "индекс", "поштовий"]) ??
+            null,
           addressStreet: pick(row, ["street", "addressStreet", "вулиця", "улица"]) ?? null,
           addressHouse: pick(row, ["house", "addressHouse", "будинок", "дом"]) ?? null,
           addressFlat: pick(row, ["flat", "addressFlat", "квартира"]) ?? null,

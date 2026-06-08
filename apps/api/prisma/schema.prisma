@@ -269,6 +269,7 @@ model Driver {
   pesel            String?
   passportNumber   String?
   addressCity      String?
+  addressPostalCode String?
   addressStreet    String?
   addressHouse     String?
   addressFlat      String?

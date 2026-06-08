@@ -49,6 +49,7 @@ interface DriverForm {
   pesel: string;
   passportNumber: string;
   addressCity: string;
+  addressPostalCode: string;
   addressStreet: string;
   addressHouse: string;
   addressFlat: string;
@@ -66,6 +67,7 @@ const emptyForm: DriverForm = {
   pesel: "",
   passportNumber: "",
   addressCity: "",
+  addressPostalCode: "",
   addressStreet: "",
   addressHouse: "",
   addressFlat: "",
@@ -86,6 +88,7 @@ function driverToForm(d: Driver): DriverForm {
     pesel: d.pesel ?? "",
     passportNumber: d.passportNumber ?? "",
     addressCity: d.addressCity ?? "",
+    addressPostalCode: d.addressPostalCode ?? "",
     addressStreet: d.addressStreet ?? "",
     addressHouse: d.addressHouse ?? "",
     addressFlat: d.addressFlat ?? "",
@@ -154,6 +157,7 @@ export function DriversPage() {
         d.pesel,
         d.passportNumber,
         d.addressCity,
+        d.addressPostalCode,
         d.addressStreet,
       ]
         .filter(Boolean)
@@ -259,6 +263,7 @@ export function DriversPage() {
       pesel: form.pesel || null,
       passportNumber: form.passportNumber || null,
       addressCity: form.addressCity || null,
+      addressPostalCode: form.addressPostalCode || null,
       addressStreet: form.addressStreet || null,
       addressHouse: form.addressHouse || null,
       addressFlat: form.addressFlat || null,
@@ -445,11 +450,10 @@ export function DriversPage() {
             onChange={(v) => patchForm({ lastName: v })}
           />
         </Field>
-        <Field label={t("drivers.phone")} invalid={fieldInvalid("phone")} errorMessage={fieldErrorMessage("phone")}>
+        <Field label={t("drivers.phone")}>
           <TextInput
             value={form.phone}
             placeholder={ph(t, "phone")}
-            invalid={fieldInvalid("phone")}
             onChange={(v) => patchForm({ phone: v })}
           />
         </Field>
@@ -505,6 +509,18 @@ export function DriversPage() {
             placeholder={ph(t, "addressCity")}
             invalid={fieldInvalid("addressCity")}
             onChange={(v) => patchForm({ addressCity: v })}
+          />
+        </Field>
+        <Field
+          label={t("drivers.addressPostalCode")}
+          invalid={fieldInvalid("addressPostalCode")}
+          errorMessage={fieldErrorMessage("addressPostalCode")}
+        >
+          <TextInput
+            value={form.addressPostalCode}
+            placeholder={ph(t, "addressPostalCode")}
+            invalid={fieldInvalid("addressPostalCode")}
+            onChange={(v) => patchForm({ addressPostalCode: v })}
           />
         </Field>
         <Field
@@ -581,7 +597,13 @@ function DriverViewPanel(props: {
 }) {
   const { t } = useTranslation();
   const name = [props.form.firstName, props.form.lastName].filter(Boolean).join(" ") || "—";
-  const address = [props.form.addressCity, props.form.addressStreet, props.form.addressHouse, props.form.addressFlat]
+  const address = [
+    props.form.addressCity,
+    props.form.addressPostalCode,
+    props.form.addressStreet,
+    props.form.addressHouse,
+    props.form.addressFlat,
+  ]
     .filter(Boolean)
     .join(", ");
 

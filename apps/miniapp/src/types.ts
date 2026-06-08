@@ -56,6 +56,7 @@ export interface Driver {
   pesel: string | null;
   passportNumber: string | null;
   addressCity: string | null;
+  addressPostalCode?: string | null;
   addressStreet: string | null;
   addressHouse: string | null;
   addressFlat: string | null;
