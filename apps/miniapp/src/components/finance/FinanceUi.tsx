@@ -11,23 +11,23 @@ const TAB_META: Record<
 > = {
   payments: {
     color: "#448aff",
-    icon: (c) => <Icon name="credit-card" size={18} color={c} />,
+    icon: (c) => <Icon name="credit-card" size={15} color={c} />,
   },
   expenses: {
     color: "#ff5252",
-    icon: (c) => <Icon name="fire" size={18} color={c} />,
+    icon: (c) => <Icon name="fire" size={15} color={c} />,
   },
   taxes: {
     color: "#ffb74d",
-    icon: (c) => <Icon name="lock" size={18} color={c} />,
+    icon: (c) => <Icon name="lock" size={15} color={c} />,
   },
   fleet: {
     color: "#69f0ae",
-    icon: (c) => <Icon name="car-01" size={18} color={c} />,
+    icon: (c) => <Icon name="car-01" size={15} color={c} />,
   },
   balances: {
     color: "#b388ff",
-    icon: (c) => <Icon name="lock" size={18} color={c} />,
+    icon: (c) => <Icon name="lock" size={15} color={c} />,
   },
 };
 

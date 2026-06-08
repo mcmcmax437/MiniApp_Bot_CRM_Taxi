@@ -1,6 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Button } from "@telegram-apps/telegram-ui";
 import { useTranslation } from "react-i18next";
 
 const MODAL_CLOSE_MS = 300;
@@ -57,7 +56,7 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, r
 
   return createPortal(
     <div
-      className={`crm-modal-overlay${active ? " crm-modal-overlay--active" : ""}`}
+      className={`crm-modal-overlay taxi-crm-theme${active ? " crm-modal-overlay--active" : ""}`}
       onClick={dismiss}
       aria-hidden={!active}
     >
@@ -89,7 +88,7 @@ export function Field(props: {
 }) {
   return (
     <label className={`form-stack${props.invalid ? " crm-field--error" : ""}`}>
-      <span style={{ fontSize: 13, color: "var(--tgui--hint_color, #8e8e93)" }}>{props.label}</span>
+      <span className="crm-field-label">{props.label}</span>
       {props.children}
       {props.invalid && props.errorMessage ? (
         <span className="crm-field-error">{props.errorMessage}</span>
@@ -97,17 +96,6 @@ export function Field(props: {
     </label>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid var(--tgui--outline, #d1d1d6)",
-  background: "var(--tgui--secondary_bg_color, #f2f2f7)",
-  color: "var(--tgui--text_color, #000)",
-  fontSize: 16,
-};
 
 function inputClass(invalid?: boolean): string {
   return invalid ? "crm-input crm-input--error" : "crm-input";
@@ -123,7 +111,6 @@ export function TextInput(props: {
   return (
     <input
       className={inputClass(props.invalid)}
-      style={inputStyle}
       type={props.type ?? "text"}
       value={props.value}
       placeholder={props.placeholder}
@@ -141,7 +128,6 @@ export function NumberInput(props: {
   return (
     <input
       className={inputClass(props.invalid)}
-      style={inputStyle}
       type="number"
       inputMode="decimal"
       value={props.value}
@@ -170,7 +156,6 @@ export function DateInput(props: {
     <div className="crm-date-field">
       <input
         className={dateClass}
-        style={inputStyle}
         type="date"
         value={props.value}
         onFocus={() => setFocused(true)}
@@ -191,7 +176,6 @@ export function SelectInput<T extends string>(props: {
   return (
     <select
       className={inputClass(props.invalid)}
-      style={inputStyle}
       value={props.value}
       onChange={(e) => props.onChange(e.target.value as T)}
     >
@@ -207,13 +191,14 @@ export function SelectInput<T extends string>(props: {
 export function FormActions(props: { onCancel: () => void; onSave: () => void; saving?: boolean }) {
   const { t } = useTranslation();
   return (
-    <div style={{ display: "flex", gap: 8 }}>
-      <Button mode="outline" stretched onClick={props.onCancel} type="button">
+    <div className="crm-form-actions">
+      <button type="button" className="crm-btn-outline" onClick={props.onCancel} disabled={props.saving}>
         {t("common.cancel")}
-      </Button>
-      <Button stretched onClick={props.onSave} loading={props.saving} type="button">
-        {t("common.save")}
-      </Button>
+      </button>
+      <button type="button" className="crm-btn-primary" onClick={props.onSave} disabled={props.saving}>
+        {props.saving ? <span className="crm-spinner crm-form-actions__spinner" aria-hidden /> : null}
+        <span>{t("common.save")}</span>
+      </button>
     </div>
   );
 }

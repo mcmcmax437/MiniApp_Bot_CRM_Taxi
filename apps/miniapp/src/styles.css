@@ -2061,57 +2061,63 @@ body {
 
 /* Finance page */
 .crm-finance-tabs {
-  margin-top: 16px;
-  padding: 8px;
+  margin-top: 12px;
+  padding: 6px;
   overflow: hidden;
 }
 
 .crm-finance-tabs__scroll {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.crm-finance-tabs__scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .crm-finance-tab {
-  flex: 1 1 calc(33.333% - 6px);
-  min-width: 96px;
+  flex: 0 0 auto;
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 6px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 10px 8px;
+  border-radius: 12px;
+  padding: 7px 11px;
   background: rgba(255, 255, 255, 0.04);
   color: rgba(255, 255, 255, 0.88);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  text-align: center;
-  line-height: 1.2;
+  text-align: left;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .crm-finance-tab__icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 .crm-finance-tab__label {
   display: block;
-  max-width: 100%;
-  white-space: normal;
 }
 
 .crm-finance-tab--active {
   background: linear-gradient(135deg, #1a4f9c, #153d7a);
   border-color: rgba(91, 157, 255, 0.45);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(21, 61, 122, 0.35);
+  box-shadow: 0 2px 10px rgba(21, 61, 122, 0.3);
 }
 
 .crm-finance-tab--active .crm-finance-tab__icon {
@@ -2368,11 +2374,6 @@ div.crm-finance-item {
 }
 
 @media (max-width: 640px) {
-  .crm-finance-tab {
-    flex: 1 1 calc(50% - 4px);
-    min-width: 0;
-  }
-
   .crm-finance-filter-btn__label {
     display: none;
   }
@@ -2833,14 +2834,56 @@ div.crm-finance-item {
   margin-top: 2px;
 }
 
+.crm-field-label {
+  font-size: 13px;
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.54));
+}
+
+.crm-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--taxi-border, rgba(255, 255, 255, 0.06));
+  background: var(--taxi-surface-raised, #101c2e);
+  color: var(--taxi-text, #fff);
+  font-size: 16px;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .crm-input--error {
   border-color: #ff453a !important;
   box-shadow: 0 0 0 1px rgba(255, 69, 58, 0.35);
 }
 
 .crm-input::placeholder {
-  color: var(--tgui--hint_color, #8e8e93);
-  opacity: 0.55;
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.54));
+  opacity: 0.85;
+}
+
+select.crm-input option {
+  background: var(--taxi-surface-raised, #101c2e);
+  color: var(--taxi-text, #fff);
+}
+
+.crm-form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.crm-form-actions .crm-btn-outline,
+.crm-form-actions .crm-btn-primary {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.crm-form-actions__spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
 }
 
 .crm-date-field {
@@ -2892,6 +2935,10 @@ div.crm-finance-item {
   z-index: 1;
 }
 
+.crm-date-field__example {
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.54));
+}
+
 .taxi-crm-theme .crm-date-field__example {
   color: var(--taxi-text-muted);
 }
@@ -2915,7 +2962,8 @@ div.crm-finance-item {
 }
 
 .crm-modal-sheet {
-  background: var(--tgui--bg_color, #fff);
+  background: linear-gradient(160deg, var(--taxi-glass-from, #13263e), var(--taxi-glass-to, #0b1627));
+  color: var(--taxi-text, #fff);
   width: 100%;
   max-width: 520px;
   max-height: min(92vh, var(--tg-viewport-height, 100vh));
@@ -2923,6 +2971,8 @@ div.crm-finance-item {
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+  color-scheme: dark;
+  border-top: 1px solid var(--taxi-border, rgba(255, 255, 255, 0.06));
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
   padding: 16px;
@@ -2964,6 +3014,7 @@ div.crm-finance-item {
   margin: 0;
   font-size: 18px;
   width: 100%;
+  color: var(--taxi-text, #fff);
 }
 
 .crm-modal-back {
@@ -2972,7 +3023,7 @@ div.crm-finance-item {
   gap: 4px;
   border: 0;
   background: transparent;
-  color: var(--tgui--link_color, #007aff);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 16px;
   cursor: pointer;
   padding: 4px 0;
