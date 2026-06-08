@@ -7,7 +7,7 @@ import {
   useSaveCar,
 } from "../hooks";
 import type { DocumentItem } from "../types";
-import { isImageDocument } from "./documentUtils";
+import { isCarGalleryPhoto } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
 import { confirmAction } from "../telegram";
 
@@ -20,7 +20,7 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
   const fileRef = useRef<HTMLInputElement>(null);
   const [setAsCoverOnUpload, setSetAsCoverOnUpload] = useState(false);
 
-  const images = (docs.data ?? []).filter(isImageDocument);
+  const images = (docs.data ?? []).filter(isCarGalleryPhoto);
 
   function setCover(documentId: string) {
     save.mutate({ id: props.carId, data: { coverDocumentId: documentId } });
@@ -29,10 +29,16 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
   function onUpload(file: File) {
     const asCover = setAsCoverOnUpload || !props.coverDocumentId;
     upload.mutate(
-      { relatedType: "CAR", relatedId: props.carId, file, setAsCover: asCover && file.type.startsWith("image/") },
+      {
+        relatedType: "CAR",
+        relatedId: props.carId,
+        file,
+        isCarPhoto: true,
+        setAsCover: asCover && file.type.startsWith("image/"),
+      },
       {
         onSuccess: (doc) => {
-          if (asCover && isImageDocument(doc)) {
+          if (asCover && isCarGalleryPhoto(doc)) {
             setCover(doc.id);
           }
         },

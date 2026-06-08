@@ -149,6 +149,34 @@ export function SectionCard(props: {
   );
 }
 
+export type DashboardStatsPeriod = "all" | "month";
+
+export function StatPeriodToggle(props: {
+  value: DashboardStatsPeriod;
+  onChange: (value: DashboardStatsPeriod) => void;
+  allLabel: string;
+  monthLabel: string;
+}) {
+  return (
+    <div className="crm-period-toggle" role="group" aria-label={props.allLabel}>
+      <button
+        type="button"
+        className={`crm-period-toggle__btn${props.value === "all" ? " crm-period-toggle__btn--active" : ""}`}
+        onClick={() => props.onChange("all")}
+      >
+        {props.allLabel}
+      </button>
+      <button
+        type="button"
+        className={`crm-period-toggle__btn${props.value === "month" ? " crm-period-toggle__btn--active" : ""}`}
+        onClick={() => props.onChange("month")}
+      >
+        {props.monthLabel}
+      </button>
+    </div>
+  );
+}
+
 export function StatCard(props: {
   label: string;
   value: string;

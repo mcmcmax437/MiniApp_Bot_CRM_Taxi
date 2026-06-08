@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Icon } from "./crm";
 import { confirmAction } from "../telegram";
 
-const ACTION_WIDTH = 80;
+const DEFAULT_ACTION_WIDTH = 80;
 
 export function SwipeToDelete(props: {
   children: ReactNode;
@@ -11,7 +11,10 @@ export function SwipeToDelete(props: {
   onEdit?: () => void;
   onDelete: () => void;
   className?: string;
+  actionWidth?: number;
+  iconSize?: number;
 }) {
+  const actionWidth = props.actionWidth ?? DEFAULT_ACTION_WIDTH;
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);
   const [open, setOpen] = useState(false);
@@ -22,14 +25,14 @@ export function SwipeToDelete(props: {
   const moved = useRef(false);
 
   function applyOffset(value: number) {
-    const next = Math.max(-ACTION_WIDTH, Math.min(0, value));
+    const next = Math.max(-actionWidth, Math.min(0, value));
     offsetRef.current = next;
     setOffset(next);
   }
 
   function snap(openRow: boolean) {
     setOpen(openRow);
-    applyOffset(openRow ? -ACTION_WIDTH : 0);
+    applyOffset(openRow ? -actionWidth : 0);
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -56,7 +59,7 @@ export function SwipeToDelete(props: {
     } catch {
       /* pointer may already be released */
     }
-    snap(offsetRef.current < -ACTION_WIDTH / 2);
+    snap(offsetRef.current < -actionWidth / 2);
   }
 
   function onContentClick() {
@@ -105,7 +108,7 @@ export function SwipeToDelete(props: {
           onPointerUp={handleDelete}
           aria-label={t("common.delete")}
         >
-          <Icon name="delete-02" size={22} color="#fff" />
+          <Icon name="delete-02" size={props.iconSize ?? 22} color="#fff" />
         </button>
         {props.onEdit ? (
           <button
@@ -114,7 +117,7 @@ export function SwipeToDelete(props: {
             onPointerUp={handleEdit}
             aria-label={t("common.edit")}
           >
-            <Icon name="pencil" size={22} color="#fff" />
+            <Icon name="pencil" size={props.iconSize ?? 22} color="#fff" />
           </button>
         ) : null}
       </div>

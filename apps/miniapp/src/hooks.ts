@@ -18,7 +18,7 @@ import type {
   OwnerRow,
   Payment,
 } from "./types";
-import { isImageDocument } from "./components/documentUtils";
+import { isCarGalleryPhoto } from "./components/documentUtils";
 import { setAppCurrency } from "./currency";
 import type { Currency } from "@taxi/shared";
 
@@ -415,7 +415,7 @@ export function useCarCoverPhotos() {
       (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
     );
     for (const doc of sorted) {
-      if (!isImageDocument(doc)) continue;
+      if (!isCarGalleryPhoto(doc)) continue;
       if (!fallback.has(doc.relatedId)) fallback.set(doc.relatedId, doc.id);
     }
 
@@ -446,12 +446,14 @@ export function useUploadDocument() {
       relatedId: string;
       file: File;
       setAsCover?: boolean;
+      isCarPhoto?: boolean;
     }) => {
       const fd = new FormData();
       fd.append("relatedType", input.relatedType);
       fd.append("relatedId", input.relatedId);
       fd.append("file", input.file);
       if (input.setAsCover) fd.append("setAsCover", "true");
+      if (input.isCarPhoto) fd.append("isCarPhoto", "true");
       return apiUpload<DocumentItem>("/documents", fd);
     },
     onSuccess: () => {
@@ -467,6 +469,19 @@ export function useDeleteDocument() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["documents"] });
       void qc.invalidateQueries({ queryKey: ["cars"] });
+    },
+  });
+}
+export function useUpdateDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; displayName?: string | null; notes?: string | null }) =>
+      apiFetch<DocumentItem>(`/documents/${input.id}`, {
+        method: "PATCH",
+        body: { displayName: input.displayName, notes: input.notes },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 }

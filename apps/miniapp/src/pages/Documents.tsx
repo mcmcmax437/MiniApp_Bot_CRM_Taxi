@@ -12,8 +12,9 @@ import {
 import type { DocumentItem } from "../types";
 import { AppHeader, Icon } from "../components/crm";
 import { DocumentThumbnail } from "../components/DocumentThumbnail";
-import { isImageDocument, isPdfDocument, openDocumentFile } from "../components/documentUtils";
-import { formatDate } from "../components/ui";
+import { DocumentFileRow } from "../components/DocumentFileRow";
+import { DocumentMetaModal } from "../components/DocumentMetaModal";
+import { isCarGalleryPhoto, isImageDocument, openDocumentFile } from "../components/documentUtils";
 import { confirmAction } from "../telegram";
 
 type Category = "ALL" | DocumentRelatedType;
@@ -40,6 +41,7 @@ export function DocumentsPage() {
   const [category, setCategory] = useState<Category>("ALL");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<{ type: DocumentRelatedType; id: string } | null>(null);
+  const [editDoc, setEditDoc] = useState<DocumentItem | null>(null);
 
   const docsByEntity = useMemo(() => {
     const map = new Map<string, DocumentItem[]>();
@@ -62,7 +64,10 @@ export function DocumentsPage() {
       return docsByEntity.get(`${type}:${id}`) ?? [];
     }
 
-    function previewId(list: DocumentItem[]): string | undefined {
+    function previewId(type: DocumentRelatedType, list: DocumentItem[]): string | undefined {
+      if (type === DocumentRelatedType.CAR) {
+        return list.find(isCarGalleryPhoto)?.id;
+      }
       return list.find(isImageDocument)?.id;
     }
 
@@ -77,7 +82,7 @@ export function DocumentsPage() {
           label: car.plate,
           subtitle: subtitle || undefined,
           count: list.length,
-          previewId: previewId(list),
+          previewId: previewId(DocumentRelatedType.CAR, list),
         });
       }
     }
@@ -92,7 +97,7 @@ export function DocumentsPage() {
           label: driver.fullName,
           subtitle: driver.phone ?? undefined,
           count: list.length,
-          previewId: previewId(list),
+          previewId: previewId(DocumentRelatedType.DRIVER, list),
         });
       }
     }
@@ -111,7 +116,7 @@ export function DocumentsPage() {
           }),
           subtitle: subtitle || undefined,
           count: list.length,
-          previewId: previewId(list),
+          previewId: previewId(DocumentRelatedType.AGREEMENT, list),
         });
       }
     }
@@ -146,15 +151,36 @@ export function DocumentsPage() {
     return docsByEntity.get(`${selected.type}:${selected.id}`) ?? [];
   }, [docsByEntity, selected]);
 
-  const imageDocs = selectedDocs.filter(isImageDocument);
-  const fileDocs = selectedDocs.filter((d) => !isImageDocument(d));
+  const { imageDocs, fileDocs } = useMemo(() => {
+    if (!selected) return { imageDocs: [] as DocumentItem[], fileDocs: [] as DocumentItem[] };
+    if (selected.type === DocumentRelatedType.CAR) {
+      return {
+        imageDocs: selectedDocs.filter(isCarGalleryPhoto),
+        fileDocs: selectedDocs.filter((d) => !d.isCarPhoto),
+      };
+    }
+    return {
+      imageDocs: selectedDocs.filter(isImageDocument),
+      fileDocs: selectedDocs.filter((d) => !isImageDocument(d)),
+    };
+  }, [selected, selectedDocs]);
 
   function handleUpload(file: File) {
     if (!selected) return;
     upload.mutate(
-      { relatedType: selected.type, relatedId: selected.id, file },
+      {
+        relatedType: selected.type,
+        relatedId: selected.id,
+        file,
+        isCarPhoto: false,
+      },
       { onSettled: () => { if (fileRef.current) fileRef.current.value = ""; } },
     );
+  }
+
+  async function handleDelete(doc: DocumentItem) {
+    const ok = await confirmAction(t("common.confirmDelete"), t("common.delete"), t("common.cancel"));
+    if (ok) del.mutate(doc.id);
   }
 
   if (selected && selectedEntity) {
@@ -240,16 +266,9 @@ export function DocumentsPage() {
                     <DocumentFileRow
                       key={doc.id}
                       doc={doc}
-                      deleting={del.isPending && del.variables === doc.id}
                       onOpen={() => void openDocumentFile(doc.id, doc.fileName)}
-                      onDelete={async () => {
-                        const ok = await confirmAction(
-                          t("common.confirmDelete"),
-                          t("common.delete"),
-                          t("common.cancel"),
-                        );
-                        if (ok) del.mutate(doc.id);
-                      }}
+                      onEdit={() => setEditDoc(doc)}
+                      onDelete={() => void handleDelete(doc)}
                     />
                   ))}
                 </div>
@@ -278,6 +297,8 @@ export function DocumentsPage() {
           <Icon name="add-01" size={18} color="#fff" />
           <span>{t("documents.upload")}</span>
         </button>
+
+        <DocumentMetaModal doc={editDoc} open={editDoc != null} onClose={() => setEditDoc(null)} />
       </div>
     );
   }
@@ -368,35 +389,3 @@ export function DocumentsPage() {
   );
 }
 
-function DocumentFileRow(props: {
-  doc: DocumentItem;
-  deleting: boolean;
-  onOpen: () => void;
-  onDelete: () => void;
-}) {
-  const { doc } = props;
-  const pdf = isPdfDocument(doc);
-
-  return (
-    <div className="crm-doc-file">
-      <button type="button" className="crm-doc-file__main" onClick={props.onOpen}>
-        <div className={`crm-doc-file__icon${pdf ? " crm-doc-file__icon--pdf" : ""}`}>
-          {pdf ? "PDF" : "FILE"}
-        </div>
-        <div className="crm-doc-file__text">
-          <div className="crm-doc-file__name">{doc.fileName}</div>
-          <div className="crm-doc-file__date">{formatDate(doc.uploadedAt)}</div>
-        </div>
-      </button>
-      <button
-        type="button"
-        className="crm-doc-file__delete"
-        disabled={props.deleting}
-        onClick={props.onDelete}
-        aria-label="Delete"
-      >
-        ✕
-      </button>
-    </div>
-  );
-}

@@ -187,6 +187,9 @@ export interface DocumentItem {
   fileName: string;
   filePath: string;
   mimeType: string | null;
+  isCarPhoto: boolean;
+  displayName: string | null;
+  notes: string | null;
   uploadedAt: string;
 }
 

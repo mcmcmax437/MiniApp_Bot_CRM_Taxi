@@ -443,6 +443,11 @@ export const carDocumentCreateSchema = z.object({
 });
 export const carDocumentUpdateSchema = carDocumentCreateSchema.omit({ carId: true }).partial();
 
+export const documentUpdateSchema = z.object({
+  displayName: z.string().trim().max(120).optional().nullable(),
+  notes: z.string().trim().max(500).optional().nullable(),
+});
+
 export const mileageLogCreateSchema = z.object({
   carId: z.string().cuid(),
   driverId: z.string().cuid().optional().nullable(),

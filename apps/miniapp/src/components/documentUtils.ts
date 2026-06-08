@@ -2,6 +2,17 @@ import type { DocumentItem } from "../types";
 import { apiFileUrl } from "../api";
 import { getInitData } from "../telegram";
 
+export function documentDisplayName(doc: Pick<DocumentItem, "displayName" | "fileName">): string {
+  const custom = doc.displayName?.trim();
+  return custom || doc.fileName;
+}
+
+export function isCarGalleryPhoto(
+  doc: Pick<DocumentItem, "isCarPhoto" | "mimeType" | "fileName">,
+): boolean {
+  return Boolean(doc.isCarPhoto) && isImageDocument(doc);
+}
+
 export function isImageDocument(doc: Pick<DocumentItem, "mimeType" | "fileName">): boolean {
   if (doc.mimeType?.startsWith("image/")) return true;
   return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(doc.fileName);

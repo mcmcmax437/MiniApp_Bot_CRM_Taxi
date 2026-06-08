@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
-import { useCar, useCarCoverPhotos } from "../hooks";
+import { useCar } from "../hooks";
 import { AppHeader, Icon } from "../components/crm";
-import { DocumentThumbnail } from "../components/DocumentThumbnail";
+import { CarDetailHeroGallery } from "../components/CarDetailHeroGallery";
 import { CarPhotosSection } from "../components/CarPhotosSection";
 import { CarDocumentsSection } from "../components/CarDocumentsSection";
 import { CarTrackingSections } from "../components/CarTrackingSections";
@@ -25,11 +25,9 @@ export function CarDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const carQuery = useCar(id);
-  const covers = useCarCoverPhotos();
   const [editOpen, setEditOpen] = useState(false);
 
   const car = carQuery.data;
-  const coverId = car?.coverDocumentId ?? (id ? covers.data?.get(id) : undefined);
   const subtitle = car ? [car.make, car.model, car.year].filter(Boolean).join(" ") : "";
 
   if (carQuery.isLoading) {
@@ -71,15 +69,11 @@ export function CarDetailPage() {
         {t("cars.backToList")}
       </button>
 
-      <div className="crm-car-detail-hero">
-        {coverId ? (
-          <DocumentThumbnail documentId={coverId} alt={subtitle || car.plate} className="crm-car-detail-hero__img" />
-        ) : (
-          <div className="crm-car-detail-hero__placeholder">
-            <Icon name="car-01" size={48} color="rgba(255,255,255,0.35)" />
-          </div>
-        )}
-      </div>
+      <CarDetailHeroGallery
+        carId={car.id}
+        coverDocumentId={car.coverDocumentId}
+        alt={subtitle || car.plate}
+      />
 
       <div className="crm-doc-detail-head">
         <span className="crm-doc-detail-head__badge">{t("cars.title")}</span>

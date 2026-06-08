@@ -2,8 +2,9 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDocuments, useUploadDocument, useDeleteDocument } from "../hooks";
 import type { DocumentItem } from "../types";
-import { isImageDocument, isPdfDocument, openDocumentFile } from "./documentUtils";
-import { formatDate } from "./ui";
+import { openDocumentFile } from "./documentUtils";
+import { DocumentFileRow } from "./DocumentFileRow";
+import { DocumentMetaModal } from "./DocumentMetaModal";
 import { confirmAction } from "../telegram";
 
 export function CarDocumentsSection(props: { carId: string }) {
@@ -13,8 +14,9 @@ export function CarDocumentsSection(props: { carId: string }) {
   const del = useDeleteDocument();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [editDoc, setEditDoc] = useState<DocumentItem | null>(null);
 
-  const items = (docs.data ?? []).filter((d) => !isImageDocument(d));
+  const items = (docs.data ?? []).filter((d) => !d.isCarPhoto);
 
   function uploadFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList);
@@ -26,6 +28,7 @@ export function CarDocumentsSection(props: { carId: string }) {
             relatedType: "CAR",
             relatedId: props.carId,
             file,
+            isCarPhoto: false,
           });
         } catch {
           /* continue with remaining files */
@@ -39,6 +42,11 @@ export function CarDocumentsSection(props: { carId: string }) {
     e.preventDefault();
     setDragOver(false);
     if (e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files);
+  }
+
+  async function handleDelete(doc: DocumentItem) {
+    const ok = await confirmAction(t("common.confirmDelete"), t("common.delete"), t("common.cancel"));
+    if (ok) del.mutate(doc.id);
   }
 
   return (
@@ -90,55 +98,17 @@ export function CarDocumentsSection(props: { carId: string }) {
             <DocumentFileRow
               key={doc.id}
               doc={doc}
-              deleting={del.isPending && del.variables === doc.id}
-              onDelete={async () => {
-                const ok = await confirmAction(
-                  t("common.confirmDelete"),
-                  t("common.delete"),
-                  t("common.cancel"),
-                );
-                if (ok) del.mutate(doc.id);
-              }}
+              onOpen={() => void openDocumentFile(doc.id, doc.fileName)}
+              onEdit={() => setEditDoc(doc)}
+              onDelete={() => void handleDelete(doc)}
             />
           ))}
         </div>
       ) : (
         <p className="crm-form-hint">{t("tracking.noDocuments")}</p>
       )}
+
+      <DocumentMetaModal doc={editDoc} open={editDoc != null} onClose={() => setEditDoc(null)} />
     </section>
-  );
-}
-
-function DocumentFileRow(props: {
-  doc: DocumentItem;
-  deleting: boolean;
-  onDelete: () => void;
-}) {
-  const { t } = useTranslation();
-  const isPdf = isPdfDocument(props.doc);
-
-  return (
-    <div className="crm-doc-file">
-      <button
-        type="button"
-        className="crm-doc-file__main"
-        onClick={() => void openDocumentFile(props.doc.id, props.doc.fileName)}
-      >
-        <div className="crm-doc-file__icon">{isPdf ? "PDF" : "FILE"}</div>
-        <div className="crm-doc-file__text">
-          <div className="crm-doc-file__name">{props.doc.fileName}</div>
-          <div className="crm-doc-file__date">{formatDate(props.doc.uploadedAt)}</div>
-        </div>
-      </button>
-      <button
-        type="button"
-        className="crm-doc-file__delete"
-        disabled={props.deleting}
-        onClick={() => void props.onDelete()}
-        aria-label={t("common.delete")}
-      >
-        ✕
-      </button>
-    </div>
   );
 }

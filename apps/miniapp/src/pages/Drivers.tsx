@@ -78,6 +78,7 @@ const emptyForm: DriverForm = {
 };
 
 type StatusFilter = "ALL" | DriverStatus;
+type NameSort = "AZ" | "ZA";
 
 function driverToForm(d: Driver): DriverForm {
   return {
@@ -128,6 +129,7 @@ export function DriversPage() {
   const [form, setForm] = useState<DriverForm>(emptyForm);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [nameSort, setNameSort] = useState<NameSort>("AZ");
   const [filterOpen, setFilterOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Set<DriverFormField>>(new Set());
   const modalRef = useRef<ModalHandle>(null);
@@ -146,7 +148,7 @@ export function DriversPage() {
 
   const filteredDrivers = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (drivers.data ?? []).filter((d) => {
+    const list = (drivers.data ?? []).filter((d) => {
       if (statusFilter !== "ALL" && d.status !== statusFilter) return false;
       if (!q) return true;
       const hay = [
@@ -165,7 +167,11 @@ export function DriversPage() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [drivers.data, search, statusFilter]);
+    return [...list].sort((a, b) => {
+      const cmp = a.fullName.localeCompare(b.fullName, undefined, { sensitivity: "base" });
+      return nameSort === "AZ" ? cmp : -cmp;
+    });
+  }, [drivers.data, search, statusFilter, nameSort]);
 
   function openCreate() {
     setEditId(null);
@@ -306,7 +312,7 @@ export function DriversPage() {
         <div className="crm-filter-wrap">
           <button
             type="button"
-            className={`crm-filter-btn${statusFilter !== "ALL" ? " crm-filter-btn--active" : ""}`}
+            className={`crm-filter-btn${statusFilter !== "ALL" || nameSort !== "AZ" ? " crm-filter-btn--active" : ""}`}
             onClick={() => setFilterOpen((v) => !v)}
           >
             <Icon name="filter" size={20} color="rgba(255,255,255,0.7)" />
@@ -315,17 +321,27 @@ export function DriversPage() {
 
           {filterOpen ? (
             <div className="crm-filter-menu">
+              <div className="crm-filter-menu__heading">{t("drivers.filterStatus")}</div>
               {(["ALL", DriverStatus.ACTIVE, DriverStatus.INACTIVE] as const).map((value) => (
                 <button
                   key={value}
                   type="button"
                   className={`crm-filter-menu__item${statusFilter === value ? " crm-filter-menu__item--active" : ""}`}
-                  onClick={() => {
-                    setStatusFilter(value);
-                    setFilterOpen(false);
-                  }}
+                  onClick={() => setStatusFilter(value)}
                 >
                   {value === "ALL" ? t("common.all") : t(`drivers.${value}`)}
+                </button>
+              ))}
+              <div className="crm-filter-menu__divider" />
+              <div className="crm-filter-menu__heading">{t("drivers.sort")}</div>
+              {(["AZ", "ZA"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`crm-filter-menu__item${nameSort === value ? " crm-filter-menu__item--active" : ""}`}
+                  onClick={() => setNameSort(value)}
+                >
+                  {value === "AZ" ? t("drivers.sortAZ") : t("drivers.sortZA")}
                 </button>
               ))}
             </div>
@@ -356,6 +372,8 @@ export function DriversPage() {
             <SwipeToDelete
               key={d.id}
               className="crm-swipe-row--driver"
+              actionWidth={68}
+              iconSize={18}
               onPress={() => openView(d)}
               onEdit={() => openEdit(d)}
               onDelete={() => {

@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useBalances, useMe, useReminders, useReport, useSetCurrency, useSetLocale } from "../hooks";
@@ -8,8 +9,17 @@ import { ImportSection } from "../components/ImportSection";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
 import { ReminderList } from "../components/ReminderList";
 import { RecentActivitySection } from "../components/RecentActivitySection";
-import { AppHeader, Icon, SectionCard, StatCard } from "../components/crm";
+import {
+  AppHeader,
+  Icon,
+  SectionCard,
+  StatCard,
+  StatPeriodToggle,
+  type DashboardStatsPeriod,
+} from "../components/crm";
 import i18n from "../i18n";
+
+const STATS_PERIOD_KEY = "dashboard-stats-period";
 
 function formatRoi(percent: number | null | undefined): string {
   if (percent == null) return "—";
@@ -17,10 +27,31 @@ function formatRoi(percent: number | null | undefined): string {
   return `${sign}${percent.toFixed(1)}%`;
 }
 
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function reportDateRange(period: DashboardStatsPeriod): { from: string; to: string } {
+  const to = todayIso();
+  if (period === "month") {
+    const d = new Date();
+    const from = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+    return { from, to };
+  }
+  return { from: "2000-01-01", to };
+}
+
+function loadStatsPeriod(): DashboardStatsPeriod {
+  const stored = localStorage.getItem(STATS_PERIOD_KEY);
+  return stored === "month" ? "month" : "all";
+}
+
 export function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const report = useReport();
+  const [statsPeriod, setStatsPeriod] = useState<DashboardStatsPeriod>(loadStatsPeriod);
+  const reportRange = useMemo(() => reportDateRange(statsPeriod), [statsPeriod]);
+  const report = useReport(reportRange.from, reportRange.to);
   const reminders = useReminders();
   const balances = useBalances();
   const me = useMe();
@@ -32,10 +63,19 @@ export function Dashboard() {
   const expenses = formatMoney(report.data?.expenses ?? 0);
   const profit = formatMoney(report.data?.profit ?? 0);
   const roi = formatRoi(report.data?.roiPercent);
+  const periodSuffix =
+    statsPeriod === "month" ? t("dashboard.monthSuffix") : t("dashboard.allTimeSuffix");
   const roiHint =
     report.data && report.data.totalInvestment > 0
-      ? t("dashboard.roiHint", { investment: formatMoney(report.data.totalInvestment) })
+      ? t(statsPeriod === "month" ? "dashboard.roiHint" : "dashboard.roiHintAllTime", {
+          investment: formatMoney(report.data.totalInvestment),
+        })
       : t("dashboard.roiNoInvestment");
+
+  function onStatsPeriodChange(period: DashboardStatsPeriod) {
+    setStatsPeriod(period);
+    localStorage.setItem(STATS_PERIOD_KEY, period);
+  }
 
   const localeOptions = [
     { value: "uk" as const, label: "Українська" },
@@ -51,32 +91,41 @@ export function Dashboard() {
     <div className="crm-page">
       <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
 
+      <div className="crm-stat-period-bar">
+        <StatPeriodToggle
+          value={statsPeriod}
+          onChange={onStatsPeriodChange}
+          allLabel={t("dashboard.periodAll")}
+          monthLabel={t("dashboard.periodMonth")}
+        />
+      </div>
+
       <div className="crm-stat-grid crm-stat-grid--home">
         <StatCard
           label={t("dashboard.income")}
           value={income}
-          suffix={t("dashboard.monthSuffix")}
+          suffix={periodSuffix}
           tone="income"
           icon={<Icon name="credit-card" size={24} color="var(--taxi-income)" />}
         />
         <StatCard
           label={t("dashboard.expenses")}
           value={expenses}
-          suffix={t("dashboard.monthSuffix")}
+          suffix={periodSuffix}
           tone="expense"
           icon={<Icon name="chart-decrease" size={24} color="var(--taxi-expense)" />}
         />
         <StatCard
           label={t("dashboard.profit")}
           value={profit}
-          suffix={t("dashboard.monthSuffix")}
+          suffix={periodSuffix}
           tone="profit"
           icon={<Icon name="chart-line-data-01" size={24} color="var(--taxi-profit)" />}
         />
         <StatCard
           label={t("dashboard.roi")}
           value={roi}
-          suffix={t("dashboard.monthSuffix")}
+          suffix={periodSuffix}
           tone="roi"
           icon={<Icon name="chart-increase" size={24} color="var(--taxi-accent)" />}
         />

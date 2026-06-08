@@ -5,7 +5,7 @@ import path from "node:path";
 import { prisma } from "../prisma.js";
 import { env } from "../env.js";
 import { ownerId } from "./helpers.js";
-import { DocumentRelatedType } from "@taxi/shared";
+import { DocumentRelatedType, documentUpdateSchema } from "@taxi/shared";
 import { isImageDocument } from "../services/document-image.js";
 import { heicBufferToJpeg, isHeicFile } from "../services/heic.js";
 
@@ -68,6 +68,7 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     let relatedType: DocumentRelatedType | undefined;
     let relatedId: string | undefined;
     let setAsCover = false;
+    let isCarPhoto = false;
     let fileBuffer: Buffer | undefined;
     let originalName = "file";
     let mimeType: string | undefined;
@@ -102,6 +103,8 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
         relatedId = part.value as string;
       } else if (part.fieldname === "setAsCover") {
         setAsCover = part.value === "true" || part.value === "1";
+      } else if (part.fieldname === "isCarPhoto") {
+        isCarPhoto = part.value === "true" || part.value === "1";
       }
     }
 
@@ -143,10 +146,11 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
         fileName: storedFileName,
         filePath: path.relative(path.resolve(env.uploadsDir), fullPath),
         mimeType: storedMimeType,
+        isCarPhoto,
       },
     });
 
-    if (setAsCover && relatedType === DocumentRelatedType.CAR && isImageDocument(doc)) {
+    if (setAsCover && relatedType === DocumentRelatedType.CAR && doc.isCarPhoto && isImageDocument(doc)) {
       await prisma.car.updateMany({
         where: { id: relatedId, ownerId: oid },
         data: { coverDocumentId: doc.id },
@@ -181,6 +185,25 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
       reply.header("Cache-Control", "private, max-age=3600");
     }
     return reply.send(createReadStream(fullPath));
+  });
+
+  app.patch("/documents/:id", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = documentUpdateSchema.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid_body" });
+    const existing = await prisma.document.findFirst({ where: { id, ownerId: ownerId(req) } });
+    if (!existing) return reply.code(404).send({ error: "not_found" });
+
+    const data: { displayName?: string | null; notes?: string | null } = {};
+    if (parsed.data.displayName !== undefined) {
+      data.displayName = parsed.data.displayName?.trim() ? parsed.data.displayName.trim() : null;
+    }
+    if (parsed.data.notes !== undefined) {
+      data.notes = parsed.data.notes?.trim() ? parsed.data.notes.trim() : null;
+    }
+    if (Object.keys(data).length === 0) return existing;
+
+    return prisma.document.update({ where: { id }, data });
   });
 
   app.delete("/documents/:id", async (req, reply) => {

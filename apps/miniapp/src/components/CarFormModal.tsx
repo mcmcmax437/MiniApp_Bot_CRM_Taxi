@@ -272,6 +272,7 @@ export function CarFormModal(props: {
                     relatedType: "CAR",
                     relatedId: car.id,
                     file: p.file,
+                    isCarPhoto: true,
                   }),
                 ),
               );

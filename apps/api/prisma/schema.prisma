@@ -397,6 +397,9 @@ model Document {
   fileName    String
   filePath    String
   mimeType    String?
+  isCarPhoto  Boolean             @default(false)
+  displayName String?
+  notes       String?             @db.Text
   uploadedAt  DateTime            @default(now())
 
   @@index([ownerId])

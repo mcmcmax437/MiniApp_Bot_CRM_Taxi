@@ -174,6 +174,39 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.crm-stat-period-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.crm-period-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 18, 31, 0.65);
+}
+
+.crm-period-toggle__btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.crm-period-toggle__btn--active {
+  color: #fff;
+  background: rgba(47, 125, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(47, 125, 255, 0.25);
+}
+
 .crm-stat-grid-hint {
   margin: -4px 0 12px;
   font-size: 12px;
@@ -1032,6 +1065,30 @@ body {
   background: linear-gradient(135deg, #13233a, #0a1424);
 }
 
+.crm-swipe-row--driver .crm-swipe-action-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.crm-swipe-row--driver .crm-swipe-row__actions {
+  gap: 8px;
+}
+
+.crm-swipe-row--file .crm-swipe-row__content {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: var(--taxi-surface-raised, #101c2e);
+}
+
+.crm-swipe-row--file .crm-swipe-action-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.crm-swipe-row--file .crm-swipe-row__actions {
+  gap: 8px;
+}
+
 .crm-swipe-row__content[role="button"] {
   cursor: pointer;
 }
@@ -1236,12 +1293,42 @@ body {
 }
 
 .crm-car-detail-hero {
+  position: relative;
   margin-top: 12px;
   border-radius: 16px;
   overflow: hidden;
   aspect-ratio: 16 / 9;
   background: #08121f;
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.crm-car-detail-hero__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(8, 18, 31, 0.72);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+
+.crm-car-detail-hero__nav--prev {
+  left: 10px;
+}
+
+.crm-car-detail-hero__nav--next {
+  right: 10px;
+}
+
+.crm-car-detail-hero__nav:active {
+  background: rgba(47, 125, 255, 0.35);
 }
 
 .crm-car-detail-hero__img,
@@ -1533,6 +1620,21 @@ body {
 .crm-filter-menu__item--active {
   background: rgba(47, 125, 255, 0.15);
   color: #fff;
+}
+
+.crm-filter-menu__heading {
+  padding: 6px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.crm-filter-menu__divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .crm-driver-list {
@@ -2133,23 +2235,14 @@ body {
 
 .crm-doc-file {
   display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.crm-doc-file__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  background: var(--taxi-surface-raised, #101c2e);
-  color: inherit;
+  width: 100%;
+  min-width: 0;
   padding: 12px;
-  cursor: pointer;
+  color: inherit;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .crm-doc-file__icon {
@@ -2170,9 +2263,29 @@ body {
   color: #ff5252;
 }
 
+.crm-doc-file__icon--img {
+  background: rgba(47, 125, 255, 0.15);
+  color: #6ea8ff;
+}
+
+.crm-doc-file__text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
 .crm-doc-file__name {
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-doc-file__notes {
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2182,15 +2295,6 @@ body {
   margin-top: 4px;
   font-size: 12px;
   color: var(--taxi-text-muted);
-}
-
-.crm-doc-file__delete {
-  width: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.65);
-  cursor: pointer;
 }
 
 .crm-doc-upload-btn {
