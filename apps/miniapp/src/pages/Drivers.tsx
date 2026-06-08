@@ -281,19 +281,14 @@ export function DriversPage() {
           <p className="crm-page-head__subtitle">{t("drivers.pageSubtitle")}</p>
         </div>
         <button type="button" className="crm-btn-primary" onClick={openCreate}>
-          <Icon width="18" height="18" stroke="#fff" fill="none">
-            <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
-          </Icon>
+          <Icon name="add-01" size={18} color="#fff" />
           <span>{t("drivers.addDriver")}</span>
         </button>
       </div>
 
       <div className="crm-search-row">
         <label className="crm-search-input">
-          <Icon stroke="rgba(255,255,255,0.45)" fill="none" width="20" height="20">
-            <circle cx="11" cy="11" r="7" strokeWidth="1.8" />
-            <path d="M20 20l-3.5-3.5" strokeWidth="1.8" strokeLinecap="round" />
-          </Icon>
+          <Icon name="search-01" size={20} color="rgba(255,255,255,0.45)" />
           <input
             type="search"
             value={search}
@@ -308,9 +303,7 @@ export function DriversPage() {
             className={`crm-filter-btn${statusFilter !== "ALL" ? " crm-filter-btn--active" : ""}`}
             onClick={() => setFilterOpen((v) => !v)}
           >
-            <Icon stroke="rgba(255,255,255,0.7)" fill="none" width="20" height="20">
-              <path d="M4 6h16M7 12h10M10 18h4" strokeWidth="1.8" strokeLinecap="round" />
-            </Icon>
+            <Icon name="filter" size={20} color="rgba(255,255,255,0.7)" />
             <span>{t("drivers.filter")}</span>
           </button>
 

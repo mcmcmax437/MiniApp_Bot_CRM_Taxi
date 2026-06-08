@@ -18,9 +18,7 @@ export function RemindersPage() {
       <div className="crm-page-head">
         <div className="crm-page-head__titles">
           <button type="button" className="crm-page-back" onClick={() => navigate("/")}>
-            <Icon stroke="rgba(255,255,255,0.7)" fill="none" width="20" height="20">
-              <path d="M14 6l-6 6 6 6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </Icon>
+            <Icon name="arrow-left-01" size={20} color="rgba(255,255,255,0.7)" />
             <span>{t("common.back")}</span>
           </button>
           <h2 className="crm-page-head__title">{t("reminders.pageTitle")}</h2>

@@ -1,11 +1,65 @@
-import type { ReactNode, SVGProps } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
-export function Icon(props: SVGProps<SVGSVGElement> & { children: ReactNode }) {
-  const { children, ...rest } = props;
+/** Hugeicons Stroke Rounded — class suffix without `hgi-` prefix (see icons.css CDN). */
+export type IconName =
+  | "add-01"
+  | "archive-01"
+  | "arrow-down-01"
+  | "arrow-left-01"
+  | "arrow-right-01"
+  | "calendar-01"
+  | "call-02"
+  | "car-01"
+  | "chart-bar-line"
+  | "chart-decrease"
+  | "chart-increase"
+  | "chart-line-data-01"
+  | "checkmark-circle-01"
+  | "clipboard"
+  | "clock-01"
+  | "credit-card"
+  | "delete-02"
+  | "dollar-01"
+  | "edit-02"
+  | "file-02"
+  | "filter"
+  | "fire"
+  | "garage"
+  | "globe"
+  | "home-01"
+  | "information-circle"
+  | "invoice-01"
+  | "lock"
+  | "notification-01"
+  | "parking-area-circle"
+  | "pencil"
+  | "receipt-dollar"
+  | "search-01"
+  | "settings-01"
+  | "shield-01"
+  | "star"
+  | "taxi"
+  | "upload-01"
+  | "user"
+  | "user-add-01"
+  | "wallet-01";
+
+export function Icon(props: {
+  name: IconName;
+  size?: number;
+  color?: string;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const size = props.size ?? 24;
+  const color = props.color ?? "currentColor";
+
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden {...rest}>
-      {children}
-    </svg>
+    <span
+      className={["crm-icon", "hgi-stroke", `hgi-${props.name}`, props.className].filter(Boolean).join(" ")}
+      style={{ fontSize: size, color, lineHeight: 1, ...props.style }}
+      aria-hidden
+    />
   );
 }
 
@@ -13,12 +67,7 @@ export function AppHeader(props: { title: string; subtitle: string }) {
   return (
     <header className="crm-header">
       <div className="crm-header__logo">
-        <Icon className="crm-header__logo-icon">
-          <path
-            d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"
-            fill="currentColor"
-          />
-        </Icon>
+        <Icon name="taxi" className="crm-header__logo-icon" size={28} color="var(--taxi-accent)" />
       </div>
       <div className="crm-header__text">
         <h1 className="crm-header__title">{props.title}</h1>

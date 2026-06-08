@@ -38,44 +38,27 @@ export function Dashboard() {
           value={income}
           suffix={t("dashboard.monthSuffix")}
           tone="income"
-          icon={
-            <Icon stroke="var(--taxi-income)" fill="none">
-              <rect x="3" y="6" width="18" height="13" rx="2" strokeWidth="1.8" />
-              <path d="M3 10h18" strokeWidth="1.8" />
-            </Icon>
-          }
+          icon={<Icon name="credit-card" size={24} color="var(--taxi-income)" />}
         />
         <StatCard
           label={t("dashboard.expenses")}
           value={expenses}
           suffix={t("dashboard.monthSuffix")}
           tone="expense"
-          icon={
-            <Icon stroke="var(--taxi-expense)" fill="none">
-              <path d="M6 8l6 8 6-8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </Icon>
-          }
+          icon={<Icon name="chart-decrease" size={24} color="var(--taxi-expense)" />}
         />
         <StatCard
           label={t("dashboard.profit")}
           value={profit}
           suffix={t("dashboard.monthSuffix")}
           tone="profit"
-          icon={
-            <Icon stroke="var(--taxi-profit)" fill="none">
-              <path d="M12 4v16M6 10a6 6 0 1 0 12 0" strokeWidth="1.8" strokeLinecap="round" />
-            </Icon>
-          }
+          icon={<Icon name="chart-line-data-01" size={24} color="var(--taxi-profit)" />}
         />
       </div>
 
       <SectionCard
         title={t("dashboard.reminders")}
-        icon={
-          <Icon stroke="var(--taxi-text-muted)" fill="none">
-            <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5" strokeWidth="1.8" strokeLinecap="round" />
-          </Icon>
-        }
+        icon={<Icon name="notification-01" size={24} color="var(--taxi-text-muted)" />}
         action={
           reminders.data && reminders.data.length > 0 ? (
             <button type="button" className="crm-link-btn" onClick={() => navigate("/reminders")}>
@@ -91,10 +74,7 @@ export function Dashboard() {
           </div>
         ) : reminders.data && reminders.data.length === 0 ? (
           <div className="crm-empty-box">
-            <Icon stroke="var(--taxi-text-muted)" fill="none" width="42" height="42">
-              <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
-              <path d="M8 3v4M16 3v4M4 10h16" strokeWidth="1.6" strokeLinecap="round" />
-            </Icon>
+            <Icon name="calendar-01" size={42} color="var(--taxi-text-muted)" />
             <p className="crm-empty-box__title">{t("dashboard.noReminders")}</p>
             <p className="crm-empty-box__subtitle">{t("dashboard.caughtUp")}</p>
           </div>
@@ -105,12 +85,7 @@ export function Dashboard() {
 
       <SectionCard
         title={t("dashboard.whoOwes")}
-        icon={
-          <Icon stroke="var(--taxi-text-muted)" fill="none">
-            <circle cx="12" cy="8" r="3.5" strokeWidth="1.8" />
-            <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" strokeWidth="1.8" strokeLinecap="round" />
-          </Icon>
-        }
+        icon={<Icon name="user" size={24} color="var(--taxi-text-muted)" />}
       >
         {balances.isLoading ? (
           <div className="crm-empty-box">
@@ -119,19 +94,13 @@ export function Dashboard() {
           </div>
         ) : owing.length === 0 ? (
           <div className="crm-settled-card">
-            <Icon stroke="var(--taxi-income)" fill="none">
-              <path d="M8 12a4 4 0 1 0 8 0M6 20h12" strokeWidth="1.8" strokeLinecap="round" />
-              <circle cx="9" cy="10" r="1" fill="currentColor" />
-              <circle cx="15" cy="10" r="1" fill="currentColor" />
-            </Icon>
+            <Icon name="wallet-01" size={24} color="var(--taxi-income)" />
             <div>
               <div className="crm-settled-card__title">{t("dashboard.allSettled")}</div>
               <div className="crm-settled-card__subtitle">{t("dashboard.settledSubtitle")}</div>
             </div>
             <div className="crm-settled-card__check">
-              <Icon stroke="#fff" fill="none" width="18" height="18">
-                <path d="M5 12l4 4 8-8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </Icon>
+              <Icon name="checkmark-circle-01" size={18} color="#fff" />
             </div>
           </div>
         ) : (
@@ -157,12 +126,7 @@ export function Dashboard() {
 
       <SectionCard
         title={t("settings.language")}
-        icon={
-          <Icon stroke="var(--taxi-text-muted)" fill="none">
-            <circle cx="12" cy="12" r="9" strokeWidth="1.8" />
-            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" strokeWidth="1.8" />
-          </Icon>
-        }
+        icon={<Icon name="globe" size={24} color="var(--taxi-text-muted)" />}
       >
         <label className="crm-language">
           <select
@@ -182,9 +146,7 @@ export function Dashboard() {
             ))}
           </select>
           <span className="crm-language__label">{currentLocale}</span>
-          <Icon stroke="var(--taxi-text-muted)" fill="none" width="20" height="20">
-            <path d="M8 10l4 4 4-4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </Icon>
+          <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
         </label>
       </SectionCard>
     </div>

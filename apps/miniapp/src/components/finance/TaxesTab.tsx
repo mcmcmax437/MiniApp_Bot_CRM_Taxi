@@ -108,34 +108,21 @@ export function TaxesTab() {
           value={formatMoney(total)}
           subtitle={t("finance.taxCount", { count: taxItems.length })}
           tone="red"
-          icon={
-            <Icon stroke="#ff5252" fill="none" width="22" height="22">
-              <path d="M6 8h12v10H6z" strokeWidth="1.6" strokeLinejoin="round" />
-              <path d="M9 8V6a3 3 0 0 1 6 0v2" strokeWidth="1.6" />
-            </Icon>
-          }
+          icon={<Icon name="lock" size={22} color="#ff5252" />}
         />
         <FinanceStatCard
           title={t("finance.thisMonth")}
           value={formatMoney(monthSum)}
           subtitle={t("finance.taxCount", { count: monthItems.length })}
           tone="purple"
-          icon={
-            <Icon stroke="#b388ff" fill="none" width="22" height="22">
-              <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
-            </Icon>
-          }
+          icon={<Icon name="calendar-01" size={22} color="#b388ff" />}
         />
         <FinanceStatCard
           title={t("finance.period_year")}
           value={formatMoney(yearSum)}
           subtitle={t("finance.taxCount", { count: yearItems.length })}
           tone="blue"
-          icon={
-            <Icon stroke="#448aff" fill="none" width="22" height="22">
-              <path d="M4 18V6l8-3 8 3v12l-8 3-8-3z" strokeWidth="1.6" strokeLinejoin="round" />
-            </Icon>
-          }
+          icon={<Icon name="invoice-01" size={22} color="#448aff" />}
         />
       </FinanceStatsRow>
 

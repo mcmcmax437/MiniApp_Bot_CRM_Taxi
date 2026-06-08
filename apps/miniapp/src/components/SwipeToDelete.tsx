@@ -105,14 +105,7 @@ export function SwipeToDelete(props: {
           onPointerUp={handleDelete}
           aria-label={t("common.delete")}
         >
-          <Icon stroke="#fff" fill="none" width="22" height="22">
-            <path
-              d="M5 7h14M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M8 7l.8 11.2A1.5 1.5 0 0 0 10.3 19.5h3.4a1.5 1.5 0 0 0 1.5-1.3L16 7"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Icon>
+          <Icon name="delete-02" size={22} color="#fff" />
         </button>
         {props.onEdit ? (
           <button
@@ -121,13 +114,7 @@ export function SwipeToDelete(props: {
             onPointerUp={handleEdit}
             aria-label={t("common.edit")}
           >
-            <Icon stroke="#fff" fill="none" width="22" height="22">
-              <path
-                d="M14.7 6.3a1 1 0 0 0 0-1.4l-1.6-1.6a1 1 0 0 0-1.4 0l-1.3 1.3 3 3 1.3-1.3zM5 13l7.1-7.1 3 3L8 16H5v-3z"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-            </Icon>
+            <Icon name="pencil" size={22} color="#fff" />
           </button>
         ) : null}
       </div>

@@ -24,9 +24,7 @@ export function AdminPage() {
           <p className="crm-page-head__subtitle">{t("admin.pageSubtitle")}</p>
         </div>
         <button type="button" className="crm-btn-primary" onClick={() => setAddOpen(true)}>
-          <Icon width="18" height="18" stroke="#fff" fill="none">
-            <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
-          </Icon>
+          <Icon name="add-01" size={18} color="#fff" />
           <span>{t("admin.addOwner")}</span>
         </button>
       </div>

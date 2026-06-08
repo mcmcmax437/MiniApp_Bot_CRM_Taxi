@@ -165,9 +165,7 @@ export function DocumentsPage() {
         </div>
 
         <button type="button" className="crm-doc-back" onClick={() => setSelected(null)}>
-          <Icon stroke="rgba(255,255,255,0.7)" fill="none" width="20" height="20">
-            <path d="M14 6l-6 6 6 6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </Icon>
+          <Icon name="arrow-left-01" size={20} color="rgba(255,255,255,0.7)" />
           <span>{t("common.back")}</span>
         </button>
 
@@ -277,9 +275,7 @@ export function DocumentsPage() {
           disabled={upload.isPending}
           onClick={() => fileRef.current?.click()}
         >
-          <Icon width="18" height="18" stroke="#fff" fill="none">
-            <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
-          </Icon>
+          <Icon name="add-01" size={18} color="#fff" />
           <span>{t("documents.upload")}</span>
         </button>
       </div>
@@ -315,10 +311,7 @@ export function DocumentsPage() {
       </div>
 
       <label className="crm-search-input crm-doc-search">
-        <Icon stroke="rgba(255,255,255,0.45)" fill="none" width="20" height="20">
-          <circle cx="11" cy="11" r="7" strokeWidth="1.8" />
-          <path d="M20 20l-3.5-3.5" strokeWidth="1.8" strokeLinecap="round" />
-        </Icon>
+        <Icon name="search-01" size={20} color="rgba(255,255,255,0.45)" />
         <input
           type="search"
           value={search}
@@ -351,10 +344,7 @@ export function DocumentsPage() {
                   <DocumentThumbnail documentId={entity.previewId} alt={entity.label} />
                 ) : (
                   <div className="crm-doc-entity__placeholder">
-                    <Icon stroke="rgba(255,255,255,0.35)" fill="none" width="28" height="28">
-                      <rect x="5" y="3" width="14" height="18" rx="2" strokeWidth="1.6" />
-                      <path d="M9 8h6M9 12h6" strokeWidth="1.6" strokeLinecap="round" />
-                    </Icon>
+                    <Icon name="file-02" size={28} color="rgba(255,255,255,0.35)" />
                   </div>
                 )}
               </div>
@@ -369,9 +359,7 @@ export function DocumentsPage() {
                 {t("documents.fileCount", { count: entity.count })}
               </div>
 
-              <Icon className="crm-doc-entity__chevron" stroke="rgba(255,255,255,0.45)" fill="none" width="24" height="24">
-                <path d="M10 8l4 4-4 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </Icon>
+              <Icon className="crm-doc-entity__chevron" name="arrow-right-01" size={24} color="rgba(255,255,255,0.45)" />
             </button>
           ))}
         </div>

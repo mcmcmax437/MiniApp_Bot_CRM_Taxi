@@ -31,10 +31,7 @@ export function ReportFiltersCard(props: {
         <label className="crm-report-date-field">
           <span className="crm-report-date-field__label">{t("reports.from")}</span>
           <div className="crm-report-date-field__value">
-            <Icon stroke="rgba(255,255,255,0.7)" fill="none" width="22" height="22">
-              <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
-              <path d="M8 3v4M16 3v4M4 10h16" strokeWidth="1.6" strokeLinecap="round" />
-            </Icon>
+            <Icon name="calendar-01" size={22} color="rgba(255,255,255,0.7)" />
             <DateInput value={props.from} onChange={props.onFromChange} />
             <span className="crm-report-date-field__display">{formatDateDisplay(props.from)}</span>
           </div>
@@ -43,10 +40,7 @@ export function ReportFiltersCard(props: {
         <label className="crm-report-date-field">
           <span className="crm-report-date-field__label">{t("reports.to")}</span>
           <div className="crm-report-date-field__value">
-            <Icon stroke="rgba(255,255,255,0.7)" fill="none" width="22" height="22">
-              <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
-              <path d="M8 3v4M16 3v4M4 10h16" strokeWidth="1.6" strokeLinecap="round" />
-            </Icon>
+            <Icon name="calendar-01" size={22} color="rgba(255,255,255,0.7)" />
             <DateInput value={props.to} onChange={props.onToChange} />
             <span className="crm-report-date-field__display">{formatDateDisplay(props.to)}</span>
           </div>
@@ -54,10 +48,7 @@ export function ReportFiltersCard(props: {
       </div>
 
       <button type="button" className="crm-report-apply" onClick={props.onApply} disabled={props.applying}>
-        <Icon stroke="#fff" fill="none" width="22" height="22">
-          <path d="M4 18v-4M8 14v-6M12 10V6M16 14v-2M20 10v6" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M4 18h16" strokeWidth="1.8" strokeLinecap="round" />
-        </Icon>
+        <Icon name="chart-bar-line" size={22} color="#fff" />
         <span>{t("reports.apply")}</span>
       </button>
     </section>
@@ -78,34 +69,21 @@ export function ReportSummaryCard(props: {
         tone="income"
         value={props.loading ? "…" : props.income}
         label={t("reports.income")}
-        icon={
-          <Icon stroke="#69F0AE" fill="none" width="26" height="26">
-            <path d="M8 4h12a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 0 1 2-2z" strokeWidth="1.6" strokeLinejoin="round" />
-          </Icon>
-        }
+        icon={<Icon name="receipt-dollar" size={26} color="#69F0AE" />}
       />
       <div className="crm-report-summary__divider" />
       <ReportSummaryItem
         tone="expense"
         value={props.loading ? "…" : props.expenses}
         label={t("reports.expenses")}
-        icon={
-          <Icon stroke="#FF8A80" fill="none" width="26" height="26">
-            <path d="M6 8l6 8 6-8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </Icon>
-        }
+        icon={<Icon name="chart-decrease" size={26} color="#FF8A80" />}
       />
       <div className="crm-report-summary__divider" />
       <ReportSummaryItem
         tone="profit"
         value={props.loading ? "…" : props.profit}
         label={t("reports.profit")}
-        icon={
-          <Icon stroke="#82B1FF" fill="none" width="26" height="26">
-            <circle cx="12" cy="12" r="8" strokeWidth="1.6" />
-            <path d="M12 8v4l3 2" strokeWidth="1.6" strokeLinecap="round" />
-          </Icon>
-        }
+        icon={<Icon name="clock-01" size={26} color="#82B1FF" />}
       />
     </section>
   );
@@ -146,23 +124,16 @@ export function ReportSectionCard(props: {
       <div className="crm-report-section__head">
         <div className={`crm-report-section__avatar crm-report-section__avatar--${props.tone}`}>
           {props.tone === "car" ? (
-            <Icon stroke="#3B82F6" fill="none" width="28" height="28">
-              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM5 11l1.5-4.5h11L19 11H5z" strokeWidth="1.4" />
-            </Icon>
+            <Icon name="car-01" size={28} color="#3B82F6" />
           ) : (
-            <Icon stroke="#A855F7" fill="none" width="28" height="28">
-              <circle cx="12" cy="8" r="3.5" strokeWidth="1.6" />
-              <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" strokeWidth="1.6" strokeLinecap="round" />
-            </Icon>
+            <Icon name="user" size={28} color="#A855F7" />
           )}
         </div>
         <div className="crm-report-section__titles">
           <h3 className="crm-report-section__title">{props.title}</h3>
           <p className="crm-report-section__subtitle">{props.subtitle}</p>
         </div>
-        <Icon className="crm-report-section__chevron" stroke="rgba(255,255,255,0.45)" fill="none" width="28" height="28">
-          <path d="M10 8l4 4-4 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </Icon>
+        <Icon className="crm-report-section__chevron" name="arrow-right-01" size={28} color="rgba(255,255,255,0.45)" />
       </div>
 
       <div className="crm-report-section__body">
@@ -174,10 +145,7 @@ export function ReportSectionCard(props: {
         ) : !hasRows ? (
           <div className="crm-report-section__empty">
             <div className="crm-report-section__empty-icon">
-              <Icon stroke="rgba(255,255,255,0.7)" fill="none" width="28" height="28">
-                <path d="M4 8h16v12H4zM8 8V5h8v3" strokeWidth="1.6" strokeLinejoin="round" />
-                <path d="M4 12h16" strokeWidth="1.6" />
-              </Icon>
+              <Icon name="archive-01" size={28} color="rgba(255,255,255,0.7)" />
             </div>
             <div>
               <div className="crm-report-section__empty-title">{t("reports.emptyTitle")}</div>
@@ -185,20 +153,23 @@ export function ReportSectionCard(props: {
             </div>
           </div>
         ) : (
-          <div className="crm-report-section__list">
-            {props.carRows?.map((c) => (
-              <div key={c.carId} className="crm-report-section__row">
-                <div className="crm-report-section__row-label">{c.label}</div>
-                <div className="crm-report-section__row-meta">
-                  {t("reports.income")}: {formatMoney(c.income)} · {t("reports.expenses")}: {formatMoney(c.expenses)}
+          <div className="crm-report-section__rows">
+            {props.carRows?.map((row) => (
+              <div key={row.carId} className="crm-report-row">
+                <div className="crm-report-row__label">{row.label}</div>
+                <div className="crm-report-row__values">
+                  <span className="crm-report-row__income">+{formatMoney(row.income)}</span>
+                  <span className="crm-report-row__expense">-{formatMoney(row.expenses)}</span>
+                  <span className="crm-report-row__profit">{formatMoney(row.profit)}</span>
                 </div>
-                <div className="crm-report-section__row-value">{formatMoney(c.profit)}</div>
               </div>
             ))}
-            {props.driverRows?.map((d) => (
-              <div key={d.driverId} className="crm-report-section__row">
-                <div className="crm-report-section__row-label">{d.label}</div>
-                <div className="crm-report-section__row-value">{formatMoney(d.income)}</div>
+            {props.driverRows?.map((row) => (
+              <div key={row.driverId} className="crm-report-row">
+                <div className="crm-report-row__label">{row.label}</div>
+                <div className="crm-report-row__values">
+                  <span className="crm-report-row__income">+{formatMoney(row.income)}</span>
+                </div>
               </div>
             ))}
           </div>

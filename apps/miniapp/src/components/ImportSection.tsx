@@ -38,44 +38,26 @@ export function ImportSection() {
       kind: "cars",
       title: t("importData.cars"),
       subtitle: t("importData.carsHint"),
-      icon: (
-        <Icon fill="var(--taxi-text-muted)">
-          <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM5 11l1.5-4.5h11L19 11H5z" />
-        </Icon>
-      ),
+      icon: <Icon name="car-01" size={24} color="var(--taxi-text-muted)" />,
     },
     {
       kind: "drivers",
       title: t("importData.drivers"),
       subtitle: t("importData.driversHint"),
-      icon: (
-        <Icon stroke="var(--taxi-text-muted)" fill="none">
-          <circle cx="12" cy="8" r="3.5" strokeWidth="1.8" />
-          <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" strokeWidth="1.8" strokeLinecap="round" />
-        </Icon>
-      ),
+      icon: <Icon name="user" size={24} color="var(--taxi-text-muted)" />,
     },
     {
       kind: "payments",
       title: t("importData.payments"),
       subtitle: t("importData.paymentsHint"),
-      icon: (
-        <Icon stroke="var(--taxi-text-muted)" fill="none">
-          <path d="M12 3v18M7 8h6a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6" strokeWidth="1.8" strokeLinecap="round" />
-        </Icon>
-      ),
+      icon: <Icon name="dollar-01" size={24} color="var(--taxi-text-muted)" />,
     },
   ];
 
   return (
     <SectionCard
       title={t("importData.title")}
-      icon={
-        <Icon stroke="var(--taxi-text-muted)" fill="none">
-          <path d="M8 17l-4 4V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M12 12v5M9.5 14.5 12 12l2.5 2.5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </Icon>
-      }
+      icon={<Icon name="upload-01" size={24} color="var(--taxi-text-muted)" />}
     >
       <div className="crm-import-grid">
         {items.map((item) => (
@@ -105,10 +87,7 @@ export function ImportSection() {
       {message ? <p className="crm-message">{message}</p> : null}
 
       <div className="crm-info-banner glass-card">
-        <Icon className="crm-info-banner__icon" stroke="#448AFF" fill="none">
-          <circle cx="12" cy="12" r="9" strokeWidth="1.8" />
-          <path d="M12 8v1M12 11v5" strokeWidth="1.8" strokeLinecap="round" />
-        </Icon>
+        <Icon className="crm-info-banner__icon" name="information-circle" size={24} color="#448AFF" />
         <p>{t("importData.hint")}</p>
       </div>
     </SectionCard>

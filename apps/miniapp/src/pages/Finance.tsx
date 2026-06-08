@@ -169,46 +169,28 @@ function PaymentsTab() {
           value={String(all.length)}
           subtitle={t("finance.allTime")}
           tone="blue"
-          icon={
-            <Icon stroke="#448aff" fill="none" width="22" height="22">
-              <rect x="3" y="6" width="18" height="13" rx="2" strokeWidth="1.6" />
-              <path d="M3 10h18" strokeWidth="1.6" />
-            </Icon>
-          }
+          icon={<Icon name="credit-card" size={22} color="#448aff" />}
         />
         <FinanceStatCard
           title={t("finance.paid")}
           value={formatMoney(totalPaid)}
           subtitle={t("finance.allTime")}
           tone="green"
-          icon={
-            <Icon stroke="#69f0ae" fill="none" width="22" height="22">
-              <path d="M6 16l4-8 4 4 4-10" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </Icon>
-          }
+          icon={<Icon name="chart-increase" size={22} color="#69f0ae" />}
         />
         <FinanceStatCard
           title={t("finance.debts")}
           value={formatMoney(debts)}
           subtitle={t("finance.allTime")}
           tone="red"
-          icon={
-            <Icon stroke="#ff5252" fill="none" width="22" height="22">
-              <path d="M6 8l4 8 4-4 4 6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </Icon>
-          }
+          icon={<Icon name="chart-decrease" size={22} color="#ff5252" />}
         />
         <FinanceStatCard
           title={t("finance.thisMonth")}
           value={formatMoney(monthSum)}
           subtitle={t("finance.paymentCount", { count: monthItems.length })}
           tone="purple"
-          icon={
-            <Icon stroke="#b388ff" fill="none" width="22" height="22">
-              <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
-              <path d="M8 3v4M16 3v4M4 10h16" strokeWidth="1.6" strokeLinecap="round" />
-            </Icon>
-          }
+          icon={<Icon name="calendar-01" size={22} color="#b388ff" />}
         />
       </FinanceStatsRow>
 
@@ -370,33 +352,21 @@ function ExpensesTab() {
           value={String(all.length)}
           subtitle={t("finance.allTime")}
           tone="blue"
-          icon={
-            <Icon stroke="#448aff" fill="none" width="22" height="22">
-              <path d="M12 3c-1.5 3-4 5-4 8a4 4 0 0 0 8 0c0-3-2.5-5-4-8z" strokeWidth="1.6" />
-            </Icon>
-          }
+          icon={<Icon name="fire" size={22} color="#448aff" />}
         />
         <FinanceStatCard
           title={t("finance.spent")}
           value={formatMoney(total)}
           subtitle={t("finance.allTime")}
           tone="red"
-          icon={
-            <Icon stroke="#ff5252" fill="none" width="22" height="22">
-              <path d="M6 8l4 8 4-4 4 6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </Icon>
-          }
+          icon={<Icon name="chart-decrease" size={22} color="#ff5252" />}
         />
         <FinanceStatCard
           title={t("finance.thisMonth")}
           value={formatMoney(monthSum)}
           subtitle={t("finance.expenseCount", { count: monthItems.length })}
           tone="purple"
-          icon={
-            <Icon stroke="#b388ff" fill="none" width="22" height="22">
-              <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
-            </Icon>
-          }
+          icon={<Icon name="calendar-01" size={22} color="#b388ff" />}
         />
       </FinanceStatsRow>
 
@@ -510,22 +480,14 @@ function BalancesTab() {
           value={String(all.length)}
           subtitle={t("finance.allTime")}
           tone="purple"
-          icon={
-            <Icon stroke="#b388ff" fill="none" width="22" height="22">
-              <path d="M6 8h12v10H6z" strokeWidth="1.6" />
-            </Icon>
-          }
+          icon={<Icon name="lock" size={22} color="#b388ff" />}
         />
         <FinanceStatCard
           title={t("finance.debts")}
           value={formatMoney(totalDebt)}
           subtitle={t("finance.allTime")}
           tone="red"
-          icon={
-            <Icon stroke="#ff5252" fill="none" width="22" height="22">
-              <path d="M6 8l4 8 4-4 4 6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </Icon>
-          }
+          icon={<Icon name="chart-decrease" size={22} color="#ff5252" />}
         />
       </FinanceStatsRow>
 

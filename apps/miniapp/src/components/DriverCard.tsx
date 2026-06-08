@@ -56,13 +56,7 @@ export function DriverCard(props: {
 
       {driver.phone ? (
         <div className="crm-driver-card__phone">
-          <Icon stroke="rgba(255,255,255,0.54)" fill="none" width="18" height="18">
-            <path
-              d="M7 4h3l1 3-2 1a9 9 0 0 0 4 4l1-2 3 1v3a2 2 0 0 1-2 2A12 12 0 0 1 5 6a2 2 0 0 1 2-2z"
-              strokeWidth="1.6"
-              strokeLinejoin="round"
-            />
-          </Icon>
+          <Icon name="call-02" size={18} color="rgba(255,255,255,0.54)" />
           <span>{driver.phone}</span>
         </div>
       ) : null}
@@ -72,34 +66,21 @@ export function DriverCard(props: {
           tone="joined"
           label={t("drivers.joined")}
           value={formatDate(driver.createdAt)}
-          icon={
-            <Icon stroke="rgba(255,255,255,0.54)" fill="none" width="20" height="20">
-              <rect x="4" y="5" width="16" height="15" rx="2" strokeWidth="1.6" />
-              <path d="M8 3v4M16 3v4M4 10h16" strokeWidth="1.6" strokeLinecap="round" />
-            </Icon>
-          }
+          icon={<Icon name="calendar-01" size={20} color="rgba(255,255,255,0.54)" />}
         />
         <div className="crm-driver-card__divider" />
         <StatColumn
           tone="trips"
           label={t("drivers.tripsMonth")}
           value={String(props.tripsThisMonth)}
-          icon={
-            <Icon stroke="rgba(255,255,255,0.54)" fill="none" width="20" height="20">
-              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM5 11l1.5-4.5h11L19 11H5z" strokeWidth="1.4" />
-            </Icon>
-          }
+          icon={<Icon name="car-01" size={20} color="rgba(255,255,255,0.54)" />}
         />
         <div className="crm-driver-card__divider" />
         <StatColumn
           tone="balance"
           label={t("drivers.balance")}
           value={formatMoney(props.balance?.balance ?? 0)}
-          icon={
-            <Icon stroke="rgba(255,255,255,0.54)" fill="none" width="20" height="20">
-              <path d="M12 3v18M7 8h6a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6" strokeWidth="1.6" strokeLinecap="round" />
-            </Icon>
-          }
+          icon={<Icon name="dollar-01" size={20} color="rgba(255,255,255,0.54)" />}
         />
       </div>
     </div>
@@ -123,18 +104,13 @@ export function DriversEmptyState(props: { onAdd: () => void }) {
   return (
     <div className="crm-driver-empty">
       <div className="crm-driver-empty__icon">
-        <Icon stroke="#448AFF" fill="none" width="72" height="72">
-          <circle cx="12" cy="8" r="4" strokeWidth="1.6" />
-          <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" strokeWidth="1.6" strokeLinecap="round" />
-        </Icon>
+        <Icon name="user" size={72} color="#448AFF" />
         <span className="crm-driver-empty__plus">+</span>
       </div>
       <h3 className="crm-driver-empty__title">{t("drivers.noDriversYet")}</h3>
       <p className="crm-driver-empty__subtitle">{t("drivers.addFirstDriver")}</p>
       <button type="button" className="crm-btn-primary" onClick={props.onAdd}>
-        <Icon width="18" height="18" stroke="#fff" fill="none">
-          <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
-        </Icon>
+        <Icon name="add-01" size={18} color="#fff" />
         <span>{t("drivers.addDriver")}</span>
       </button>
     </div>
