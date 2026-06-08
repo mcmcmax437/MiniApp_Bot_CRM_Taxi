@@ -56,7 +56,7 @@ export function DriverCard(props: {
 
       {driver.phone ? (
         <div className="crm-driver-card__phone">
-          <Icon name="call-02" size={18} color="rgba(255,255,255,0.54)" />
+          <Icon name="call-02" size={14} color="rgba(255,255,255,0.54)" />
           <span>{driver.phone}</span>
         </div>
       ) : null}
@@ -66,21 +66,21 @@ export function DriverCard(props: {
           tone="joined"
           label={t("drivers.joined")}
           value={formatDate(driver.createdAt)}
-          icon={<Icon name="calendar-01" size={20} color="rgba(255,255,255,0.54)" />}
+          icon={<Icon name="calendar-01" size={16} color="rgba(255,255,255,0.54)" />}
         />
         <div className="crm-driver-card__divider" />
         <StatColumn
           tone="trips"
           label={t("drivers.tripsMonth")}
           value={String(props.tripsThisMonth)}
-          icon={<Icon name="car-01" size={20} color="rgba(255,255,255,0.54)" />}
+          icon={<Icon name="car-01" size={16} color="rgba(255,255,255,0.54)" />}
         />
         <div className="crm-driver-card__divider" />
         <StatColumn
           tone="balance"
           label={t("drivers.balance")}
           value={formatMoney(props.balance?.balance ?? 0)}
-          icon={<Icon name="dollar-01" size={20} color="rgba(255,255,255,0.54)" />}
+          icon={<Icon name="dollar-01" size={16} color="rgba(255,255,255,0.54)" />}
         />
       </div>
     </div>

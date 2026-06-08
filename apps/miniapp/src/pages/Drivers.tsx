@@ -547,15 +547,10 @@ export function DriversPage() {
             onChange={(v) => patchForm({ addressHouse: v })}
           />
         </Field>
-        <Field
-          label={t("drivers.addressFlat")}
-          invalid={fieldInvalid("addressFlat")}
-          errorMessage={fieldErrorMessage("addressFlat")}
-        >
+        <Field label={t("drivers.addressFlat")}>
           <TextInput
             value={form.addressFlat}
             placeholder={ph(t, "addressFlat")}
-            invalid={fieldInvalid("addressFlat")}
             onChange={(v) => patchForm({ addressFlat: v })}
           />
         </Field>
