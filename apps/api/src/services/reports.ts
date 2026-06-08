@@ -31,7 +31,9 @@ export async function buildReportSummary(
   for (const p of payments) {
     income += p.amount;
     if (p.carId) incomeByCar.set(p.carId, (incomeByCar.get(p.carId) ?? 0) + p.amount);
-    incomeByDriver.set(p.driverId, (incomeByDriver.get(p.driverId) ?? 0) + p.amount);
+    if (p.driverId) {
+      incomeByDriver.set(p.driverId, (incomeByDriver.get(p.driverId) ?? 0) + p.amount);
+    }
   }
 
   const expenseByCar = new Map<string, number>();

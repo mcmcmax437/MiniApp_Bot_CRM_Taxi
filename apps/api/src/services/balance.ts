@@ -57,7 +57,7 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
 
   const rentPaidByDriver = new Map<string, number>();
   for (const p of payments) {
-    if (p.type === "RENT") {
+    if (p.type === "RENT" && p.driverId) {
       rentPaidByDriver.set(p.driverId, (rentPaidByDriver.get(p.driverId) ?? 0) + p.amount);
     }
   }

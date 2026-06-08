@@ -2435,8 +2435,8 @@ body {
 .crm-finance-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 @media (min-width: 720px) {
@@ -2446,29 +2446,29 @@ body {
 }
 
 .crm-finance-stat {
-  padding: 12px 10px;
-  border-radius: 16px;
+  padding: 10px 8px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: linear-gradient(135deg, #13233a, #0a1424);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .crm-finance-stat__icon {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   line-height: 0;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .crm-finance-stat__icon .crm-icon,
 .crm-finance-stat__icon svg {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
 }
 
 .crm-finance-stat--blue .crm-finance-stat__icon {
@@ -2494,8 +2494,8 @@ body {
 }
 
 .crm-finance-stat__value {
-  margin-top: 2px;
-  font-size: clamp(18px, 4vw, 22px);
+  margin-top: 1px;
+  font-size: clamp(16px, 3.6vw, 20px);
   font-weight: 700;
   line-height: 1.1;
 }
@@ -2638,7 +2638,29 @@ div.crm-finance-item {
   cursor: default;
 }
 
-.crm-finance-item__title-row {
+.crm-partner-alert {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 183, 77, 0.22);
+  color: #ffb74d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 183, 77, 0.45);
+}
+
+.crm-partner-banner .crm-partner-alert {
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+}
+
+.crm-finance-item__title-line,
+.crm-activity-feed__title-line {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2652,37 +2674,16 @@ div.crm-finance-item {
   min-width: 0;
 }
 
-.crm-finance-item__badge {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  background: rgba(255, 183, 77, 0.18);
-  color: #ffb74d;
-  border: 1px solid rgba(255, 183, 77, 0.35);
-}
-
-.crm-finance-item--partner-unsettled {
-  border-color: rgba(255, 183, 77, 0.45);
-  background: linear-gradient(135deg, rgba(255, 183, 77, 0.12), #0a1424);
-  box-shadow: inset 3px 0 0 #ffb74d;
-}
-
-.crm-finance-item--partner-settled .crm-finance-item__badge {
-  background: rgba(105, 240, 174, 0.12);
-  color: #69f0ae;
-  border-color: rgba(105, 240, 174, 0.28);
+.crm-activity-feed__title {
+  min-width: 0;
 }
 
 .crm-partner-banner {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
   border: 1px solid rgba(255, 183, 77, 0.35);
   background: linear-gradient(135deg, rgba(255, 183, 77, 0.1), rgba(10, 20, 36, 0.95));
 }
@@ -2716,9 +2717,33 @@ div.crm-finance-item {
   accent-color: var(--taxi-accent, #2f7dff);
 }
 
-.crm-activity-feed__item--partner-unsettled {
-  border-left: 3px solid #ffb74d;
-  padding-left: 10px;
+.crm-expense-tag-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crm-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.crm-tag-chip {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.crm-tag-chip--active {
+  border-color: rgba(47, 125, 255, 0.45);
+  background: rgba(47, 125, 255, 0.18);
+  color: #fff;
 }
 
 .crm-finance-item__subtitle {

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { PaymentType } from "@taxi/shared";
 import { useExpenses, usePayments } from "../hooks";
 import type { Expense, Payment } from "../types";
+import { PartnerAlertMark } from "./finance/FinanceUi";
 import { Icon, SectionCard } from "./crm";
 import { formatDate, formatMoney } from "./ui";
 
@@ -57,10 +58,7 @@ export function RecentActivitySection() {
     }
 
     for (const e of expenses.data ?? []) {
-      const parts = [formatDate(e.date), e.car?.plate, e.note].filter(Boolean);
-      if (e.paidByPartner && !e.partnerSettled) {
-        parts.push(t("finance.partnerUnsettledBadge"));
-      }
+      const parts = [formatDate(e.date), e.car?.plate, e.tag, e.note].filter(Boolean);
       rows.push({
         id: `expense-${e.id}`,
         kind: "expense",
@@ -100,10 +98,15 @@ export function RecentActivitySection() {
           {items.map((item) => (
             <li
               key={item.id}
-              className={`crm-activity-feed__item crm-activity-feed__item--${item.kind}${item.partnerUnsettled ? " crm-activity-feed__item--partner-unsettled" : ""}`}
+              className={`crm-activity-feed__item crm-activity-feed__item--${item.kind}`}
             >
               <div className="crm-activity-feed__main">
-                <div className="crm-activity-feed__title">{item.title}</div>
+                <div className="crm-activity-feed__title-line">
+                  <div className="crm-activity-feed__title">{item.title}</div>
+                  {item.partnerUnsettled ? (
+                    <PartnerAlertMark label={t("finance.partnerUnsettledTitle")} />
+                  ) : null}
+                </div>
                 <div className="crm-activity-feed__meta">{item.subtitle}</div>
               </div>
               <div className={`crm-activity-feed__amount crm-activity-feed__amount--${item.kind}`}>

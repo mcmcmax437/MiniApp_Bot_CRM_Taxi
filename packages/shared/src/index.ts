@@ -345,7 +345,7 @@ export type AgreementUpdateInput = z.infer<typeof agreementUpdateSchema>;
 // ---------------------------------------------------------------------------
 
 export const paymentCreateSchema = z.object({
-  driverId: z.string().cuid(),
+  driverId: z.string().cuid().optional().nullable(),
   carId: z.string().cuid().optional().nullable(),
   amount: money,
   date: isoDate,
@@ -367,6 +367,7 @@ export const expenseCreateSchema = z.object({
   amount: money,
   date: isoDate,
   note: z.string().trim().max(2000).optional().nullable(),
+  tag: z.string().trim().max(64).optional().nullable(),
   paidByPartner: z.boolean().default(false),
   partnerSettled: z.boolean().default(false),
 });

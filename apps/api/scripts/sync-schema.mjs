@@ -18,6 +18,7 @@ const ALL_MIGRATIONS = [
   "20250608000000_driver_postal_code",
   "20250609000000_document_meta",
   "20250610000000_payment_partner_expense",
+  "20250611000000_expense_tag_optional_driver",
 ];
 
 function failedMigrationName(output) {

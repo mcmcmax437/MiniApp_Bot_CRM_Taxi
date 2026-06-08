@@ -132,7 +132,7 @@ export interface Agreement {
 
 export interface Payment {
   id: string;
-  driverId: string;
+  driverId: string | null;
   carId: string | null;
   amount: number;
   date: string;
@@ -151,6 +151,7 @@ export interface Expense {
   amount: number;
   date: string;
   note: string | null;
+  tag: string | null;
   paidByPartner: boolean;
   partnerSettled: boolean;
   createdAt?: string;

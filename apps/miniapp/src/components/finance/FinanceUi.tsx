@@ -229,10 +229,19 @@ export function FinanceList(props: { loading?: boolean; children: ReactNode }) {
   return <div className="crm-finance-list">{props.children}</div>;
 }
 
+export function PartnerAlertMark(props: { label: string }) {
+  return (
+    <span className="crm-partner-alert" title={props.label} aria-label={props.label}>
+      !
+    </span>
+  );
+}
+
 export function FinanceListItem(props: {
   title: string;
   subtitle?: string;
-  badge?: string;
+  partnerAlert?: boolean;
+  partnerAlertLabel?: string;
   amount?: string;
   amountTone?: "income" | "expense" | "neutral";
   className?: string;
@@ -244,9 +253,9 @@ export function FinanceListItem(props: {
   return (
     <Tag type={props.onClick ? "button" : undefined} className={rootClass} onClick={props.onClick}>
       <div className="crm-finance-item__main">
-        <div className="crm-finance-item__title-row">
+        <div className="crm-finance-item__title-line">
           <div className="crm-finance-item__title">{props.title}</div>
-          {props.badge ? <span className="crm-finance-item__badge">{props.badge}</span> : null}
+          {props.partnerAlert ? <PartnerAlertMark label={props.partnerAlertLabel ?? "!"} /> : null}
         </div>
         {props.subtitle ? <div className="crm-finance-item__subtitle">{props.subtitle}</div> : null}
       </div>

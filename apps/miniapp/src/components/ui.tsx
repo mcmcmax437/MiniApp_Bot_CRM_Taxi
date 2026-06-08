@@ -107,6 +107,7 @@ export function TextInput(props: {
   type?: string;
   placeholder?: string;
   invalid?: boolean;
+  list?: string;
 }) {
   return (
     <input
@@ -114,6 +115,7 @@ export function TextInput(props: {
       type={props.type ?? "text"}
       value={props.value}
       placeholder={props.placeholder}
+      list={props.list}
       onChange={(e) => props.onChange(e.target.value)}
     />
   );

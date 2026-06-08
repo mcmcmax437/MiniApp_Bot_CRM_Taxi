@@ -14,6 +14,7 @@ import {
 } from "../hooks";
 import { FleetTab } from "../components/finance/FleetTab";
 import { TaxesTab } from "../components/finance/TaxesTab";
+import { ExpenseTagInput } from "../components/finance/ExpenseTagInput";
 import {
   Modal,
   Field,
@@ -37,6 +38,7 @@ import {
   FinanceEmptyState,
   FinanceList,
   FinanceListItem,
+  PartnerAlertMark,
   financeInPeriod,
   type FinanceTabId,
   type FinancePeriod,
@@ -78,6 +80,7 @@ function PaymentsTab() {
   const [periodOpen, setPeriodOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<PaymentType | "ALL">("ALL");
+  const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean }>({});
   const [form, setForm] = useState<{
     driverId: string;
     carId: string;
@@ -115,8 +118,9 @@ function PaymentsTab() {
 
   function openCreate() {
     setEditId(null);
+    setFieldErrors({});
     setForm({
-      driverId: drivers.data?.[0]?.id ?? "",
+      driverId: "",
       carId: "",
       amount: "",
       date: todayInput(),
@@ -129,8 +133,9 @@ function PaymentsTab() {
 
   function openEdit(p: (typeof all)[number]) {
     setEditId(p.id);
+    setFieldErrors({});
     setForm({
-      driverId: p.driverId,
+      driverId: p.driverId ?? "",
       carId: p.carId ?? "",
       amount: p.amount,
       date: p.date.slice(0, 10),
@@ -142,12 +147,18 @@ function PaymentsTab() {
   }
 
   function submit() {
-    if (!form.driverId || form.amount === "") return;
+    const errors = {
+      amount: form.amount === "",
+      date: !form.date.trim(),
+      method: !form.method,
+    };
+    setFieldErrors(errors);
+    if (errors.amount || errors.date || errors.method) return;
     save.mutate(
       {
         id: editId ?? undefined,
         data: {
-          driverId: form.driverId,
+          driverId: form.driverId || null,
           carId: form.carId || null,
           amount: form.amount,
           date: form.date,
@@ -162,11 +173,7 @@ function PaymentsTab() {
 
   return (
     <>
-      <FinanceAddButton
-        label={t("finance.addPayment")}
-        onClick={openCreate}
-        blockedReason={!drivers.data?.length ? t("finance.needDriverFirst") : undefined}
-      />
+      <FinanceAddButton label={t("finance.addPayment")} onClick={openCreate} />
 
       <FinanceStatsRow>
         <FinanceStatCard
@@ -174,28 +181,28 @@ function PaymentsTab() {
           value={String(all.length)}
           subtitle={t("finance.allTime")}
           tone="blue"
-          icon={<Icon name="credit-card" size={22} color="#448aff" />}
+          icon={<Icon name="credit-card" size={16} color="#448aff" />}
         />
         <FinanceStatCard
           title={t("finance.paid")}
           value={formatMoney(totalPaid)}
           subtitle={t("finance.allTime")}
           tone="green"
-          icon={<Icon name="chart-increase" size={22} color="#69f0ae" />}
+          icon={<Icon name="chart-increase" size={16} color="#69f0ae" />}
         />
         <FinanceStatCard
           title={t("finance.debts")}
           value={formatMoney(debts)}
           subtitle={t("finance.allTime")}
           tone="red"
-          icon={<Icon name="chart-decrease" size={22} color="#ff5252" />}
+          icon={<Icon name="chart-decrease" size={16} color="#ff5252" />}
         />
         <FinanceStatCard
           title={t("finance.thisMonth")}
           value={formatMoney(monthSum)}
           subtitle={t("finance.paymentCount", { count: monthItems.length })}
           tone="purple"
-          icon={<Icon name="calendar-01" size={22} color="#b388ff" />}
+          icon={<Icon name="calendar-01" size={16} color="#b388ff" />}
         />
       </FinanceStatsRow>
 
@@ -252,7 +259,7 @@ function PaymentsTab() {
           {filtered.map((p) => (
             <FinanceListItem
               key={p.id}
-              title={p.driver?.fullName ?? "—"}
+              title={p.driver?.fullName ?? t("common.none")}
               subtitle={`${formatDate(p.date)} • ${t(`finance.${p.type}`)} • ${t(`finance.${p.method}`)}`}
               amount={formatMoney(p.amount)}
               amountTone="income"
@@ -267,11 +274,13 @@ function PaymentsTab() {
         editId={editId}
         form={form}
         setForm={setForm}
+        fieldErrors={fieldErrors}
         drivers={drivers.data ?? []}
         cars={cars.data ?? []}
         saving={save.isPending}
         onClose={() => setOpen(false)}
         onSave={submit}
+        onFieldErrorClear={(key) => setFieldErrors((e) => ({ ...e, [key]: false }))}
         onDelete={
           editId
             ? () => {
@@ -295,12 +304,14 @@ function ExpensesTab() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [periodOpen, setPeriodOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [form, setForm] = useState<{
     carId: string;
     category: ExpenseCategory;
     amount: number | "";
     date: string;
     note: string;
+    tag: string;
     paidByPartner: boolean;
     partnerSettled: boolean;
   }>({
@@ -309,11 +320,20 @@ function ExpensesTab() {
     amount: "",
     date: todayInput(),
     note: "",
+    tag: "",
     paidByPartner: false,
     partnerSettled: false,
   });
 
   const all = (expenses.data ?? []).filter((e) => e.category !== ExpenseCategory.TAX);
+  const expenseTagSuggestions = useMemo(() => {
+    const tags = new Set<string>();
+    for (const e of all) {
+      const tag = e.tag?.trim();
+      if (tag) tags.add(tag);
+    }
+    return [...tags].sort((a, b) => a.localeCompare(b));
+  }, [all]);
   const total = all.reduce((s, e) => s + e.amount, 0);
   const monthItems = all.filter((e) => financeInPeriod(e.date, "month"));
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
@@ -325,19 +345,21 @@ function ExpensesTab() {
     return all.filter((e) => {
       if (!financeInPeriod(e.date, period)) return false;
       if (!q) return true;
-      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.note ?? ""}`.toLowerCase();
+      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [all, period, search, t]);
 
   function openCreate() {
     setEditId(null);
+    setFieldErrors({});
     setForm({
       carId: "",
       category: ExpenseCategory.FUEL,
       amount: "",
       date: todayInput(),
       note: "",
+      tag: "",
       paidByPartner: false,
       partnerSettled: false,
     });
@@ -345,7 +367,12 @@ function ExpensesTab() {
   }
 
   function submit() {
-    if (form.amount === "") return;
+    const errors = {
+      amount: form.amount === "",
+      date: !form.date.trim(),
+    };
+    setFieldErrors(errors);
+    if (errors.amount || errors.date) return;
     save.mutate(
       {
         id: editId ?? undefined,
@@ -355,6 +382,7 @@ function ExpensesTab() {
           amount: form.amount,
           date: form.date,
           note: form.note || null,
+          tag: form.tag.trim() || null,
           paidByPartner: form.paidByPartner,
           partnerSettled: form.paidByPartner ? form.partnerSettled : false,
         },
@@ -369,7 +397,7 @@ function ExpensesTab() {
 
       {partnerUnsettled.length > 0 ? (
         <div className="crm-partner-banner glass-card">
-          <Icon name="information-circle" size={22} color="#ffb74d" />
+          <PartnerAlertMark label={t("finance.partnerUnsettledTitle")} />
           <div>
             <div className="crm-partner-banner__title">{t("finance.partnerUnsettledTitle")}</div>
             <div className="crm-partner-banner__subtitle">
@@ -388,21 +416,21 @@ function ExpensesTab() {
           value={String(all.length)}
           subtitle={t("finance.allTime")}
           tone="blue"
-          icon={<Icon name="fire" size={22} color="#448aff" />}
+          icon={<Icon name="fire" size={16} color="#448aff" />}
         />
         <FinanceStatCard
           title={t("finance.spent")}
           value={formatMoney(total)}
           subtitle={t("finance.allTime")}
           tone="red"
-          icon={<Icon name="chart-decrease" size={22} color="#ff5252" />}
+          icon={<Icon name="chart-decrease" size={16} color="#ff5252" />}
         />
         <FinanceStatCard
           title={t("finance.thisMonth")}
           value={formatMoney(monthSum)}
           subtitle={t("finance.expenseCount", { count: monthItems.length })}
           tone="purple"
-          icon={<Icon name="calendar-01" size={22} color="#b388ff" />}
+          icon={<Icon name="calendar-01" size={16} color="#b388ff" />}
         />
       </FinanceStatsRow>
 
@@ -431,31 +459,27 @@ function ExpensesTab() {
               <FinanceListItem
                 key={e.id}
                 title={t(`finance.${e.category}`)}
-                subtitle={`${formatDate(e.date)} • ${e.car?.plate ?? t("common.none")}`}
-                badge={
-                  partnerOpen
-                    ? t("finance.partnerUnsettledBadge")
-                    : e.paidByPartner && e.partnerSettled
-                      ? t("finance.partnerSettledBadge")
-                      : undefined
-                }
-                className={
-                  partnerOpen
-                    ? "crm-finance-item--partner-unsettled"
-                    : e.paidByPartner && e.partnerSettled
-                      ? "crm-finance-item--partner-settled"
-                      : undefined
-                }
+                subtitle={[
+                  formatDate(e.date),
+                  e.car?.plate ?? t("common.none"),
+                  e.tag?.trim(),
+                ]
+                  .filter(Boolean)
+                  .join(" • ")}
+                partnerAlert={partnerOpen}
+                partnerAlertLabel={t("finance.partnerUnsettledTitle")}
                 amount={formatMoney(e.amount)}
                 amountTone="expense"
                 onClick={() => {
                   setEditId(e.id);
+                  setFieldErrors({});
                   setForm({
                     carId: e.carId ?? "",
                     category: e.category,
                     amount: e.amount,
                     date: e.date.slice(0, 10),
                     note: e.note ?? "",
+                    tag: e.tag ?? "",
                     paidByPartner: e.paidByPartner,
                     partnerSettled: e.partnerSettled,
                   });
@@ -507,11 +531,40 @@ function ExpensesTab() {
             ]}
           />
         </Field>
-        <Field label={t("finance.amount")}>
-          <MoneyNumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} />
+        <Field
+          label={t("finance.amount")}
+          invalid={fieldErrors.amount}
+          errorMessage={fieldErrors.amount ? t("common.requiredField") : undefined}
+        >
+          <MoneyNumberInput
+            value={form.amount}
+            invalid={fieldErrors.amount}
+            onChange={(v) => {
+              setFieldErrors((e) => ({ ...e, amount: false }));
+              setForm({ ...form, amount: v });
+            }}
+          />
         </Field>
-        <Field label={t("finance.date")}>
-          <DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
+        <Field
+          label={t("finance.date")}
+          invalid={fieldErrors.date}
+          errorMessage={fieldErrors.date ? t("common.requiredField") : undefined}
+        >
+          <DateInput
+            value={form.date}
+            invalid={fieldErrors.date}
+            onChange={(v) => {
+              setFieldErrors((e) => ({ ...e, date: false }));
+              setForm({ ...form, date: v });
+            }}
+          />
+        </Field>
+        <Field label={t("finance.expenseTag")}>
+          <ExpenseTagInput
+            value={form.tag}
+            suggestions={expenseTagSuggestions}
+            onChange={(v) => setForm({ ...form, tag: v })}
+          />
         </Field>
         <Field label={t("finance.note")}>
           <TextInput value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
@@ -559,14 +612,14 @@ function BalancesTab() {
           value={String(all.length)}
           subtitle={t("finance.allTime")}
           tone="purple"
-          icon={<Icon name="lock" size={22} color="#b388ff" />}
+          icon={<Icon name="lock" size={16} color="#b388ff" />}
         />
         <FinanceStatCard
           title={t("finance.debts")}
           value={formatMoney(totalDebt)}
           subtitle={t("finance.allTime")}
           tone="red"
-          icon={<Icon name="chart-decrease" size={22} color="#ff5252" />}
+          icon={<Icon name="chart-decrease" size={16} color="#ff5252" />}
         />
       </FinanceStatsRow>
 
@@ -605,15 +658,17 @@ function PaymentModal(props: {
     note: string;
   };
   setForm: (f: typeof props.form) => void;
+  fieldErrors: { amount?: boolean; date?: boolean; method?: boolean };
   drivers: { id: string; fullName: string }[];
   cars: { id: string; plate: string }[];
   saving: boolean;
   onClose: () => void;
   onSave: () => void;
+  onFieldErrorClear?: (key: "amount" | "date" | "method") => void;
   onDelete?: () => void;
 }) {
   const { t } = useTranslation();
-  const { form, setForm } = props;
+  const { form, setForm, fieldErrors } = props;
 
   return (
     <Modal
@@ -635,7 +690,10 @@ function PaymentModal(props: {
         <SelectInput
           value={form.driverId}
           onChange={(v) => setForm({ ...form, driverId: v })}
-          options={props.drivers.map((d) => ({ value: d.id, label: d.fullName }))}
+          options={[
+            { value: "", label: t("common.none") },
+            ...props.drivers.map((d) => ({ value: d.id, label: d.fullName })),
+          ]}
         />
       </Field>
       <Field label={t("finance.car")}>
@@ -648,11 +706,33 @@ function PaymentModal(props: {
           ]}
         />
       </Field>
-      <Field label={t("finance.amount")}>
-        <MoneyNumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} />
+      <Field
+        label={t("finance.amount")}
+        invalid={fieldErrors.amount}
+        errorMessage={fieldErrors.amount ? t("common.requiredField") : undefined}
+      >
+        <MoneyNumberInput
+          value={form.amount}
+          invalid={fieldErrors.amount}
+          onChange={(v) => {
+            setForm({ ...form, amount: v });
+            if (v !== "") props.onFieldErrorClear?.("amount");
+          }}
+        />
       </Field>
-      <Field label={t("finance.date")}>
-        <DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
+      <Field
+        label={t("finance.date")}
+        invalid={fieldErrors.date}
+        errorMessage={fieldErrors.date ? t("common.requiredField") : undefined}
+      >
+        <DateInput
+          value={form.date}
+          invalid={fieldErrors.date}
+          onChange={(v) => {
+            setForm({ ...form, date: v });
+            if (v.trim()) props.onFieldErrorClear?.("date");
+          }}
+        />
       </Field>
       <Field label={t("finance.type")}>
         <SelectInput
@@ -661,10 +741,18 @@ function PaymentModal(props: {
           options={Object.values(PaymentType).map((x) => ({ value: x, label: t(`finance.${x}`) }))}
         />
       </Field>
-      <Field label={t("finance.method")}>
+      <Field
+        label={t("finance.method")}
+        invalid={fieldErrors.method}
+        errorMessage={fieldErrors.method ? t("common.requiredField") : undefined}
+      >
         <SelectInput
           value={form.method}
-          onChange={(v) => setForm({ ...form, method: v })}
+          invalid={fieldErrors.method}
+          onChange={(v) => {
+            setForm({ ...form, method: v });
+            props.onFieldErrorClear?.("method");
+          }}
           options={PAYMENT_METHODS.map((x) => ({ value: x, label: t(`finance.${x}`) }))}
         />
       </Field>

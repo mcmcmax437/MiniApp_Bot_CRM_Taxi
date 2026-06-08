@@ -140,14 +140,14 @@ export function FleetTab() {
           value={String(active.length)}
           subtitle={t("fleet.onTheRoad")}
           tone="green"
-          icon={<Icon name="car-01" size={22} color="#69f0ae" />}
+          icon={<Icon name="car-01" size={16} color="#69f0ae" />}
         />
         <FinanceStatCard
           title={t("fleet.availableCars")}
           value={String(availableCars.length)}
           subtitle={t("fleet.readyToAssign")}
           tone="blue"
-          icon={<Icon name="garage" size={22} color="#448aff" />}
+          icon={<Icon name="garage" size={16} color="#448aff" />}
         />
       </FinanceStatsRow>
 

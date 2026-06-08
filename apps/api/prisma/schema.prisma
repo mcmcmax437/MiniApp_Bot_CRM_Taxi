@@ -315,8 +315,8 @@ model Payment {
   id        String        @id @default(cuid())
   ownerId   String
   owner     Owner         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  driverId  String
-  driver    Driver        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driverId  String?
+  driver    Driver?       @relation(fields: [driverId], references: [id], onDelete: Cascade)
   carId     String?
   car       Car?          @relation(fields: [carId], references: [id], onDelete: SetNull)
   amount    Float
@@ -341,6 +341,7 @@ model Expense {
   amount          Float
   date            DateTime
   note            String?
+  tag             String?
   paidByPartner   Boolean         @default(false)
   partnerSettled  Boolean         @default(false)
   createdAt       DateTime        @default(now())

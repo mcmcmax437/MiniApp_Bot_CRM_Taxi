@@ -32,8 +32,10 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(paymentCreateSchema, req.body, reply);
     if (!body) return;
     const oid = ownerId(req);
-    const driver = await prisma.driver.findFirst({ where: { id: body.driverId, ownerId: oid } });
-    if (!driver) return reply.code(400).send({ error: "invalid_driver" });
+    if (body.driverId) {
+      const driver = await prisma.driver.findFirst({ where: { id: body.driverId, ownerId: oid } });
+      if (!driver) return reply.code(400).send({ error: "invalid_driver" });
+    }
     const data = toDates(body, ["date"]);
     return prisma.payment.create({ data: { ...data, ownerId: oid } });
   });
@@ -44,6 +46,12 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
     if (!body) return;
     const existing = await prisma.payment.findFirst({ where: { id, ownerId: ownerId(req) } });
     if (!existing) return reply.code(404).send({ error: "not_found" });
+    if (body.driverId) {
+      const driver = await prisma.driver.findFirst({
+        where: { id: body.driverId, ownerId: ownerId(req) },
+      });
+      if (!driver) return reply.code(400).send({ error: "invalid_driver" });
+    }
     const data = toDates(body, ["date"]);
     return prisma.payment.update({ where: { id }, data });
   });

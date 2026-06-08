@@ -108,21 +108,21 @@ export function TaxesTab() {
           value={formatMoney(total)}
           subtitle={t("finance.taxCount", { count: taxItems.length })}
           tone="red"
-          icon={<Icon name="lock" size={22} color="#ff5252" />}
+          icon={<Icon name="lock" size={16} color="#ff5252" />}
         />
         <FinanceStatCard
           title={t("finance.thisMonth")}
           value={formatMoney(monthSum)}
           subtitle={t("finance.taxCount", { count: monthItems.length })}
           tone="purple"
-          icon={<Icon name="calendar-01" size={22} color="#b388ff" />}
+          icon={<Icon name="calendar-01" size={16} color="#b388ff" />}
         />
         <FinanceStatCard
           title={t("finance.period_year")}
           value={formatMoney(yearSum)}
           subtitle={t("finance.taxCount", { count: yearItems.length })}
           tone="blue"
-          icon={<Icon name="invoice-01" size={22} color="#448aff" />}
+          icon={<Icon name="invoice-01" size={16} color="#448aff" />}
         />
       </FinanceStatsRow>
 
