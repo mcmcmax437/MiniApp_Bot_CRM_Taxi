@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { showAlert } from "../../telegram";
 import { Icon } from "../crm";
 
 export type FinanceTabId = "payments" | "expenses" | "taxes" | "fleet" | "balances";
@@ -69,13 +70,25 @@ export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: Finan
   );
 }
 
-export function FinanceAddButton(props: { label: string; onClick: () => void; disabled?: boolean }) {
+export function FinanceAddButton(props: {
+  label: string;
+  onClick: () => void;
+  /** When set, the button stays clickable and shows this message instead of doing nothing. */
+  blockedReason?: string;
+}) {
   return (
     <button
       type="button"
-      className="crm-btn-primary crm-finance-add-btn"
-      onClick={props.onClick}
-      disabled={props.disabled}
+      className={`crm-btn-primary crm-finance-add-btn${props.blockedReason ? " crm-btn-primary--blocked" : ""}`}
+      onClick={() => {
+        if (props.blockedReason) {
+          showAlert(props.blockedReason);
+          return;
+        }
+        props.onClick();
+      }}
+      aria-disabled={props.blockedReason ? true : undefined}
+      title={props.blockedReason}
     >
       <Icon name="add-01" size={20} color="#fff" />
       <span>{props.label}</span>

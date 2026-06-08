@@ -161,7 +161,11 @@ function PaymentsTab() {
 
   return (
     <>
-      <FinanceAddButton label={t("finance.addPayment")} onClick={openCreate} disabled={!drivers.data?.length} />
+      <FinanceAddButton
+        label={t("finance.addPayment")}
+        onClick={openCreate}
+        blockedReason={!drivers.data?.length ? t("finance.needDriverFirst") : undefined}
+      />
 
       <FinanceStatsRow>
         <FinanceStatCard

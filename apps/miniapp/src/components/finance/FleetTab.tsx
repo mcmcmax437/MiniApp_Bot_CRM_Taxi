@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgreementStatus, RentPeriod } from "@taxi/shared";
+import { confirmAction, showAlert } from "../../telegram";
 import { useAgreements, useCars, useDrivers, useCreateAgreement, useEndAgreement } from "../../hooks";
 import {
   Modal,
@@ -106,14 +107,30 @@ export function FleetTab() {
     );
   }
 
-  const canAssign = availableCars.length > 0 && (drivers.data?.length ?? 0) > 0;
+  const hasDrivers = (drivers.data?.length ?? 0) > 0;
+  const hasAvailableCars = availableCars.length > 0;
+
+  function assignBlockedReason(): string | undefined {
+    if (!hasDrivers) return t("fleet.needDriverFirst");
+    if (!hasAvailableCars) return t("fleet.noAvailableCars");
+    return undefined;
+  }
+
+  function handleAssign(carId = "") {
+    const blocked = assignBlockedReason();
+    if (blocked) {
+      showAlert(blocked);
+      return;
+    }
+    openAssign(carId);
+  }
 
   return (
     <>
       <FinanceAddButton
         label={t("fleet.assignCar")}
         onClick={() => openAssign()}
-        disabled={!canAssign}
+        blockedReason={assignBlockedReason()}
       />
 
       <FinanceStatsRow>
@@ -152,8 +169,8 @@ export function FleetTab() {
         <FinanceEmptyState
           title={t("common.empty")}
           description={t("fleet.emptyDesc")}
-          actionLabel={canAssign ? t("fleet.assignCar") : undefined}
-          onAction={canAssign ? () => openAssign() : undefined}
+          actionLabel={t("fleet.assignCar")}
+          onAction={() => handleAssign()}
         />
       ) : (
         <FinanceList loading={cars.isLoading || agreements.isLoading}>
@@ -171,7 +188,11 @@ export function FleetTab() {
                   className="crm-btn-outline crm-fleet-row__action"
                   disabled={end.isPending}
                   onClick={() => {
-                    if (confirm(t("fleet.endConfirm"))) end.mutate(agreement.id);
+                    void confirmAction(t("fleet.endConfirm"), t("common.delete"), t("common.cancel")).then(
+                      (ok) => {
+                        if (ok) end.mutate(agreement.id);
+                      },
+                    );
                   }}
                 >
                   {t("fleet.returnCar")}
@@ -188,8 +209,7 @@ export function FleetTab() {
                 <button
                   type="button"
                   className="crm-btn-primary crm-fleet-row__action"
-                  disabled={!canAssign}
-                  onClick={() => openAssign(car.id)}
+                  onClick={() => handleAssign(car.id)}
                 >
                   {t("fleet.assignCar")}
                 </button>

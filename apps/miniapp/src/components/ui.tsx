@@ -1,4 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@telegram-apps/telegram-ui";
 import { useTranslation } from "react-i18next";
 
@@ -54,7 +55,7 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, r
 
   if (!render) return null;
 
-  return (
+  return createPortal(
     <div
       className={`crm-modal-overlay${active ? " crm-modal-overlay--active" : ""}`}
       onClick={dismiss}
@@ -72,10 +73,11 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, r
           ) : null}
           <h3 className="crm-modal-head__title">{props.title}</h3>
         </div>
-        {props.children}
+        <div className="crm-modal-body">{props.children}</div>
         {props.footer ? <div className="crm-modal-footer">{props.footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 });
 

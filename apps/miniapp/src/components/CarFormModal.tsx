@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CarStatus, carFormFieldErrors, type CarFormField } from "@taxi/shared";
-import { useDeleteCar, useSaveCar, useUploadDocument } from "../hooks";
+import { CarStatus, ExpenseCategory, carFormFieldErrors, type CarFormField } from "@taxi/shared";
+import { useDeleteCar, useSaveCar, useSaveExpense, useUploadDocument } from "../hooks";
 import type { Car } from "../types";
 import {
   Modal,
@@ -12,6 +12,7 @@ import {
   DateInput,
   SelectInput,
   FormActions,
+  todayInput,
 } from "./ui";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
 import { CarPhotosSection } from "./CarPhotosSection";
@@ -27,6 +28,8 @@ export interface CarFormState {
   insuranceExpiry: string;
   inspectionExpiry: string;
   notes: string;
+  purchasePrice: number | "";
+  purchaseDate: string;
 }
 
 export const emptyCarForm: CarFormState = {
@@ -38,6 +41,8 @@ export const emptyCarForm: CarFormState = {
   insuranceExpiry: "",
   inspectionExpiry: "",
   notes: "",
+  purchasePrice: "",
+  purchaseDate: todayInput(),
 };
 
 export function carToForm(car: Car): CarFormState {
@@ -50,6 +55,8 @@ export function carToForm(car: Car): CarFormState {
     insuranceExpiry: car.insuranceExpiry ? car.insuranceExpiry.slice(0, 10) : "",
     inspectionExpiry: car.inspectionExpiry ? car.inspectionExpiry.slice(0, 10) : "",
     notes: car.notes ?? "",
+    purchasePrice: "",
+    purchaseDate: todayInput(),
   };
 }
 
@@ -63,6 +70,7 @@ export function CarFormModal(props: {
 }) {
   const { t } = useTranslation();
   const save = useSaveCar();
+  const saveExpense = useSaveExpense();
   const upload = useUploadDocument();
   const del = useDeleteCar();
   const isEdit = props.mode === "edit" && props.car;
@@ -149,7 +157,22 @@ export function CarFormModal(props: {
       { id: isEdit ? props.car!.id : undefined, data },
       {
         onSuccess: async (car) => {
-          const finish = (saved: Car) => {
+          const finish = async (saved: Car) => {
+            if (!isEdit && form.purchasePrice !== "" && saved.id) {
+              try {
+                await saveExpense.mutateAsync({
+                  data: {
+                    carId: saved.id,
+                    category: ExpenseCategory.OTHER,
+                    amount: form.purchasePrice,
+                    date: form.purchaseDate || todayInput(),
+                    note: t("cars.purchaseExpenseNote", { plate: saved.plate }),
+                  },
+                });
+              } catch {
+                /* car saved; expense can be added manually */
+              }
+            }
             props.onSaved?.(saved);
             requestClose();
           };
@@ -172,14 +195,14 @@ export function CarFormModal(props: {
                   id: car.id,
                   data: { coverDocumentId: coverDoc.id },
                 });
-                finish(updated);
+                void finish(updated);
                 return;
               }
             } catch {
               /* still close with base car */
             }
           }
-          finish(car);
+          void finish(car);
         },
       },
     );
@@ -197,7 +220,7 @@ export function CarFormModal(props: {
           <FormActions
             onCancel={requestClose}
             onSave={submit}
-            saving={save.isPending || upload.isPending}
+            saving={save.isPending || upload.isPending || saveExpense.isPending}
           />
           {isEdit && (
             <button
@@ -278,6 +301,27 @@ export function CarFormModal(props: {
       <Field label={t("cars.notes")}>
         <TextInput value={form.notes} placeholder={ph(t, "notes")} onChange={(v) => patchForm({ notes: v })} />
       </Field>
+      {!isEdit ? (
+        <>
+          <Field label={t("cars.purchasePrice")}>
+            <NumberInput
+              value={form.purchasePrice}
+              placeholder={ph(t, "purchasePrice")}
+              onChange={(v) => patchForm({ purchasePrice: v })}
+            />
+          </Field>
+          {form.purchasePrice !== "" ? (
+            <Field label={t("cars.purchaseDate")}>
+              <DateInput
+                value={form.purchaseDate}
+                example={ph(t, "purchaseDate")}
+                onChange={(v) => patchForm({ purchaseDate: v })}
+              />
+            </Field>
+          ) : null}
+          <p className="crm-field-hint">{t("cars.purchasePriceHint")}</p>
+        </>
+      ) : null}
       {!isEdit ? (
         <CarPhotoPicker
           photos={pendingPhotos}

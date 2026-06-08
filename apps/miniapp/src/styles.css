@@ -770,6 +770,10 @@ body {
   flex-shrink: 0;
 }
 
+.crm-btn-primary--blocked {
+  opacity: 0.72;
+}
+
 .crm-btn-danger {
   display: inline-flex;
   align-items: center;
@@ -2807,6 +2811,16 @@ div.crm-finance-item {
   flex-direction: column;
   gap: 4px;
   padding: 8px 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.crm-field-hint {
+  margin: -2px 0 6px;
+  color: var(--taxi-text-muted);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .crm-field--error > span:first-child {
@@ -2831,6 +2845,20 @@ div.crm-finance-item {
 
 .crm-date-field {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.crm-date-field input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+}
+
+.crm-date-field input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
 }
 
 /* Hide browser dd.mm.yyyy mask when empty so the example date is readable */
@@ -2872,7 +2900,7 @@ div.crm-finance-item {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 100;
+  z-index: 500;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -2890,8 +2918,11 @@ div.crm-finance-item {
   background: var(--tgui--bg_color, #fff);
   width: 100%;
   max-width: 520px;
-  max-height: 92vh;
+  max-height: min(92vh, var(--tg-viewport-height, 100vh));
+  min-width: 0;
+  box-sizing: border-box;
   overflow-y: auto;
+  overflow-x: hidden;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
   padding: 16px;
@@ -2954,6 +2985,15 @@ div.crm-finance-item {
   margin-top: -2px;
 }
 
+.crm-modal-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 .crm-modal-footer {
   margin-top: 16px;
 }
@@ -2976,6 +3016,8 @@ div.crm-finance-item {
   border-color: var(--taxi-border);
   background: var(--taxi-surface-raised);
   color: var(--taxi-text);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .taxi-crm-theme .crm-input::placeholder {

@@ -112,6 +112,15 @@ function prefersInAppConfirm(): boolean {
   return DESKTOP_PLATFORMS.has(platform) || !tg?.showPopup;
 }
 
+/** Simple alert that works in Telegram WebView and desktop browsers. */
+export function showAlert(message: string, okLabel = "OK"): void {
+  if (tg?.showPopup) {
+    tg.showPopup({ message, buttons: [{ id: "ok", type: "ok", text: okLabel }] });
+    return;
+  }
+  window.alert(message);
+}
+
 /** Works in Telegram WebView where native dialogs are often blocked or never callback on desktop. */
 export function confirmAction(message: string, confirmLabel: string, cancelLabel: string): Promise<boolean> {
   if (prefersInAppConfirm()) {
