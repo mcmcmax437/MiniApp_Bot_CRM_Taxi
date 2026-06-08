@@ -51,7 +51,12 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(carCreateSchema, req.body, reply);
     if (!body) return;
     const { coverDocumentId: _cover, ...rest } = body;
-    const data = toDates(rest, ["insuranceExpiry", "inspectionExpiry"]);
+    const data = toDates(rest, [
+      "insuranceExpiry",
+      "inspectionExpiry",
+      "purchaseDate",
+      "tireInstalledAt",
+    ]);
     if (body.currentMileage != null) {
       (data as { mileageUpdatedAt?: Date }).mileageUpdatedAt = new Date();
     }
@@ -72,7 +77,12 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: "invalid_cover" });
     }
 
-    const data = toDates(rest, ["insuranceExpiry", "inspectionExpiry"]);
+    const data = toDates(rest, [
+      "insuranceExpiry",
+      "inspectionExpiry",
+      "purchaseDate",
+      "tireInstalledAt",
+    ]);
     const patch: Record<string, unknown> = {
       ...data,
       ...(resolvedCover !== undefined ? { coverDocumentId: resolvedCover } : {}),

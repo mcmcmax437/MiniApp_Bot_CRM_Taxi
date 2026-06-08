@@ -17,6 +17,8 @@ import {
 } from "./ui";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
 import { CarPhotosSection } from "./CarPhotosSection";
+import { showAlert } from "../telegram";
+import { ApiError } from "../api";
 
 const ph = (t: (k: string) => string, key: string) => t(`cars.placeholder.${key}`);
 
@@ -156,10 +158,41 @@ export function CarFormModal(props: {
     return fieldErrors.has(name);
   }
 
+  function tirePayload(): Record<string, unknown> {
+    const hasTireInput =
+      form.tireBrand.trim() ||
+      form.tireSize.trim() ||
+      form.tireSeason ||
+      form.tireInstalledAt ||
+      form.tireNotes.trim();
+
+    if (!form.showTires && !hasTireInput) {
+      return isEdit
+        ? {
+            tireBrand: null,
+            tireSize: null,
+            tireSeason: null,
+            tireInstalledAt: null,
+            tireNotes: null,
+          }
+        : {};
+    }
+
+    return {
+      tireBrand: form.tireBrand.trim() || null,
+      tireSize: form.tireSize.trim() || null,
+      tireSeason: form.tireSeason || null,
+      tireInstalledAt: form.tireInstalledAt || null,
+      tireNotes: form.tireNotes.trim() || null,
+    };
+  }
+
   function submit() {
     const errors = carFormFieldErrors(form);
     if (errors.size > 0) {
       setFieldErrors(errors);
+      const first = document.querySelector(".crm-field--error");
+      first?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -174,16 +207,21 @@ export function CarFormModal(props: {
       notes: form.notes || null,
       purchasePrice: form.purchasePrice === "" ? null : form.purchasePrice,
       purchaseDate: form.purchaseDate || null,
-      tireBrand: form.showTires && form.tireBrand ? form.tireBrand : null,
-      tireSize: form.showTires && form.tireSize ? form.tireSize : null,
-      tireSeason: form.showTires && form.tireSeason ? form.tireSeason : null,
-      tireInstalledAt: form.showTires && form.tireInstalledAt ? form.tireInstalledAt : null,
-      tireNotes: form.showTires && form.tireNotes ? form.tireNotes : null,
+      ...tirePayload(),
     };
 
     save.mutate(
       { id: isEdit ? props.car!.id : undefined, data },
       {
+        onError: (err) => {
+          const msg =
+            err instanceof ApiError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : t("common.error", { defaultValue: "Something went wrong" });
+          void showAlert(msg);
+        },
         onSuccess: async (car) => {
           const finish = async (saved: Car) => {
             if (!isEdit && form.purchasePrice !== "" && saved.id) {
@@ -349,7 +387,22 @@ export function CarFormModal(props: {
         <button
           type="button"
           className="crm-link-btn"
-          onClick={() => patchForm({ showTires: !form.showTires })}
+          onClick={() => {
+            setForm((prev) => {
+              if (prev.showTires) {
+                return {
+                  ...prev,
+                  showTires: false,
+                  tireBrand: "",
+                  tireSize: "",
+                  tireSeason: "",
+                  tireInstalledAt: "",
+                  tireNotes: "",
+                };
+              }
+              return { ...prev, showTires: true };
+            });
+          }}
         >
           {form.showTires ? t("cars.hideTires") : t("cars.addTires")}
         </button>
