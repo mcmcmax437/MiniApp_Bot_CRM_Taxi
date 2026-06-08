@@ -203,7 +203,28 @@ export function FormActions(props: { onCancel: () => void; onSave: () => void; s
   );
 }
 
-export { formatMoney, moneyFieldLabel, getCurrencySymbol } from "../currency";
+import { getCurrencySymbol, useAppCurrency } from "../currency";
+
+export { formatMoney, getCurrencySymbol } from "../currency";
+
+export function MoneyNumberInput(props: {
+  value: number | "";
+  onChange: (v: number | "") => void;
+  placeholder?: string;
+  invalid?: boolean;
+}) {
+  useAppCurrency();
+  const symbol = getCurrencySymbol();
+
+  return (
+    <div className="crm-money-input">
+      <NumberInput {...props} />
+      <span className="crm-money-input__symbol" aria-hidden>
+        {symbol}
+      </span>
+    </div>
+  );
+}
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";

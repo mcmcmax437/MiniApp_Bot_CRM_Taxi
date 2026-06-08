@@ -1,0 +1,14 @@
+-- AlterTable
+ALTER TABLE `Car` ADD COLUMN `purchasePrice` DOUBLE NULL,
+ADD COLUMN `purchaseDate` DATETIME(3) NULL,
+ADD COLUMN `tireBrand` VARCHAR(191) NULL,
+ADD COLUMN `tireSize` VARCHAR(191) NULL,
+ADD COLUMN `tireSeason` ENUM('SUMMER', 'WINTER', 'ALL_SEASON') NULL,
+ADD COLUMN `tireInstalledAt` DATETIME(3) NULL,
+ADD COLUMN `tireNotes` VARCHAR(2000) NULL;
+
+-- AlterTable
+ALTER TABLE `MaintenanceRule` ADD COLUMN `presetKey` VARCHAR(191) NULL;
+
+-- AlterTable
+ALTER TABLE `MaintenanceRecord` ADD COLUMN `presetKey` VARCHAR(191) NULL;

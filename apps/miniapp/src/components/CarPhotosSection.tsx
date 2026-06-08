@@ -7,10 +7,8 @@ import {
   useSaveCar,
 } from "../hooks";
 import type { DocumentItem } from "../types";
-import { isImageDocument, isPdfDocument } from "./documentUtils";
+import { isImageDocument } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
-import { formatDate } from "./ui";
-import { openDocumentFile } from "./documentUtils";
 import { confirmAction } from "../telegram";
 
 export function CarPhotosSection(props: { carId: string; coverDocumentId: string | null | undefined }) {
@@ -23,7 +21,6 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
   const [setAsCoverOnUpload, setSetAsCoverOnUpload] = useState(false);
 
   const images = (docs.data ?? []).filter(isImageDocument);
-  const files = (docs.data ?? []).filter((d) => !isImageDocument(d));
 
   function setCover(documentId: string) {
     save.mutate({ id: props.carId, data: { coverDocumentId: documentId } });
@@ -90,7 +87,7 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
       <input
         ref={fileRef}
         type="file"
-        accept="image/*,application/pdf"
+        accept="image/*"
         hidden
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -107,27 +104,6 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
         + {t("documents.upload")}
       </button>
 
-      {files.length > 0 ? (
-        <div style={{ marginTop: 16 }}>
-          <strong>{t("documents.files")}</strong>
-          <div className="crm-doc-file-list" style={{ marginTop: 8 }}>
-            {files.map((d) => (
-              <FileRow
-                key={d.id}
-                doc={d}
-                onDelete={async () => {
-                  const ok = await confirmAction(
-                    t("common.confirmDelete"),
-                    t("common.delete"),
-                    t("common.cancel"),
-                  );
-                  if (ok) del.mutate(d.id);
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -169,37 +145,3 @@ function CarImageTile(props: {
   );
 }
 
-function FileRow(props: { doc: DocumentItem; onDelete: () => void }) {
-  const { t } = useTranslation();
-
-  return (
-    <div className="crm-doc-file">
-      <button
-        type="button"
-        className="crm-doc-file__main"
-        onClick={() => void openDocumentFile(props.doc.id, props.doc.fileName)}
-      >
-        <div className="crm-doc-file__icon">{isPdfDocument(props.doc) ? "PDF" : "FILE"}</div>
-        <div className="crm-doc-file__text">
-          <div className="crm-doc-file__name">{props.doc.fileName}</div>
-          <div className="crm-doc-file__date">{formatDate(props.doc.uploadedAt)}</div>
-        </div>
-      </button>
-      <button
-        type="button"
-        className="crm-doc-file__delete"
-        onClick={async () => {
-          const ok = await confirmAction(
-            t("common.confirmDelete"),
-            t("common.delete"),
-            t("common.cancel"),
-          );
-          if (ok) props.onDelete();
-        }}
-        aria-label={t("common.delete")}
-      >
-        ✕
-      </button>
-    </div>
-  );
-}

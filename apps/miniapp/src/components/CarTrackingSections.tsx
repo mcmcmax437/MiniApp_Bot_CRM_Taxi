@@ -2,18 +2,20 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MaintenanceIntervalKind } from "@taxi/shared";
 import {
-  useCarDocuments,
   useCompleteMaintenance,
   useCreateMaintenanceRule,
-  useDeleteCarDocument,
   useDeleteMaintenanceRule,
   useLogMileage,
   useMaintenanceRecords,
   useMaintenanceRules,
   useMileageLogs,
-  useSaveCarDocument,
 } from "../hooks";
 import type { Car, MaintenanceRule } from "../types";
+import {
+  hasMaintenancePreset,
+  maintenanceRecordLabel,
+  maintenanceRuleLabel,
+} from "./trackingLabels";
 import { Modal, Field, TextInput, NumberInput, DateInput, SelectInput, FormActions, formatDate } from "./ui";
 
 const MAINTENANCE_PRESETS: Array<{
@@ -53,12 +55,10 @@ export function CarTrackingSections(props: {
   const rules = useMaintenanceRules(carId);
   const records = useMaintenanceRecords(carId);
   const mileageLogs = useMileageLogs(carId);
-  const documents = useCarDocuments(carId);
 
   const [mileageOpen, setMileageOpen] = useState(false);
   const [ruleOpen, setRuleOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
-  const [docOpen, setDocOpen] = useState(false);
 
   const current = props.car.currentMileage ?? null;
   const updatedAt = props.car.mileageUpdatedAt;
@@ -120,7 +120,7 @@ export function CarTrackingSections(props: {
             {rules.data.map((rule) => (
               <li key={rule.id} className="crm-tracking-rules__item">
                 <div>
-                  <strong>{rule.name}</strong>
+                  <strong>{maintenanceRuleLabel(rule, t)}</strong>
                   {rule.isMandatory ? (
                     <span className="crm-badge crm-badge--muted">{t("tracking.mandatory")}</span>
                   ) : null}
@@ -154,7 +154,7 @@ export function CarTrackingSections(props: {
           <ul className="crm-tracking-history">
             {records.data.map((rec) => (
               <li key={rec.id}>
-                <span>{rec.title}</span>
+                <span>{maintenanceRecordLabel(rec, t, rules.data ?? [])}</span>
                 <span className="crm-tracking-history__meta">
                   {formatDate(rec.completedAt)}
                   {rec.mileageAt != null ? ` · ${formatMileage(rec.mileageAt)}` : ""}
@@ -164,26 +164,6 @@ export function CarTrackingSections(props: {
           </ul>
         ) : (
           <p className="crm-form-hint">{t("tracking.noHistory")}</p>
-        )}
-      </section>
-
-      <section className="glass-card crm-car-detail-section">
-        <div className="crm-section-head">
-          <h3 className="crm-car-detail-section__title">{t("tracking.documentsTitle")}</h3>
-          <button type="button" className="crm-link-btn" onClick={() => setDocOpen(true)}>
-            {t("tracking.addDocument")}
-          </button>
-        </div>
-        {documents.isLoading ? (
-          <p className="crm-form-hint">{t("common.loading")}</p>
-        ) : documents.data && documents.data.length > 0 ? (
-          <ul className="crm-tracking-rules">
-            {documents.data.map((doc) => (
-              <DocumentRow key={doc.id} doc={doc} carId={carId} onUpdated={props.onUpdated} />
-            ))}
-          </ul>
-        ) : (
-          <p className="crm-form-hint">{t("tracking.noDocuments")}</p>
         )}
       </section>
 
@@ -206,7 +186,6 @@ export function CarTrackingSections(props: {
         onClose={() => setCompleteOpen(false)}
         onSaved={() => { setCompleteOpen(false); props.onUpdated?.(); }}
       />
-      <AddDocumentModal open={docOpen} carId={carId} onClose={() => setDocOpen(false)} onSaved={() => { setDocOpen(false); props.onUpdated?.(); }} />
     </>
   );
 }
@@ -218,13 +197,12 @@ function PresetButtons(props: {
 }) {
   const { t } = useTranslation();
   const create = useCreateMaintenanceRule();
-  const names = new Set(props.existing.map((r) => r.name));
 
   return (
     <div className="crm-tracking-presets__row">
       {MAINTENANCE_PRESETS.map((p) => {
         const name = t(`tracking.${p.nameKey}`);
-        if (names.has(name)) return null;
+        if (hasMaintenancePreset(props.existing, p.nameKey, t)) return null;
         return (
           <button
             key={p.nameKey}
@@ -236,6 +214,7 @@ function PresetButtons(props: {
                 {
                   carId: props.carId,
                   name,
+                  presetKey: p.nameKey,
                   intervalKind: p.intervalKind,
                   intervalValue: p.intervalValue,
                   yearlyMonth: p.yearlyMonth ?? null,
@@ -270,37 +249,6 @@ function RuleDeleteButton(props: { ruleId: string; onDeleted?: () => void }) {
     >
       ×
     </button>
-  );
-}
-
-function DocumentRow(props: {
-  doc: { id: string; title: string; expiryDate: string | null };
-  carId: string;
-  onUpdated?: () => void;
-}) {
-  const { t } = useTranslation();
-  const del = useDeleteCarDocument();
-  return (
-    <li className="crm-tracking-rules__item">
-      <div>
-        <strong>{props.doc.title}</strong>
-        <div className="crm-tracking-rules__due">
-          {props.doc.expiryDate ? formatDate(props.doc.expiryDate) : t("tracking.noExpiry")}
-        </div>
-      </div>
-      <button
-        type="button"
-        className="crm-icon-btn"
-        aria-label={t("common.delete")}
-        onClick={() => {
-          if (confirm(t("common.confirmDelete"))) {
-            del.mutate(props.doc.id, { onSuccess: () => props.onUpdated?.() });
-          }
-        }}
-      >
-        ×
-      </button>
-    </li>
   );
 }
 
@@ -375,7 +323,6 @@ function AddRuleModal(props: { open: boolean; carId: string; onClose: () => void
               {
                 carId: props.carId,
                 name: name.trim(),
-                description: description || null,
                 intervalKind,
                 intervalValue,
                 yearlyMonth: intervalKind === MaintenanceIntervalKind.YEARLY ? yearlyMonth || null : null,
@@ -426,6 +373,7 @@ function CompleteServiceModal(props: {
   const complete = useCompleteMaintenance();
   const [title, setTitle] = useState("");
   const [ruleId, setRuleId] = useState("");
+  const [presetKey, setPresetKey] = useState<string | null>(null);
   const [completedAt, setCompletedAt] = useState(new Date().toISOString().slice(0, 10));
   const [mileageAt, setMileageAt] = useState<number | "">(props.currentMileage ?? "");
   const [notes, setNotes] = useState("");
@@ -434,7 +382,7 @@ function CompleteServiceModal(props: {
 
   const ruleOptions = [
     { value: "", label: t("tracking.noLinkedRule") },
-    ...props.rules.map((r) => ({ value: r.id, label: r.name })),
+    ...props.rules.map((r) => ({ value: r.id, label: maintenanceRuleLabel(r, t) })),
   ];
 
   return (
@@ -452,6 +400,7 @@ function CompleteServiceModal(props: {
                 carId: props.carId,
                 ruleId: ruleId || null,
                 title: title.trim(),
+                presetKey,
                 completedAt,
                 mileageAt: mileageAt === "" ? null : mileageAt,
                 notes: notes || null,
@@ -472,7 +421,12 @@ function CompleteServiceModal(props: {
           onChange={(v) => {
             setRuleId(v);
             const rule = props.rules.find((r) => r.id === v);
-            if (rule && !title) setTitle(rule.name);
+            if (rule) {
+              setPresetKey(rule.presetKey ?? null);
+              if (!title) setTitle(maintenanceRuleLabel(rule, t));
+            } else {
+              setPresetKey(null);
+            }
           }}
           options={ruleOptions}
         />
@@ -482,47 +436,6 @@ function CompleteServiceModal(props: {
       </Field>
       <Field label={t("tracking.odometer")}>
         <NumberInput value={mileageAt} onChange={setMileageAt} />
-      </Field>
-      <Field label={t("cars.notes")}>
-        <TextInput value={notes} onChange={setNotes} />
-      </Field>
-    </Modal>
-  );
-}
-
-function AddDocumentModal(props: { open: boolean; carId: string; onClose: () => void; onSaved: () => void }) {
-  const { t } = useTranslation();
-  const save = useSaveCarDocument();
-  const [title, setTitle] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [notes, setNotes] = useState("");
-
-  if (!props.open) return null;
-
-  return (
-    <Modal
-      open
-      title={t("tracking.addDocument")}
-      onClose={props.onClose}
-      footer={
-        <FormActions
-          onCancel={props.onClose}
-          onSave={() => {
-            if (!title.trim()) return;
-            save.mutate(
-              { data: { carId: props.carId, title: title.trim(), expiryDate: expiryDate || null, notes: notes || null } },
-              { onSuccess: props.onSaved },
-            );
-          }}
-          saving={save.isPending}
-        />
-      }
-    >
-      <Field label={t("tracking.documentTitle")}>
-        <TextInput value={title} onChange={setTitle} />
-      </Field>
-      <Field label={t("tracking.documentExpiry")}>
-        <DateInput value={expiryDate} onChange={setExpiryDate} />
       </Field>
       <Field label={t("cars.notes")}>
         <TextInput value={notes} onChange={setNotes} />

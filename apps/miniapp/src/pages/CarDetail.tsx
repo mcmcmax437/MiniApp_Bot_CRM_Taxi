@@ -6,9 +6,11 @@ import { useCar, useCarCoverPhotos } from "../hooks";
 import { AppHeader, Icon } from "../components/crm";
 import { DocumentThumbnail } from "../components/DocumentThumbnail";
 import { CarPhotosSection } from "../components/CarPhotosSection";
+import { CarDocumentsSection } from "../components/CarDocumentsSection";
 import { CarTrackingSections } from "../components/CarTrackingSections";
 import { CarFormModal } from "../components/CarFormModal";
 import { formatDate } from "../components/ui";
+import { formatMoney } from "../currency";
 
 const statusClass: Record<CarStatus, string> = {
   [CarStatus.AVAILABLE]: "crm-car-status--available",
@@ -101,9 +103,31 @@ export function CarDetailPage() {
           <DetailRow label={t("cars.year")} value={car.year != null ? String(car.year) : null} />
           <DetailRow label={t("cars.insurance")} value={formatDate(car.insuranceExpiry)} />
           <DetailRow label={t("cars.inspection")} value={formatDate(car.inspectionExpiry)} />
+          {car.purchasePrice != null ? (
+            <DetailRow label={t("cars.purchasePrice")} value={formatMoney(car.purchasePrice)} />
+          ) : null}
+          {car.purchaseDate ? (
+            <DetailRow label={t("cars.purchaseDate")} value={formatDate(car.purchaseDate)} />
+          ) : null}
           {car.notes ? <DetailRow label={t("cars.notes")} value={car.notes} /> : null}
         </dl>
       </section>
+
+      {car.tireBrand || car.tireSize || car.tireSeason || car.tireInstalledAt || car.tireNotes ? (
+        <section className="glass-card crm-car-detail-section">
+          <h3 className="crm-car-detail-section__title">{t("cars.tiresTitle")}</h3>
+          <dl className="crm-car-detail-dl">
+            <DetailRow label={t("cars.tireBrand")} value={car.tireBrand} />
+            <DetailRow label={t("cars.tireSize")} value={car.tireSize} />
+            <DetailRow
+              label={t("cars.tireSeasonField")}
+              value={car.tireSeason ? t(`cars.tireSeason.${car.tireSeason}`) : null}
+            />
+            <DetailRow label={t("cars.tireInstalledAt")} value={formatDate(car.tireInstalledAt)} />
+            {car.tireNotes ? <DetailRow label={t("cars.tireNotes")} value={car.tireNotes} /> : null}
+          </dl>
+        </section>
+      ) : null}
 
       <section className="glass-card crm-car-detail-section">
         <h3 className="crm-car-detail-section__title">{t("cars.activeDrivers")}</h3>
@@ -119,6 +143,8 @@ export function CarDetailPage() {
       </section>
 
       <CarTrackingSections car={car} onUpdated={() => void carQuery.refetch()} />
+
+      <CarDocumentsSection carId={car.id} />
 
       <section className="glass-card crm-car-detail-section">
         <CarPhotosSection carId={car.id} coverDocumentId={car.coverDocumentId} />

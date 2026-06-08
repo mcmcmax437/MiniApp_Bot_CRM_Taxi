@@ -52,6 +52,7 @@ export async function maintenanceRoutes(app: FastifyInstance): Promise<void> {
         ownerId: oid,
         carId: body.carId,
         name: body.name,
+        presetKey: body.presetKey ?? null,
         description: body.description ?? null,
         intervalKind: body.intervalKind,
         intervalValue: body.intervalValue,
@@ -77,6 +78,7 @@ export async function maintenanceRoutes(app: FastifyInstance): Promise<void> {
       where: { id },
       data: {
         ...(body.name !== undefined ? { name: body.name } : {}),
+        ...(body.presetKey !== undefined ? { presetKey: body.presetKey } : {}),
         ...(body.description !== undefined ? { description: body.description } : {}),
         ...(body.intervalKind !== undefined ? { intervalKind: body.intervalKind } : {}),
         ...(body.intervalValue !== undefined ? { intervalValue: body.intervalValue } : {}),
@@ -120,6 +122,14 @@ export async function maintenanceRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: "invalid_date" });
     }
 
+    let presetKey = body.presetKey ?? null;
+    if (body.ruleId && !presetKey) {
+      const linkedRule = await prisma.maintenanceRule.findFirst({
+        where: { id: body.ruleId, ownerId: oid },
+      });
+      presetKey = linkedRule?.presetKey ?? null;
+    }
+
     const record = await prisma.$transaction(async (tx) => {
       const created = await tx.maintenanceRecord.create({
         data: {
@@ -127,6 +137,7 @@ export async function maintenanceRoutes(app: FastifyInstance): Promise<void> {
           carId: body.carId,
           ruleId: body.ruleId ?? null,
           title: body.title,
+          presetKey,
           completedAt,
           mileageAt: body.mileageAt ?? null,
           cost: body.cost ?? null,

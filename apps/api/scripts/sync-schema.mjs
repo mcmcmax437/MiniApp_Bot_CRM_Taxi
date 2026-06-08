@@ -13,6 +13,7 @@ const ALL_MIGRATIONS = [
   "20250603000000_init",
   "20250604000000_car_tracking",
   "20250605000000_owner_currency",
+  "20250606000000_car_purchase_tires",
 ];
 
 function failedMigrationName(output) {

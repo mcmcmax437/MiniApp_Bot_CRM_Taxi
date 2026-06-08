@@ -87,6 +87,12 @@ enum MileageSource {
   MAINTENANCE
 }
 
+enum TireSeason {
+  SUMMER
+  WINTER
+  ALL_SEASON
+}
+
 model Owner {
   id                    String      @id @default(cuid())
   telegramUserId        BigInt      @unique
@@ -129,6 +135,13 @@ model Car {
   coverDocumentId  String?
   currentMileage   Int?
   mileageUpdatedAt DateTime?
+  purchasePrice    Float?
+  purchaseDate     DateTime?
+  tireBrand        String?
+  tireSize         String?
+  tireSeason       TireSeason?
+  tireInstalledAt  DateTime?
+  tireNotes        String?    @db.VarChar(2000)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -182,6 +195,7 @@ model MaintenanceRule {
   carId                String
   car                  Car                     @relation(fields: [carId], references: [id], onDelete: Cascade)
   name                 String
+  presetKey            String?
   description          String?
   intervalKind         MaintenanceIntervalKind
   intervalValue        Int
@@ -209,6 +223,7 @@ model MaintenanceRecord {
   ruleId      String?
   rule        MaintenanceRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
   title       String
+  presetKey   String?
   completedAt DateTime
   mileageAt   Int?
   cost        Float?

@@ -93,6 +93,13 @@ export const MileageSource = {
 } as const;
 export type MileageSource = (typeof MileageSource)[keyof typeof MileageSource];
 
+export const TireSeason = {
+  SUMMER: "SUMMER",
+  WINTER: "WINTER",
+  ALL_SEASON: "ALL_SEASON",
+} as const;
+export type TireSeason = (typeof TireSeason)[keyof typeof TireSeason];
+
 export const Locale = {
   uk: "uk",
   ru: "ru",
@@ -137,6 +144,13 @@ export const carCreateSchema = z.object({
   notes: z.string().trim().max(2000).optional().nullable(),
   coverDocumentId: z.string().cuid().optional().nullable(),
   currentMileage: z.number().int().min(0).optional().nullable(),
+  purchasePrice: money.optional().nullable(),
+  purchaseDate: optionalIsoDate,
+  tireBrand: z.string().trim().max(64).optional().nullable(),
+  tireSize: z.string().trim().max(32).optional().nullable(),
+  tireSeason: z.nativeEnum(TireSeason).optional().nullable(),
+  tireInstalledAt: optionalIsoDate,
+  tireNotes: z.string().trim().max(2000).optional().nullable(),
 });
 export const carUpdateSchema = carCreateSchema.partial();
 export type CarCreateInput = z.infer<typeof carCreateSchema>;
@@ -382,6 +396,7 @@ export type ShiftUpdateInput = z.infer<typeof shiftUpdateSchema>;
 export const maintenanceRuleCreateSchema = z.object({
   carId: z.string().cuid(),
   name: z.string().trim().min(1).max(128),
+  presetKey: z.string().trim().max(64).optional().nullable(),
   description: z.string().trim().max(2000).optional().nullable(),
   intervalKind: z.nativeEnum(MaintenanceIntervalKind),
   intervalValue: z.number().int().min(1),
@@ -398,6 +413,7 @@ export const maintenanceRecordCreateSchema = z.object({
   carId: z.string().cuid(),
   ruleId: z.string().cuid().optional().nullable(),
   title: z.string().trim().min(1).max(128),
+  presetKey: z.string().trim().max(64).optional().nullable(),
   completedAt: isoDate,
   mileageAt: z.number().int().min(0).optional().nullable(),
   cost: money.optional().nullable(),

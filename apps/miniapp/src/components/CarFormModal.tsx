@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CarStatus, ExpenseCategory, carFormFieldErrors, type CarFormField } from "@taxi/shared";
+import { CarStatus, ExpenseCategory, TireSeason, carFormFieldErrors, type CarFormField } from "@taxi/shared";
 import { useDeleteCar, useSaveCar, useSaveExpense, useUploadDocument } from "../hooks";
 import type { Car } from "../types";
 import {
@@ -12,7 +12,7 @@ import {
   DateInput,
   SelectInput,
   FormActions,
-  moneyFieldLabel,
+  MoneyNumberInput,
   todayInput,
 } from "./ui";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
@@ -31,6 +31,12 @@ export interface CarFormState {
   notes: string;
   purchasePrice: number | "";
   purchaseDate: string;
+  tireBrand: string;
+  tireSize: string;
+  tireSeason: TireSeason | "";
+  tireInstalledAt: string;
+  tireNotes: string;
+  showTires: boolean;
 }
 
 export const emptyCarForm: CarFormState = {
@@ -44,6 +50,12 @@ export const emptyCarForm: CarFormState = {
   notes: "",
   purchasePrice: "",
   purchaseDate: todayInput(),
+  tireBrand: "",
+  tireSize: "",
+  tireSeason: "",
+  tireInstalledAt: "",
+  tireNotes: "",
+  showTires: false,
 };
 
 export function carToForm(car: Car): CarFormState {
@@ -56,8 +68,16 @@ export function carToForm(car: Car): CarFormState {
     insuranceExpiry: car.insuranceExpiry ? car.insuranceExpiry.slice(0, 10) : "",
     inspectionExpiry: car.inspectionExpiry ? car.inspectionExpiry.slice(0, 10) : "",
     notes: car.notes ?? "",
-    purchasePrice: "",
-    purchaseDate: todayInput(),
+    purchasePrice: car.purchasePrice ?? "",
+    purchaseDate: car.purchaseDate ? car.purchaseDate.slice(0, 10) : todayInput(),
+    tireBrand: car.tireBrand ?? "",
+    tireSize: car.tireSize ?? "",
+    tireSeason: car.tireSeason ?? "",
+    tireInstalledAt: car.tireInstalledAt ? car.tireInstalledAt.slice(0, 10) : "",
+    tireNotes: car.tireNotes ?? "",
+    showTires: Boolean(
+      car.tireBrand || car.tireSize || car.tireSeason || car.tireInstalledAt || car.tireNotes,
+    ),
   };
 }
 
@@ -152,6 +172,13 @@ export function CarFormModal(props: {
       insuranceExpiry: form.insuranceExpiry || null,
       inspectionExpiry: form.inspectionExpiry || null,
       notes: form.notes || null,
+      purchasePrice: form.purchasePrice === "" ? null : form.purchasePrice,
+      purchaseDate: form.purchaseDate || null,
+      tireBrand: form.showTires && form.tireBrand ? form.tireBrand : null,
+      tireSize: form.showTires && form.tireSize ? form.tireSize : null,
+      tireSeason: form.showTires && form.tireSeason ? form.tireSeason : null,
+      tireInstalledAt: form.showTires && form.tireInstalledAt ? form.tireInstalledAt : null,
+      tireNotes: form.showTires && form.tireNotes ? form.tireNotes : null,
     };
 
     save.mutate(
@@ -302,25 +329,76 @@ export function CarFormModal(props: {
       <Field label={t("cars.notes")}>
         <TextInput value={form.notes} placeholder={ph(t, "notes")} onChange={(v) => patchForm({ notes: v })} />
       </Field>
-      {!isEdit ? (
-        <>
-          <Field label={t("cars.purchaseDate")}>
-            <DateInput
-              value={form.purchaseDate}
-              example={ph(t, "purchaseDate")}
-              onChange={(v) => patchForm({ purchaseDate: v })}
-            />
-          </Field>
-          <Field label={moneyFieldLabel(t("cars.purchasePrice"))}>
-            <NumberInput
-              value={form.purchasePrice}
-              placeholder={ph(t, "purchasePrice")}
-              onChange={(v) => patchForm({ purchasePrice: v })}
-            />
-          </Field>
-          <p className="crm-field-hint">{t("cars.purchasePriceHint")}</p>
-        </>
-      ) : null}
+      <Field label={t("cars.purchaseDate")}>
+        <DateInput
+          value={form.purchaseDate}
+          example={ph(t, "purchaseDate")}
+          onChange={(v) => patchForm({ purchaseDate: v })}
+        />
+      </Field>
+      <Field label={t("cars.purchasePrice")}>
+        <MoneyNumberInput
+          value={form.purchasePrice}
+          placeholder={ph(t, "purchasePrice")}
+          onChange={(v) => patchForm({ purchasePrice: v })}
+        />
+      </Field>
+      {!isEdit ? <p className="crm-field-hint">{t("cars.purchasePriceHint")}</p> : null}
+
+      <div className="crm-form-optional-block">
+        <button
+          type="button"
+          className="crm-link-btn"
+          onClick={() => patchForm({ showTires: !form.showTires })}
+        >
+          {form.showTires ? t("cars.hideTires") : t("cars.addTires")}
+        </button>
+        {form.showTires ? (
+          <>
+            <Field label={t("cars.tireBrand")}>
+              <TextInput
+                value={form.tireBrand}
+                placeholder={ph(t, "tireBrand")}
+                onChange={(v) => patchForm({ tireBrand: v })}
+              />
+            </Field>
+            <Field label={t("cars.tireSize")}>
+              <TextInput
+                value={form.tireSize}
+                placeholder={ph(t, "tireSize")}
+                onChange={(v) => patchForm({ tireSize: v })}
+              />
+            </Field>
+            <Field label={t("cars.tireSeasonField")}>
+              <SelectInput
+                value={form.tireSeason}
+                onChange={(v) => patchForm({ tireSeason: v })}
+                options={[
+                  { value: "", label: "—" },
+                  ...Object.values(TireSeason).map((s) => ({
+                    value: s,
+                    label: t(`cars.tireSeason.${s}`),
+                  })),
+                ]}
+              />
+            </Field>
+            <Field label={t("cars.tireInstalledAt")}>
+              <DateInput
+                value={form.tireInstalledAt}
+                example={ph(t, "tireInstalledAt")}
+                onChange={(v) => patchForm({ tireInstalledAt: v })}
+              />
+            </Field>
+            <Field label={t("cars.tireNotes")}>
+              <TextInput
+                value={form.tireNotes}
+                placeholder={ph(t, "tireNotes")}
+                onChange={(v) => patchForm({ tireNotes: v })}
+              />
+            </Field>
+          </>
+        ) : null}
+      </div>
       {!isEdit ? (
         <CarPhotoPicker
           photos={pendingPhotos}

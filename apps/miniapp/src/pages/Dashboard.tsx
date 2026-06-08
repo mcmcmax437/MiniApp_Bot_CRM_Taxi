@@ -21,9 +21,9 @@ export function Dashboard() {
   const setCurrency = useSetCurrency();
 
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
-  const income = report.data ? formatMoney(report.data.income) : "0";
-  const expenses = report.data ? formatMoney(report.data.expenses) : "0";
-  const profit = report.data ? formatMoney(report.data.profit) : "0";
+  const income = formatMoney(report.data?.income ?? 0);
+  const expenses = formatMoney(report.data?.expenses ?? 0);
+  const profit = formatMoney(report.data?.profit ?? 0);
 
   const localeOptions = [
     { value: "uk" as const, label: "Українська" },
@@ -150,9 +150,8 @@ export function Dashboard() {
               </option>
             ))}
           </select>
-          <span className="crm-language__label">
-            {t(CURRENCY_OPTIONS.find((o) => o.value === activeCurrency)?.nameKey ?? "currency.UAH")} (
-            {currentCurrency})
+          <span className="crm-language__label crm-currency-picker__value" aria-label={t(CURRENCY_OPTIONS.find((o) => o.value === activeCurrency)?.nameKey ?? "currency.UAH")}>
+            {currentCurrency}
           </span>
           <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
         </label>

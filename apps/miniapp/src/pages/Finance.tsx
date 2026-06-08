@@ -24,7 +24,7 @@ import {
   FormActions,
   formatMoney,
   formatDate,
-  moneyFieldLabel,
+  MoneyNumberInput,
   todayInput,
 } from "../components/ui";
 import { AppHeader, Icon } from "../components/crm";
@@ -457,8 +457,8 @@ function ExpensesTab() {
             ]}
           />
         </Field>
-        <Field label={moneyFieldLabel(t("finance.amount"))}>
-          <NumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} />
+        <Field label={t("finance.amount")}>
+          <MoneyNumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} />
         </Field>
         <Field label={t("finance.date")}>
           <DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
@@ -574,8 +574,8 @@ function PaymentModal(props: {
           ]}
         />
       </Field>
-      <Field label={moneyFieldLabel(t("finance.amount"))}>
-        <NumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} />
+      <Field label={t("finance.amount")}>
+        <MoneyNumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} />
       </Field>
       <Field label={t("finance.date")}>
         <DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} />

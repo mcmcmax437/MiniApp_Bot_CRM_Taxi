@@ -12,6 +12,7 @@ import type {
   MaintenanceIntervalKind,
   MileageSource,
   ReminderSettings,
+  TireSeason,
 } from "@taxi/shared";
 
 export interface Car {
@@ -27,6 +28,13 @@ export interface Car {
   coverDocumentId?: string | null;
   currentMileage?: number | null;
   mileageUpdatedAt?: string | null;
+  purchasePrice?: number | null;
+  purchaseDate?: string | null;
+  tireBrand?: string | null;
+  tireSize?: string | null;
+  tireSeason?: TireSeason | null;
+  tireInstalledAt?: string | null;
+  tireNotes?: string | null;
   agreements?: Array<{
     id?: string;
     driver?: { id: string; fullName: string; phone?: string | null };
@@ -58,6 +66,7 @@ export interface MaintenanceRule {
   id: string;
   carId: string;
   name: string;
+  presetKey?: string | null;
   description: string | null;
   intervalKind: MaintenanceIntervalKind;
   intervalValue: number;
@@ -75,6 +84,7 @@ export interface MaintenanceRecord {
   carId: string;
   ruleId: string | null;
   title: string;
+  presetKey?: string | null;
   completedAt: string;
   mileageAt: number | null;
   cost: number | null;

@@ -30,7 +30,7 @@ import {
   FormActions,
   formatMoney,
   formatDate,
-  moneyFieldLabel,
+  MoneyNumberInput,
   todayInput,
 } from "../components/ui";
 import { Documents } from "../components/Documents";
@@ -689,15 +689,15 @@ function AgreementSection(props: {
           options={[{ value: "", label: t("common.none") }, ...props.carOptions]}
         />
       </Field>
-      <Field label={moneyFieldLabel(t("drivers.rentAmount"))}>
-        <NumberInput
+      <Field label={t("drivers.rentAmount")}>
+        <MoneyNumberInput
           value={rentAmount}
           placeholder={ph(t, "rentAmount")}
           onChange={setRentAmount}
         />
       </Field>
-      <Field label={moneyFieldLabel(t("drivers.deposit"))}>
-        <NumberInput
+      <Field label={t("drivers.deposit")}>
+        <MoneyNumberInput
           value={depositAmount}
           placeholder={ph(t, "depositAmount")}
           onChange={setDepositAmount}
