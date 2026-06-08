@@ -12,6 +12,7 @@ import {
   FormActions,
   formatMoney,
   formatDate,
+  moneyFieldLabel,
   todayInput,
 } from "../ui";
 import { Icon } from "../crm";
@@ -198,7 +199,7 @@ export function TaxesTab() {
             ]}
           />
         </Field>
-        <Field label={t("finance.amount")}>
+        <Field label={moneyFieldLabel(t("finance.amount"))}>
           <NumberInput value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} />
         </Field>
         <Field label={t("finance.date")}>

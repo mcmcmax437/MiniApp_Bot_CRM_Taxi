@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { useMe } from "./hooks";
+import { setAppCurrency } from "./currency";
+import type { Currency } from "@taxi/shared";
 import { tg } from "./telegram";
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./pages/Dashboard";
@@ -24,6 +26,13 @@ export function App() {
       void i18n.changeLanguage(me.data.locale);
     }
   }, [me.data?.locale]);
+
+  useEffect(() => {
+    if (me.data?.currency) {
+      setAppCurrency(me.data.currency as Currency);
+      localStorage.setItem("currency", me.data.currency);
+    }
+  }, [me.data?.currency]);
 
   if (me.isLoading) {
     return (

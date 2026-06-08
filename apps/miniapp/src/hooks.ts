@@ -19,15 +19,34 @@ import type {
   Payment,
 } from "./types";
 import { isImageDocument } from "./components/documentUtils";
+import { setAppCurrency } from "./currency";
+import type { Currency } from "@taxi/shared";
 
 export function useMe() {
   return useQuery({ queryKey: ["me"], queryFn: () => apiFetch<MeResponse>("/me") });
 }
 
 export function useSetLocale() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (locale: string) =>
       apiFetch("/me/locale", { method: "PATCH", body: { locale } }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}
+
+export function useSetCurrency() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (currency: string) =>
+      apiFetch<{ currency: string }>("/me/currency", { method: "PATCH", body: { currency } }),
+    onSuccess: (data) => {
+      setAppCurrency(data.currency as Currency);
+      localStorage.setItem("currency", data.currency);
+      void qc.invalidateQueries({ queryKey: ["me"] });
+    },
   });
 }
 

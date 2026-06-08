@@ -12,6 +12,7 @@ import {
   FormActions,
   formatMoney,
   formatDate,
+  moneyFieldLabel,
   todayInput,
 } from "../ui";
 import { Icon } from "../crm";
@@ -242,10 +243,10 @@ export function FleetTab() {
         <Field label={t("drivers.startDate")}>
           <DateInput value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} />
         </Field>
-        <Field label={t("drivers.rentAmount")}>
+        <Field label={moneyFieldLabel(t("drivers.rentAmount"))}>
           <NumberInput value={form.rentAmount} onChange={(v) => setForm({ ...form, rentAmount: v })} />
         </Field>
-        <Field label={t("drivers.deposit")}>
+        <Field label={moneyFieldLabel(t("drivers.deposit"))}>
           <NumberInput value={form.depositAmount} onChange={(v) => setForm({ ...form, depositAmount: v })} />
         </Field>
         <Field label={t("drivers.period")}>

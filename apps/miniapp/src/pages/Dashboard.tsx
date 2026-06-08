@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useBalances, useReminders, useReport, useSetLocale } from "../hooks";
+import { useBalances, useMe, useReminders, useReport, useSetCurrency, useSetLocale } from "../hooks";
+import { CURRENCY_OPTIONS } from "../currency";
+import type { Currency } from "@taxi/shared";
 import { formatMoney } from "../components/ui";
 import { ImportSection } from "../components/ImportSection";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
@@ -14,7 +16,9 @@ export function Dashboard() {
   const report = useReport();
   const reminders = useReminders();
   const balances = useBalances();
+  const me = useMe();
   const setLocale = useSetLocale();
+  const setCurrency = useSetCurrency();
 
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
   const income = report.data ? formatMoney(report.data.income) : "0";
@@ -27,6 +31,9 @@ export function Dashboard() {
     { value: "en" as const, label: "English" },
   ];
   const currentLocale = localeOptions.find((o) => o.value === i18n.language)?.label ?? "English";
+  const activeCurrency = me.data?.currency ?? "UAH";
+  const currentCurrency =
+    CURRENCY_OPTIONS.find((o) => o.value === activeCurrency)?.symbol ?? activeCurrency;
 
   return (
     <div className="crm-page">
@@ -123,6 +130,33 @@ export function Dashboard() {
       <ReminderSettingsCard />
 
       <ImportSection />
+
+      <SectionCard
+        title={t("settings.currency")}
+        icon={<Icon name="dollar-01" size={24} color="var(--taxi-text-muted)" />}
+      >
+        <label className="crm-language">
+          <select
+            className="crm-language__select"
+            value={activeCurrency}
+            onChange={(e) => {
+              const v = e.target.value as Currency;
+              setCurrency.mutate(v);
+            }}
+          >
+            {CURRENCY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {t(o.nameKey)} ({o.symbol})
+              </option>
+            ))}
+          </select>
+          <span className="crm-language__label">
+            {t(CURRENCY_OPTIONS.find((o) => o.value === activeCurrency)?.nameKey ?? "currency.UAH")} (
+            {currentCurrency})
+          </span>
+          <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
+        </label>
+      </SectionCard>
 
       <SectionCard
         title={t("settings.language")}

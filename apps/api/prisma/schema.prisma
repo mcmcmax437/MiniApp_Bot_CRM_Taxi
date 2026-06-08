@@ -94,6 +94,7 @@ model Owner {
   username              String?
   status                OwnerStatus @default(PENDING)
   locale                String      @default("uk")
+  currency              String      @default("UAH")
   subscriptionExpiresAt DateTime?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt

@@ -3,8 +3,8 @@ import { z } from "zod";
 import { authenticate } from "../auth/plugin.js";
 import { prisma } from "../prisma.js";
 import { parse } from "./helpers.js";
-import type { Locale, MeResponse } from "@taxi/shared";
-import { Locale as LocaleEnum } from "@taxi/shared";
+import type { Currency, Locale, MeResponse } from "@taxi/shared";
+import { Currency as CurrencyEnum, Locale as LocaleEnum } from "@taxi/shared";
 
 export async function meRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("preHandler", authenticate);
@@ -18,6 +18,7 @@ export async function meRoutes(app: FastifyInstance): Promise<void> {
       username: owner.username,
       status: owner.status,
       locale: owner.locale as Locale,
+      currency: owner.currency as Currency,
       isSuperAdmin: Boolean(req.isSuperAdmin),
       subscriptionExpiresAt: owner.subscriptionExpiresAt?.toISOString() ?? null,
     };
@@ -32,5 +33,15 @@ export async function meRoutes(app: FastifyInstance): Promise<void> {
       data: { locale: body.locale },
     });
     return { locale: owner.locale };
+  });
+
+  app.patch("/me/currency", async (req, reply) => {
+    const body = parse(z.object({ currency: z.nativeEnum(CurrencyEnum) }), req.body, reply);
+    if (!body) return;
+    const owner = await prisma.owner.update({
+      where: { id: req.owner!.id },
+      data: { currency: body.currency },
+    });
+    return { currency: owner.currency };
   });
 }

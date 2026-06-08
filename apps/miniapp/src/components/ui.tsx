@@ -155,7 +155,7 @@ export function DateInput(props: {
   return (
     <div className="crm-date-field">
       <input
-        className={dateClass}
+        className={`${dateClass} crm-date-field__input`}
         type="date"
         value={props.value}
         onFocus={() => setFocused(true)}
@@ -203,9 +203,7 @@ export function FormActions(props: { onCancel: () => void; onSave: () => void; s
   );
 }
 
-export function formatMoney(n: number): string {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(n);
-}
+export { formatMoney, moneyFieldLabel, getCurrencySymbol } from "../currency";
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";

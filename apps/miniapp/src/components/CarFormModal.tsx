@@ -12,6 +12,7 @@ import {
   DateInput,
   SelectInput,
   FormActions,
+  moneyFieldLabel,
   todayInput,
 } from "./ui";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
@@ -303,22 +304,20 @@ export function CarFormModal(props: {
       </Field>
       {!isEdit ? (
         <>
-          <Field label={t("cars.purchasePrice")}>
+          <Field label={t("cars.purchaseDate")}>
+            <DateInput
+              value={form.purchaseDate}
+              example={ph(t, "purchaseDate")}
+              onChange={(v) => patchForm({ purchaseDate: v })}
+            />
+          </Field>
+          <Field label={moneyFieldLabel(t("cars.purchasePrice"))}>
             <NumberInput
               value={form.purchasePrice}
               placeholder={ph(t, "purchasePrice")}
               onChange={(v) => patchForm({ purchasePrice: v })}
             />
           </Field>
-          {form.purchasePrice !== "" ? (
-            <Field label={t("cars.purchaseDate")}>
-              <DateInput
-                value={form.purchaseDate}
-                example={ph(t, "purchaseDate")}
-                onChange={(v) => patchForm({ purchaseDate: v })}
-              />
-            </Field>
-          ) : null}
           <p className="crm-field-hint">{t("cars.purchasePriceHint")}</p>
         </>
       ) : null}

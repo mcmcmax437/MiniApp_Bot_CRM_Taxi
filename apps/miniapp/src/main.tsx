@@ -7,7 +7,10 @@ import "@fontsource-variable/inter/index.css";
 import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./styles.css";
 import "./i18n";
+import { initCurrencyFromStorage } from "./currency";
 import { initTelegram, getPlatform } from "./telegram";
+
+initCurrencyFromStorage();
 import { App } from "./App";
 import { ConfirmHost } from "./components/ConfirmHost";
 

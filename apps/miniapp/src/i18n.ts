@@ -152,7 +152,7 @@ const en = {
     notes: "Notes",
     purchasePrice: "Purchase price",
     purchaseDate: "Purchase date",
-    purchasePriceHint: "Optional — recorded as a business expense when you save the car",
+    purchasePriceHint: "Optional purchase price is saved as a business expense on the purchase date",
     purchaseExpenseNote: "Vehicle purchase: {{plate}}",
     addCar: "Add car",
     noCarsYet: "No cars yet",
@@ -422,6 +422,14 @@ const en = {
   },
   settings: {
     language: "Language",
+    currency: "Currency",
+  },
+  currency: {
+    UAH: "Ukrainian hryvnia",
+    USD: "US dollar",
+    EUR: "Euro",
+    PLN: "Polish zloty",
+    GBP: "British pound",
   },
 };
 
@@ -577,7 +585,7 @@ const uk: Resources = {
     notes: "Нотатки",
     purchasePrice: "Ціна покупки",
     purchaseDate: "Дата покупки",
-    purchasePriceHint: "Необов'язково — зберігається як бізнес-витрата після додавання авто",
+    purchasePriceHint: "Необов'язкова ціна покупки зберігається як бізнес-витрата на дату покупки",
     purchaseExpenseNote: "Покупка авто: {{plate}}",
     addCar: "Додати авто",
     noCarsYet: "Ще немає авто",
@@ -847,6 +855,14 @@ const uk: Resources = {
   },
   settings: {
     language: "Мова",
+    currency: "Валюта",
+  },
+  currency: {
+    UAH: "Українська гривня",
+    USD: "Долар США",
+    EUR: "Євро",
+    PLN: "Польський злотий",
+    GBP: "Фунт стерлінгів",
   },
 };
 
@@ -1000,7 +1016,7 @@ const ru: Resources = {
     notes: "Заметки",
     purchasePrice: "Цена покупки",
     purchaseDate: "Дата покупки",
-    purchasePriceHint: "Необязательно — сохраняется как бизнес-расход при добавлении авто",
+    purchasePriceHint: "Необязательная цена покупки сохраняется как бизнес-расход на дату покупки",
     purchaseExpenseNote: "Покупка авто: {{plate}}",
     addCar: "Добавить авто",
     noCarsYet: "Пока нет авто",
@@ -1270,6 +1286,14 @@ const ru: Resources = {
   },
   settings: {
     language: "Язык",
+    currency: "Валюта",
+  },
+  currency: {
+    UAH: "Украинская гривна",
+    USD: "Доллар США",
+    EUR: "Евро",
+    PLN: "Польский злотый",
+    GBP: "Фунт стерлингов",
   },
 };
 

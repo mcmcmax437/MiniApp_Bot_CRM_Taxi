@@ -100,6 +100,15 @@ export const Locale = {
 } as const;
 export type Locale = (typeof Locale)[keyof typeof Locale];
 
+export const Currency = {
+  UAH: "UAH",
+  USD: "USD",
+  EUR: "EUR",
+  PLN: "PLN",
+  GBP: "GBP",
+} as const;
+export type Currency = (typeof Currency)[keyof typeof Currency];
+
 // ---------------------------------------------------------------------------
 // Reusable zod helpers
 // ---------------------------------------------------------------------------
@@ -428,6 +437,7 @@ export const reminderSettingsUpdateSchema = z.object({
 export const ownerUpdateSchema = z.object({
   name: z.string().trim().max(128).optional().nullable(),
   locale: z.nativeEnum(Locale).optional(),
+  currency: z.nativeEnum(Currency).optional(),
   status: z.nativeEnum(OwnerStatus).optional(),
   subscriptionExpiresAt: optionalIsoDate,
 });
@@ -444,6 +454,7 @@ export interface MeResponse {
   username: string | null;
   status: OwnerStatus;
   locale: Locale;
+  currency: Currency;
   isSuperAdmin: boolean;
   subscriptionExpiresAt: string | null;
 }

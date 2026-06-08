@@ -2891,17 +2891,57 @@ select.crm-input option {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  overflow: hidden;
+  isolation: isolate;
 }
 
+.crm-date-field__input,
 .crm-date-field input[type="date"] {
   width: 100%;
   max-width: 100%;
   min-width: 0;
   display: block;
+  padding-right: 40px;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .crm-date-field input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
+  min-width: 0;
+  max-width: calc(100% - 36px);
+  overflow: hidden;
+}
+
+.crm-date-field input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.crm-date-field input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+@media (max-width: 640px) {
+  .crm-date-field__input,
+  .crm-date-field input[type="date"] {
+    font-size: 15px;
+    padding-right: 44px;
+  }
+
+  .crm-date-field__example {
+    max-width: calc(100% - 48px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 /* Hide browser dd.mm.yyyy mask when empty so the example date is readable */
