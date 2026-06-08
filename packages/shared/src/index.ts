@@ -135,6 +135,13 @@ const money = z.number().finite().min(0);
 
 export const carCreateSchema = z.object({
   plate: z.string().trim().min(1).max(32),
+  vin: z
+    .string()
+    .trim()
+    .max(17)
+    .optional()
+    .nullable()
+    .transform((v) => (v && v.length > 0 ? v.toUpperCase() : null)),
   make: z.string().trim().max(64).optional().nullable(),
   model: z.string().trim().max(64).optional().nullable(),
   year: z.number().int().min(1950).max(2100).optional().nullable(),
@@ -151,6 +158,10 @@ export const carCreateSchema = z.object({
   tireSeason: z.nativeEnum(TireSeason).optional().nullable(),
   tireInstalledAt: optionalIsoDate,
   tireNotes: z.string().trim().max(2000).optional().nullable(),
+  trackerLogin: z.string().trim().max(128).optional().nullable(),
+  trackerPassword: z.string().trim().max(128).optional().nullable(),
+  trackerUrl: z.string().trim().max(512).optional().nullable(),
+  trackerNotes: z.string().trim().max(2000).optional().nullable(),
 });
 export const carUpdateSchema = carCreateSchema.partial();
 export type CarCreateInput = z.infer<typeof carCreateSchema>;
@@ -163,8 +174,8 @@ export const carFormSchema = z.object({
   model: z.string().trim().min(1).max(64),
   year: z.number().int().min(1950).max(2100),
   status: z.nativeEnum(CarStatus),
-  insuranceExpiry: z.string().min(1),
-  inspectionExpiry: z.string().min(1),
+  insuranceExpiry: z.string().optional(),
+  inspectionExpiry: z.string().optional(),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
 
@@ -491,6 +502,10 @@ export interface ReportSummary {
   income: number;
   expenses: number;
   profit: number;
+  /** Sum of car purchase prices (fleet capital). */
+  totalInvestment: number;
+  /** Monthly profit as % of totalInvestment, or null if no purchase prices recorded. */
+  roiPercent: number | null;
   byCar: Array<{ carId: string; label: string; income: number; expenses: number; profit: number }>;
   byDriver: Array<{ driverId: string; label: string; income: number }>;
 }

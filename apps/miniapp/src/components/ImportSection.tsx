@@ -56,6 +56,8 @@ export function ImportSection() {
 
   return (
     <SectionCard
+      storageKey="import"
+      defaultOpen={false}
       title={t("importData.title")}
       icon={<Icon name="upload-01" size={24} color="var(--taxi-text-muted)" />}
     >

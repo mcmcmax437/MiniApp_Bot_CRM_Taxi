@@ -20,7 +20,7 @@ export async function expensesRoutes(app: FastifyInstance): Promise<void> {
           ? { date: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } }
           : {}),
       },
-      orderBy: { date: "desc" },
+      orderBy: [{ createdAt: "desc" }, { date: "desc" }],
       include: { car: { select: { id: true, plate: true } } },
     });
   });

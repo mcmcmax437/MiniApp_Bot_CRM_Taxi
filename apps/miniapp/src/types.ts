@@ -18,6 +18,7 @@ import type {
 export interface Car {
   id: string;
   plate: string;
+  vin?: string | null;
   make: string | null;
   model: string | null;
   year: number | null;
@@ -35,6 +36,10 @@ export interface Car {
   tireSeason?: TireSeason | null;
   tireInstalledAt?: string | null;
   tireNotes?: string | null;
+  trackerLogin?: string | null;
+  trackerPassword?: string | null;
+  trackerUrl?: string | null;
+  trackerNotes?: string | null;
   agreements?: Array<{
     id?: string;
     driver?: { id: string; fullName: string; phone?: string | null };
@@ -133,6 +138,7 @@ export interface Payment {
   method: PaymentMethod;
   type: PaymentType;
   note: string | null;
+  createdAt?: string;
   driver?: { id: string; fullName: string };
   car?: { id: string; plate: string } | null;
 }
@@ -144,6 +150,7 @@ export interface Expense {
   amount: number;
   date: string;
   note: string | null;
+  createdAt?: string;
   car?: { id: string; plate: string } | null;
 }
 

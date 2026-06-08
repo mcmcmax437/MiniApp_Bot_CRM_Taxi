@@ -7,8 +7,15 @@ import { formatMoney } from "../components/ui";
 import { ImportSection } from "../components/ImportSection";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
 import { ReminderList } from "../components/ReminderList";
+import { RecentActivitySection } from "../components/RecentActivitySection";
 import { AppHeader, Icon, SectionCard, StatCard } from "../components/crm";
 import i18n from "../i18n";
+
+function formatRoi(percent: number | null | undefined): string {
+  if (percent == null) return "—";
+  const sign = percent > 0 ? "+" : "";
+  return `${sign}${percent.toFixed(1)}%`;
+}
 
 export function Dashboard() {
   const { t } = useTranslation();
@@ -24,6 +31,11 @@ export function Dashboard() {
   const income = formatMoney(report.data?.income ?? 0);
   const expenses = formatMoney(report.data?.expenses ?? 0);
   const profit = formatMoney(report.data?.profit ?? 0);
+  const roi = formatRoi(report.data?.roiPercent);
+  const roiHint =
+    report.data && report.data.totalInvestment > 0
+      ? t("dashboard.roiHint", { investment: formatMoney(report.data.totalInvestment) })
+      : t("dashboard.roiNoInvestment");
 
   const localeOptions = [
     { value: "uk" as const, label: "Українська" },
@@ -39,7 +51,7 @@ export function Dashboard() {
     <div className="crm-page">
       <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
 
-      <div className="crm-stat-grid">
+      <div className="crm-stat-grid crm-stat-grid--home">
         <StatCard
           label={t("dashboard.income")}
           value={income}
@@ -61,9 +73,21 @@ export function Dashboard() {
           tone="profit"
           icon={<Icon name="chart-line-data-01" size={24} color="var(--taxi-profit)" />}
         />
+        <StatCard
+          label={t("dashboard.roi")}
+          value={roi}
+          suffix={t("dashboard.monthSuffix")}
+          tone="roi"
+          icon={<Icon name="chart-increase" size={24} color="var(--taxi-accent)" />}
+        />
       </div>
+      {report.data ? <p className="crm-stat-grid-hint">{roiHint}</p> : null}
+
+      <RecentActivitySection />
 
       <SectionCard
+        storageKey="reminders"
+        defaultOpen
         title={t("dashboard.reminders")}
         icon={<Icon name="notification-01" size={24} color="var(--taxi-text-muted)" />}
         action={
@@ -91,6 +115,8 @@ export function Dashboard() {
       </SectionCard>
 
       <SectionCard
+        storageKey="who-owes"
+        defaultOpen
         title={t("dashboard.whoOwes")}
         icon={<Icon name="user" size={24} color="var(--taxi-text-muted)" />}
       >
@@ -132,6 +158,8 @@ export function Dashboard() {
       <ImportSection />
 
       <SectionCard
+        storageKey="currency"
+        defaultOpen={false}
         title={t("settings.currency")}
         icon={<Icon name="dollar-01" size={24} color="var(--taxi-text-muted)" />}
       >
@@ -158,6 +186,8 @@ export function Dashboard() {
       </SectionCard>
 
       <SectionCard
+        storageKey="language"
+        defaultOpen={false}
         title={t("settings.language")}
         icon={<Icon name="globe" size={24} color="var(--taxi-text-muted)" />}
       >
@@ -185,4 +215,3 @@ export function Dashboard() {
     </div>
   );
 }
-

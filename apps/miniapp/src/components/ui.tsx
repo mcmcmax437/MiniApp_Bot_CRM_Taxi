@@ -145,15 +145,19 @@ export function DateInput(props: {
   /** @deprecated Use `example` */
   placeholder?: string;
   invalid?: boolean;
+  /** Show a clear button when a date is set. */
+  clearable?: boolean;
 }) {
+  const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
   const example = props.example ?? props.placeholder;
   const empty = !props.value;
   const showExample = empty && Boolean(example) && !focused;
+  const showClear = Boolean(props.clearable && props.value);
   const dateClass = `${inputClass(props.invalid)} crm-input-date${empty ? " crm-input-date--empty" : ""}`;
 
   return (
-    <div className="crm-date-field">
+    <div className={`crm-date-field${showClear ? " crm-date-field--clearable" : ""}`}>
       <input
         className={`${dateClass} crm-date-field__input`}
         type="date"
@@ -163,6 +167,47 @@ export function DateInput(props: {
         onChange={(e) => props.onChange(e.target.value)}
       />
       {showExample ? <span className="crm-date-field__example">{example}</span> : null}
+      {showClear ? (
+        <button
+          type="button"
+          className="crm-date-field__clear"
+          aria-label={t("common.clear")}
+          onClick={() => props.onChange("")}
+        >
+          ×
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export function PasswordInput(props: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  invalid?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div className="crm-password-field">
+      <input
+        className={inputClass(props.invalid)}
+        type={visible ? "text" : "password"}
+        value={props.value}
+        placeholder={props.placeholder}
+        autoComplete="off"
+        onChange={(e) => props.onChange(e.target.value)}
+      />
+      <button
+        type="button"
+        className="crm-password-field__toggle"
+        aria-label={visible ? t("common.hide") : t("common.show")}
+        onClick={() => setVisible((v) => !v)}
+      >
+        {visible ? t("common.hide") : t("common.show")}
+      </button>
     </div>
   );
 }

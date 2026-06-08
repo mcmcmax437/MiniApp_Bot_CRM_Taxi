@@ -62,12 +62,25 @@ export async function buildReportSummary(
   }));
   byDriver.sort((a, b) => b.income - a.income);
 
+  const profit = round2(income - expenseTotal);
+  let totalInvestment = 0;
+  for (const c of cars) {
+    if (c.purchasePrice != null && c.purchasePrice > 0) {
+      totalInvestment += c.purchasePrice;
+    }
+  }
+  totalInvestment = round2(totalInvestment);
+  const roiPercent =
+    totalInvestment > 0 ? round2((profit / totalInvestment) * 100) : null;
+
   return {
     from: from.toISOString(),
     to: to.toISOString(),
     income: round2(income),
     expenses: round2(expenseTotal),
-    profit: round2(income - expenseTotal),
+    profit,
+    totalInvestment,
+    roiPercent,
     byCar,
     byDriver,
   };

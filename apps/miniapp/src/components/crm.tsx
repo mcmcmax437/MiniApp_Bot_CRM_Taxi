@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
 
 /** Hugeicons Stroke Rounded — class suffix without `hgi-` prefix (see icons.css CDN). */
 export type IconName =
@@ -77,20 +77,74 @@ export function AppHeader(props: { title: string; subtitle: string }) {
   );
 }
 
+function useSectionCollapsed(storageKey: string | undefined, defaultOpen: boolean) {
+  const [open, setOpen] = useState(() => {
+    if (!storageKey) return defaultOpen;
+    try {
+      const saved = localStorage.getItem(`crm-section-${storageKey}`);
+      if (saved !== null) return saved === "1";
+    } catch {
+      /* ignore */
+    }
+    return defaultOpen;
+  });
+
+  const toggle = useCallback(() => {
+    setOpen((prev) => {
+      const next = !prev;
+      if (storageKey) {
+        try {
+          localStorage.setItem(`crm-section-${storageKey}`, next ? "1" : "0");
+        } catch {
+          /* ignore */
+        }
+      }
+      return next;
+    });
+  }, [storageKey]);
+
+  return { open, toggle };
+}
+
 export function SectionCard(props: {
   title: string;
   icon: ReactNode;
   action?: ReactNode;
   children: ReactNode;
+  /** When set, section can be collapsed; state is persisted per key. */
+  storageKey?: string;
+  defaultOpen?: boolean;
 }) {
+  const collapsible = Boolean(props.storageKey);
+  const { open, toggle } = useSectionCollapsed(props.storageKey, props.defaultOpen ?? true);
+
+  const headContent = (
+    <>
+      <span className="crm-section__icon">{props.icon}</span>
+      <h2 className="crm-section__title">{props.title}</h2>
+      {props.action ? (
+        <div className="crm-section__action" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          {props.action}
+        </div>
+      ) : null}
+      {collapsible ? (
+        <span className={`crm-section__chevron${open ? " crm-section__chevron--open" : ""}`} aria-hidden>
+          <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
+        </span>
+      ) : null}
+    </>
+  );
+
   return (
-    <section className="crm-section glass-card">
-      <div className="crm-section__head">
-        <span className="crm-section__icon">{props.icon}</span>
-        <h2 className="crm-section__title">{props.title}</h2>
-        {props.action ? <div className="crm-section__action">{props.action}</div> : null}
-      </div>
-      <div className="crm-section__body">{props.children}</div>
+    <section className={`crm-section glass-card${collapsible && !open ? " crm-section--collapsed" : ""}`}>
+      {collapsible ? (
+        <button type="button" className="crm-section__head crm-section__head--toggle" onClick={toggle} aria-expanded={open}>
+          {headContent}
+        </button>
+      ) : (
+        <div className="crm-section__head">{headContent}</div>
+      )}
+      {open ? <div className="crm-section__body">{props.children}</div> : null}
     </section>
   );
 }
@@ -99,7 +153,7 @@ export function StatCard(props: {
   label: string;
   value: string;
   suffix: string;
-  tone: "income" | "expense" | "profit";
+  tone: "income" | "expense" | "profit" | "roi";
   icon: ReactNode;
 }) {
   return (

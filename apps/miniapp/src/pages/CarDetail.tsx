@@ -8,6 +8,7 @@ import { DocumentThumbnail } from "../components/DocumentThumbnail";
 import { CarPhotosSection } from "../components/CarPhotosSection";
 import { CarDocumentsSection } from "../components/CarDocumentsSection";
 import { CarTrackingSections } from "../components/CarTrackingSections";
+import { CarTrackerSection } from "../components/CarTrackerSection";
 import { CarFormModal } from "../components/CarFormModal";
 import { formatDate } from "../components/ui";
 import { formatMoney } from "../currency";
@@ -98,6 +99,7 @@ export function CarDetailPage() {
         <h3 className="crm-car-detail-section__title">{t("cars.details")}</h3>
         <dl className="crm-car-detail-dl">
           <DetailRow label={t("cars.plate")} value={car.plate} />
+          <DetailRow label={t("cars.vin")} value={car.vin} />
           <DetailRow label={t("cars.brand")} value={car.make} />
           <DetailRow label={t("cars.model")} value={car.model} />
           <DetailRow label={t("cars.year")} value={car.year != null ? String(car.year) : null} />
@@ -128,6 +130,8 @@ export function CarDetailPage() {
           </dl>
         </section>
       ) : null}
+
+      <CarTrackerSection car={car} onEdit={() => setEditOpen(true)} />
 
       <section className="glass-card crm-car-detail-section">
         <h3 className="crm-car-detail-section__title">{t("cars.activeDrivers")}</h3>

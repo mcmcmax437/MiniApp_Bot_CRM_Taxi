@@ -48,8 +48,10 @@ export function ReminderSettingsCard() {
 
   return (
     <SectionCard
+      storageKey="reminder-settings"
+      defaultOpen={false}
       title={t("tracking.reminderSettingsTitle")}
-      icon={<Icon name="notification-01" size={24} color="var(--taxi-text-muted)" />}
+      icon={<Icon name="settings-01" size={24} color="var(--taxi-text-muted)" />}
     >
       {settings.isLoading ? (
         <p className="crm-form-hint">{t("common.loading")}</p>

@@ -125,9 +125,14 @@ model Car {
   ownerId          String
   owner            Owner      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   plate            String
+  vin              String?
   make             String?
   model            String?
   year             Int?
+  trackerLogin     String?
+  trackerPassword  String?
+  trackerUrl       String?
+  trackerNotes     String?    @db.VarChar(2000)
   status           CarStatus  @default(AVAILABLE)
   insuranceExpiry  DateTime?
   inspectionExpiry DateTime?

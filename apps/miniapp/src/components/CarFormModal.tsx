@@ -13,6 +13,7 @@ import {
   SelectInput,
   FormActions,
   MoneyNumberInput,
+  PasswordInput,
   todayInput,
 } from "./ui";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
@@ -24,6 +25,7 @@ const ph = (t: (k: string) => string, key: string) => t(`cars.placeholder.${key}
 
 export interface CarFormState {
   plate: string;
+  vin: string;
   make: string;
   model: string;
   year: number | "";
@@ -39,10 +41,15 @@ export interface CarFormState {
   tireInstalledAt: string;
   tireNotes: string;
   showTires: boolean;
+  trackerLogin: string;
+  trackerPassword: string;
+  trackerUrl: string;
+  trackerNotes: string;
 }
 
 export const emptyCarForm: CarFormState = {
   plate: "",
+  vin: "",
   make: "",
   model: "",
   year: "",
@@ -58,11 +65,16 @@ export const emptyCarForm: CarFormState = {
   tireInstalledAt: "",
   tireNotes: "",
   showTires: false,
+  trackerLogin: "",
+  trackerPassword: "",
+  trackerUrl: "",
+  trackerNotes: "",
 };
 
 export function carToForm(car: Car): CarFormState {
   return {
     plate: car.plate,
+    vin: car.vin ?? "",
     make: car.make ?? "",
     model: car.model ?? "",
     year: car.year ?? "",
@@ -80,6 +92,10 @@ export function carToForm(car: Car): CarFormState {
     showTires: Boolean(
       car.tireBrand || car.tireSize || car.tireSeason || car.tireInstalledAt || car.tireNotes,
     ),
+    trackerLogin: car.trackerLogin ?? "",
+    trackerPassword: car.trackerPassword ?? "",
+    trackerUrl: car.trackerUrl ?? "",
+    trackerNotes: car.trackerNotes ?? "",
   };
 }
 
@@ -198,6 +214,7 @@ export function CarFormModal(props: {
 
     const data: Record<string, unknown> = {
       plate: form.plate.trim(),
+      vin: form.vin.trim().toUpperCase() || null,
       make: form.make || null,
       model: form.model || null,
       year: form.year === "" ? null : form.year,
@@ -208,6 +225,10 @@ export function CarFormModal(props: {
       purchasePrice: form.purchasePrice === "" ? null : form.purchasePrice,
       purchaseDate: form.purchaseDate || null,
       ...tirePayload(),
+      trackerLogin: form.trackerLogin.trim() || null,
+      trackerPassword: form.trackerPassword.trim() || null,
+      trackerUrl: form.trackerUrl.trim() || null,
+      trackerNotes: form.trackerNotes.trim() || null,
     };
 
     save.mutate(
@@ -317,6 +338,13 @@ export function CarFormModal(props: {
           onChange={(v) => patchForm({ plate: v })}
         />
       </Field>
+      <Field label={t("cars.vin")}>
+        <TextInput
+          value={form.vin}
+          placeholder={ph(t, "vin")}
+          onChange={(v) => patchForm({ vin: v.toUpperCase() })}
+        />
+      </Field>
       <Field label={t("cars.brand")} invalid={fieldInvalid("make")} errorMessage={requiredMsg}>
         <TextInput
           value={form.make}
@@ -348,19 +376,19 @@ export function CarFormModal(props: {
           options={Object.values(CarStatus).map((s) => ({ value: s, label: t(`cars.${s}`) }))}
         />
       </Field>
-      <Field label={t("cars.insurance")} invalid={fieldInvalid("insuranceExpiry")} errorMessage={requiredMsg}>
+      <Field label={t("cars.insurance")}>
         <DateInput
           value={form.insuranceExpiry}
           example={ph(t, "insuranceExpiry")}
-          invalid={fieldInvalid("insuranceExpiry")}
+          clearable
           onChange={(v) => patchForm({ insuranceExpiry: v })}
         />
       </Field>
-      <Field label={t("cars.inspection")} invalid={fieldInvalid("inspectionExpiry")} errorMessage={requiredMsg}>
+      <Field label={t("cars.inspection")}>
         <DateInput
           value={form.inspectionExpiry}
           example={ph(t, "inspectionExpiry")}
-          invalid={fieldInvalid("inspectionExpiry")}
+          clearable
           onChange={(v) => patchForm({ inspectionExpiry: v })}
         />
       </Field>
@@ -371,6 +399,7 @@ export function CarFormModal(props: {
         <DateInput
           value={form.purchaseDate}
           example={ph(t, "purchaseDate")}
+          clearable
           onChange={(v) => patchForm({ purchaseDate: v })}
         />
       </Field>
@@ -439,6 +468,7 @@ export function CarFormModal(props: {
               <DateInput
                 value={form.tireInstalledAt}
                 example={ph(t, "tireInstalledAt")}
+                clearable
                 onChange={(v) => patchForm({ tireInstalledAt: v })}
               />
             </Field>
@@ -452,6 +482,37 @@ export function CarFormModal(props: {
           </>
         ) : null}
       </div>
+
+      <div className="crm-form-section-label">{t("cars.trackerTitle")}</div>
+      <Field label={t("cars.trackerLogin")}>
+        <TextInput
+          value={form.trackerLogin}
+          placeholder={ph(t, "trackerLogin")}
+          onChange={(v) => patchForm({ trackerLogin: v })}
+        />
+      </Field>
+      <Field label={t("cars.trackerPassword")}>
+        <PasswordInput
+          value={form.trackerPassword}
+          placeholder={ph(t, "trackerPassword")}
+          onChange={(v) => patchForm({ trackerPassword: v })}
+        />
+      </Field>
+      <Field label={t("cars.trackerUrl")}>
+        <TextInput
+          value={form.trackerUrl}
+          placeholder={ph(t, "trackerUrl")}
+          onChange={(v) => patchForm({ trackerUrl: v })}
+        />
+      </Field>
+      <Field label={t("cars.trackerNotes")}>
+        <TextInput
+          value={form.trackerNotes}
+          placeholder={ph(t, "trackerNotes")}
+          onChange={(v) => patchForm({ trackerNotes: v })}
+        />
+      </Field>
+
       {!isEdit ? (
         <CarPhotoPicker
           photos={pendingPhotos}
