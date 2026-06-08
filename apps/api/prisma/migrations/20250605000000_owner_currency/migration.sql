@@ -1,2 +1,2 @@
--- Add per-owner currency preference (ISO 4217 code).
-ALTER TABLE "Owner" ADD COLUMN "currency" TEXT NOT NULL DEFAULT 'UAH';
+-- AlterTable (MySQL)
+ALTER TABLE `Owner` ADD COLUMN `currency` VARCHAR(191) NOT NULL DEFAULT 'UAH';

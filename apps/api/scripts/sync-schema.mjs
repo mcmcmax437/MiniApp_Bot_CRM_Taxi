@@ -8,6 +8,42 @@ import { isMysqlAuthPluginError } from "./mysql-url.mjs";
 
 const MIGRATION_NAME = "20250603000000_init";
 
+/** All migrations in order — used to mark failed/pending steps as applied after db push. */
+const ALL_MIGRATIONS = [
+  "20250603000000_init",
+  "20250604000000_car_tracking",
+  "20250605000000_owner_currency",
+];
+
+function failedMigrationName(output) {
+  const match = output.match(/Migration name:\s*(\S+)/i);
+  return match?.[1] ?? null;
+}
+
+function reconcileAfterPush() {
+  const push = runPrisma(["db", "push", "--skip-generate"]);
+  if (push.code !== 0) {
+    if (isMysqlAuthPluginError(push.output)) failAuthPlugin();
+    return false;
+  }
+
+  const pushOut = push.output.toLowerCase();
+  if (!pushOut.includes("already in sync") && !pushOut.includes("in sync")) {
+    return false;
+  }
+
+  for (const name of ALL_MIGRATIONS) {
+    runPrisma(["migrate", "resolve", "--applied", name]);
+  }
+
+  const gen = runPrisma(["generate"]);
+  if (gen.code !== 0) {
+    fail("Prisma client generation failed.");
+  }
+  console.log("Database schema is up to date.\n");
+  process.exit(0);
+}
+
 function runPrisma(args) {
   const result = spawnSync("npx", ["prisma", ...args], {
     cwd: apiDir,
@@ -74,32 +110,36 @@ if (deployLower.includes("p1000") || deployLower.includes("authentication failed
   );
 }
 
-// Failed migration recorded (P3009) — try db push; if schema matches, mark failed migrations applied.
-if (deployLower.includes("p3009") || deployLower.includes("failed migrations")) {
-  console.log("Failed migration detected — checking whether schema already matches…");
-  const push = runPrisma(["db", "push", "--skip-generate"]);
-  if (push.code === 0) {
-    const pushOut = push.output.toLowerCase();
-    if (pushOut.includes("already in sync") || pushOut.includes("in sync")) {
-      for (const name of ["20250603000000_init", "20250604000000_car_tracking"]) {
-        runPrisma(["migrate", "resolve", "--applied", name]);
-      }
-      const redeploy = runPrisma(["migrate", "deploy"]);
-      if (redeploy.code === 0) {
-        const gen = runPrisma(["generate"]);
-        if (gen.code !== 0) fail("Prisma client generation failed.");
-        console.log("Database schema is up to date.\n");
-        process.exit(0);
-      }
+// Failed migration (P3009 / P3018) — reconcile with db push, then mark migrations applied.
+if (
+  deployLower.includes("p3009") ||
+  deployLower.includes("p3018") ||
+  deployLower.includes("failed migration")
+) {
+  const failed = failedMigrationName(deploy.output);
+  console.log(
+    failed
+      ? `Failed migration detected (${failed}) — checking whether schema already matches…`
+      : "Failed migration detected — checking whether schema already matches…",
+  );
+
+  if (failed) {
+    runPrisma(["migrate", "resolve", "--rolled-back", failed]);
+    const retry = runPrisma(["migrate", "deploy"]);
+    if (retry.code === 0) {
+      const gen = runPrisma(["generate"]);
+      if (gen.code !== 0) fail("Prisma client generation failed.");
+      console.log("Database schema is up to date.\n");
+      process.exit(0);
     }
   }
+
+  reconcileAfterPush();
 }
 
 // Fresh database: tables do not exist yet — bootstrap with db push, then record migration.
 const looksLikeFreshDb =
-  deployLower.includes("does not exist") ||
-  deployLower.includes("p3018") ||
-  deployLower.includes("no migration found");
+  deployLower.includes("does not exist") || deployLower.includes("no migration found");
 
 if (looksLikeFreshDb) {
   console.log("Fresh database detected — creating tables…");
@@ -109,9 +149,11 @@ if (looksLikeFreshDb) {
     fail("Could not create the initial database schema.");
   }
 
-  const resolve = runPrisma(["migrate", "resolve", "--applied", MIGRATION_NAME]);
-  if (resolve.code !== 0) {
-    fail("Could not register the baseline migration after schema bootstrap.");
+  for (const name of ALL_MIGRATIONS) {
+    const resolve = runPrisma(["migrate", "resolve", "--applied", name]);
+    if (resolve.code !== 0) {
+      fail(`Could not register migration ${name} after schema bootstrap.`);
+    }
   }
 
   const gen = runPrisma(["generate"]);
