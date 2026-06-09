@@ -90,18 +90,19 @@ export function CarTrackingSections(props: {
         {mileageLogs.isLoading ? (
           <p className="crm-form-hint">{t("common.loading")}</p>
         ) : mileageLogs.data && mileageLogs.data.length > 0 ? (
-          <ul className="crm-tracking-history">
+          <ul className="crm-tracking-history crm-tracking-history--mileage">
             {mileageLogs.data.slice(0, 8).map((log) => (
-              <li key={log.id} className="crm-tracking-history__item">
-                <div className="crm-tracking-history__text">
-                  <span>{formatMileage(log.odometer)}</span>
+              <li key={log.id} className="crm-tracking-history__item crm-tracking-history__item--compact">
+                <span className="crm-tracking-history__line">
+                  <strong>{formatMileage(log.odometer)}</strong>
                   <span className="crm-tracking-history__meta">
+                    {" · "}
                     {formatDate(log.recordedAt)} · {t(`tracking.source.${log.source}`)}
                   </span>
-                </div>
+                </span>
                 <button
                   type="button"
-                  className="crm-icon-btn crm-tracking-history__delete"
+                  className="crm-icon-btn crm-icon-btn--sm crm-tracking-history__delete"
                   disabled={deleteMileage.isPending && deleteMileage.variables === log.id}
                   aria-label={t("common.delete")}
                   onClick={() => {

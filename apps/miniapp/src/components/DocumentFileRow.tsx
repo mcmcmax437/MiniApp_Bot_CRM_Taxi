@@ -22,8 +22,8 @@ export function DocumentFileRow(props: {
   return (
     <SwipeToDelete
       className="crm-swipe-row--file"
-      actionWidth={64}
-      iconSize={18}
+      actionWidth={72}
+      iconSize={16}
       onPress={props.onOpen}
       onEdit={props.onEdit}
       onDelete={props.onDelete}

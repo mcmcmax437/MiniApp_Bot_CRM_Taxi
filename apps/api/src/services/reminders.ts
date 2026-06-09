@@ -73,6 +73,47 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
     }
   }
 
+  if (settings.inspectionMileageIntervalKm) {
+    const interval = settings.inspectionMileageIntervalKm;
+    const warnKm = 500;
+    const inspectionRecords = await prisma.maintenanceRecord.findMany({
+      where: { ownerId, presetKey: "presetInspectionService", mileageAt: { not: null } },
+      orderBy: { completedAt: "desc" },
+      select: { carId: true, mileageAt: true },
+    });
+    const lastInspectionMileage = new Map<string, number>();
+    for (const rec of inspectionRecords) {
+      if (!lastInspectionMileage.has(rec.carId) && rec.mileageAt != null) {
+        lastInspectionMileage.set(rec.carId, rec.mileageAt);
+      }
+    }
+    const inspectionRules = await prisma.maintenanceRule.findMany({
+      where: { ownerId, presetKey: "presetInspectionService", lastCompletedMileage: { not: null } },
+      select: { carId: true, lastCompletedMileage: true },
+    });
+    for (const rule of inspectionRules) {
+      if (rule.lastCompletedMileage != null && !lastInspectionMileage.has(rule.carId)) {
+        lastInspectionMileage.set(rule.carId, rule.lastCompletedMileage);
+      }
+    }
+    for (const c of cars) {
+      if (c.currentMileage == null) continue;
+      const baseline = lastInspectionMileage.get(c.id) ?? 0;
+      const nextDue = baseline + interval;
+      const kmLeft = nextDue - c.currentMileage;
+      if (kmLeft <= warnKm) {
+        items.push({
+          kind: "INSPECTION",
+          refId: `${c.id}-mileage`,
+          carId: c.id,
+          label: carLabel(c),
+          dueDate: null,
+          detail: kmLeft <= 0 ? "overdue" : `${kmLeft} km`,
+        });
+      }
+    }
+  }
+
   const docDays = parseDaysBeforeList(settings.documentDaysBefore);
   const docs = await prisma.carDocument.findMany({
     where: { ownerId, expiryDate: { not: null } },

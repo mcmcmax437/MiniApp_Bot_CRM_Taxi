@@ -476,6 +476,7 @@ export const reminderSettingsUpdateSchema = z.object({
   inspectionDaysBefore: z.string().trim().max(64).optional(),
   documentDaysBefore: z.string().trim().max(64).optional(),
   maintenanceDaysBefore: z.string().trim().max(64).optional(),
+  inspectionMileageIntervalKm: z.number().int().min(1000).max(500_000).optional().nullable(),
   weeklyMileageEnabled: z.boolean().optional(),
   weeklyMileageWeekday: z.number().int().min(0).max(6).optional(),
 });
@@ -555,6 +556,7 @@ export interface ReminderSettings {
   inspectionDaysBefore: string;
   documentDaysBefore: string;
   maintenanceDaysBefore: string;
+  inspectionMileageIntervalKm: number | null;
   weeklyMileageEnabled: boolean;
   weeklyMileageWeekday: number;
 }

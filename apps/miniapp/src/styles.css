@@ -1081,12 +1081,15 @@ body {
 }
 
 .crm-swipe-row--file .crm-swipe-action-btn {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .crm-swipe-row--file .crm-swipe-row__actions {
-  gap: 8px;
+  flex-direction: row;
+  gap: 6px;
+  right: 8px;
 }
 
 .crm-swipe-row__content[role="button"] {
@@ -1294,7 +1297,7 @@ body {
 
 .crm-car-detail-hero {
   position: relative;
-  margin-top: 12px;
+  margin-top: 8px;
   border-radius: 16px;
   overflow: hidden;
   aspect-ratio: 16 / 9;
@@ -1348,15 +1351,64 @@ body {
   place-items: center;
 }
 
+.crm-page--car-detail {
+  gap: 8px;
+}
+
 .crm-car-detail-edit {
   width: 100%;
-  margin-top: 16px;
+  margin-top: 8px;
   justify-content: center;
 }
 
+.crm-car-detail-head {
+  margin-top: 8px;
+}
+
+.crm-car-detail-head__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.crm-car-detail-head__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.crm-car-detail-head__driver {
+  flex-shrink: 0;
+  max-width: 42%;
+  text-align: right;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.crm-car-detail-head__driver-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 4px;
+}
+
+.crm-car-detail-head__driver-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
 .crm-car-overview {
-  margin-top: 14px;
-  padding: 14px 16px;
+  margin-top: 8px;
+  padding: 12px 14px;
 }
 
 .crm-car-overview__head {
@@ -1486,8 +1538,8 @@ body {
 }
 
 .crm-car-detail-section {
-  margin-top: 14px;
-  padding: 16px;
+  margin-top: 8px;
+  padding: 12px 14px;
 }
 
 .crm-car-detail-section__title {
@@ -2286,7 +2338,7 @@ body {
 }
 
 .crm-doc-detail-head {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .crm-doc-detail-head__badge {
@@ -3335,6 +3387,36 @@ div.crm-finance-item {
 
 .crm-tracking-history__delete {
   flex-shrink: 0;
+}
+
+.crm-tracking-history--mileage {
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.crm-tracking-history__item--compact {
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.crm-tracking-history__line {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-tracking-history__line strong {
+  font-weight: 600;
+}
+
+.crm-icon-btn--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .crm-tracking-rules__item {

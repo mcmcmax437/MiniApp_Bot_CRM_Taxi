@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
@@ -14,6 +14,7 @@ import { CarTrackingSections } from "../components/CarTrackingSections";
 import { CarTrackerSection } from "../components/CarTrackerSection";
 import { CarFormModal } from "../components/CarFormModal";
 import { CarTiresModal } from "../components/CarTiresModal";
+import { CarTrackerModal } from "../components/CarTrackerModal";
 
 const statusClass: Record<CarStatus, string> = {
   [CarStatus.AVAILABLE]: "crm-car-status--available",
@@ -30,13 +31,33 @@ export function CarDetailPage() {
   const reminders = useReminders();
   const [editOpen, setEditOpen] = useState(false);
   const [tiresOpen, setTiresOpen] = useState(false);
+  const [trackerOpen, setTrackerOpen] = useState(false);
 
   const car = carQuery.data;
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [id]);
+
+  useLayoutEffect(() => {
+    if (!carQuery.isLoading && car) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [id, carQuery.isLoading, car?.id]);
   const subtitle = car ? [car.make, car.model, car.year].filter(Boolean).join(" ") : "";
   const needsAttention = useMemo(
     () => (car ? carNeedsAttention(car.id, reminders.data) : false),
     [car, reminders.data],
   );
+  const activeDriver = useMemo(() => {
+    if (!car) return null;
+    const names = car.agreements?.map((a) => a.driver?.fullName).filter(Boolean) ?? [];
+    return names.length > 0 ? names.join(", ") : null;
+  }, [car]);
 
   function refresh() {
     void carQuery.refetch();
@@ -44,7 +65,7 @@ export function CarDetailPage() {
 
   if (carQuery.isLoading) {
     return (
-      <div className="crm-page">
+      <div className="crm-page crm-page--car-detail">
         <div className="crm-empty-box">
           <span className="crm-spinner" />
           <p>{t("common.loading")}</p>
@@ -55,7 +76,7 @@ export function CarDetailPage() {
 
   if (!car) {
     return (
-      <div className="crm-page">
+      <div className="crm-page crm-page--car-detail">
         <button type="button" className="crm-doc-back" onClick={() => navigate("/cars")}>
           <Icon name="arrow-left-01" size={20} color="currentColor" />
           {t("cars.backToList")}
@@ -68,7 +89,7 @@ export function CarDetailPage() {
   }
 
   return (
-    <div className="crm-page">
+    <div className="crm-page crm-page--car-detail">
       <div className="crm-page-header-block">
         <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
       </div>
@@ -84,18 +105,28 @@ export function CarDetailPage() {
         alt={subtitle || car.plate}
       />
 
-      <div className="crm-doc-detail-head">
-        <span className="crm-doc-detail-head__badge">{t("cars.title")}</span>
-        <h1 className="crm-doc-detail-head__title">
-          <span className="crm-doc-detail-head__title-line">
-            <span>{car.plate}</span>
-            {needsAttention ? <CarAttentionMark /> : null}
-          </span>
-        </h1>
-        {subtitle ? <p className="crm-doc-detail-head__subtitle">{subtitle}</p> : null}
-        <div className={`crm-car-status ${statusClass[car.status]}`} style={{ marginTop: 10 }}>
-          <Icon name="checkmark-circle-01" size={16} color="currentColor" />
-          <span>{t(`cars.${car.status}`)}</span>
+      <div className="crm-doc-detail-head crm-car-detail-head">
+        <div className="crm-car-detail-head__row">
+          <div className="crm-car-detail-head__main">
+            <span className="crm-doc-detail-head__badge">{t("cars.title")}</span>
+            <h1 className="crm-doc-detail-head__title">
+              <span className="crm-doc-detail-head__title-line">
+                <span>{car.plate}</span>
+                {needsAttention ? <CarAttentionMark /> : null}
+              </span>
+            </h1>
+            {subtitle ? <p className="crm-doc-detail-head__subtitle">{subtitle}</p> : null}
+            <div className={`crm-car-status ${statusClass[car.status]}`} style={{ marginTop: 8 }}>
+              <Icon name="checkmark-circle-01" size={16} color="currentColor" />
+              <span>{t(`cars.${car.status}`)}</span>
+            </div>
+          </div>
+          {activeDriver ? (
+            <div className="crm-car-detail-head__driver">
+              <span className="crm-car-detail-head__driver-label">{t("cars.currentDriver")}</span>
+              <span className="crm-car-detail-head__driver-name">{activeDriver}</span>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -107,7 +138,7 @@ export function CarDetailPage() {
 
       <CarTrackingSections car={car} onUpdated={refresh} />
 
-      <CarTrackerSection car={car} onEdit={() => setEditOpen(true)} />
+      <CarTrackerSection car={car} onEdit={() => setTrackerOpen(true)} />
 
       <CarDocumentsSection carId={car.id} />
 
@@ -128,6 +159,13 @@ export function CarDetailPage() {
         open={tiresOpen}
         car={car}
         onClose={() => setTiresOpen(false)}
+        onSaved={refresh}
+      />
+
+      <CarTrackerModal
+        open={trackerOpen}
+        car={car}
+        onClose={() => setTrackerOpen(false)}
         onSaved={refresh}
       />
     </div>

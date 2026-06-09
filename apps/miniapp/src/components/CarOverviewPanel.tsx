@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
@@ -63,11 +63,6 @@ export function CarOverviewPanel(props: {
   const rules = useMaintenanceRules(props.car.id);
   const car = props.car;
 
-  const activeDrivers = useMemo(
-    () => car.agreements?.map((a) => a.driver?.fullName).filter(Boolean) ?? [],
-    [car.agreements],
-  );
-
   const frontTire = tireSummary(car, "front", t);
   const rearTire = tireSummary(car, "rear", t);
   const hasTracker = Boolean(
@@ -97,10 +92,6 @@ export function CarOverviewPanel(props: {
         <OverviewCell label={t("cars.insurance")} value={formatDate(car.insuranceExpiry)} />
         <OverviewCell label={t("cars.inspection")} value={formatDate(car.inspectionExpiry)} />
         <OverviewCell label={t("cars.vin")} value={car.vin ?? "—"} />
-        <OverviewCell
-          label={t("cars.activeDrivers")}
-          value={activeDrivers.length > 0 ? activeDrivers.join(", ") : "—"}
-        />
         {car.purchasePrice != null ? (
           <OverviewCell label={t("cars.purchasePrice")} value={formatMoney(car.purchasePrice)} />
         ) : null}

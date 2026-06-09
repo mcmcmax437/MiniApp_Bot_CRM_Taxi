@@ -180,6 +180,7 @@ model OwnerReminderSettings {
   inspectionDaysBefore  String  @default("7,3,1")
   documentDaysBefore    String  @default("14,7,3")
   maintenanceDaysBefore String  @default("7,3,1")
+  inspectionMileageIntervalKm Int?
   weeklyMileageEnabled  Boolean @default(true)
   weeklyMileageWeekday  Int     @default(1)
   updatedAt             DateTime @updatedAt

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReminderSettings, useSaveReminderSettings } from "../hooks";
 import { SectionCard, Icon } from "./crm";
-import { Field, SelectInput, FormActions } from "./ui";
+import { Field, SelectInput, NumberInput, FormActions } from "./ui";
 import { parseReminderDays, ReminderDayChips } from "./ReminderDayChips";
 
 export function ReminderSettingsCard() {
@@ -14,6 +14,7 @@ export function ReminderSettingsCard() {
   const [inspectionDaysBefore, setInspection] = useState("7,3,1");
   const [documentDaysBefore, setDocument] = useState("14,7,3");
   const [maintenanceDaysBefore, setMaintenance] = useState("14,7,3");
+  const [inspectionMileageIntervalKm, setInspectionMileageInterval] = useState<number | "">("");
   const [weeklyMileageEnabled, setWeeklyEnabled] = useState(true);
   const [weeklyMileageWeekday, setWeekday] = useState(1);
 
@@ -24,6 +25,7 @@ export function ReminderSettingsCard() {
     setInspection(s.inspectionDaysBefore);
     setDocument(s.documentDaysBefore);
     setMaintenance(s.maintenanceDaysBefore);
+    setInspectionMileageInterval(s.inspectionMileageIntervalKm ?? "");
     setWeeklyEnabled(s.weeklyMileageEnabled);
     setWeekday(s.weeklyMileageWeekday);
   }, [settings.data]);
@@ -68,6 +70,14 @@ export function ReminderSettingsCard() {
             value={inspectionDaysBefore}
             onChange={setInspection}
           />
+          <Field label={t("tracking.inspectionMileageIntervalKm")}>
+            <NumberInput
+              value={inspectionMileageIntervalKm}
+              onChange={setInspectionMileageInterval}
+              placeholder="20000"
+            />
+          </Field>
+          <p className="crm-form-hint">{t("tracking.inspectionMileageIntervalHint")}</p>
           <ReminderDayChips
             label={t("tracking.documentReminders")}
             value={documentDaysBefore}
@@ -105,6 +115,8 @@ export function ReminderSettingsCard() {
                   inspectionDaysBefore,
                   documentDaysBefore,
                   maintenanceDaysBefore,
+                  inspectionMileageIntervalKm:
+                    inspectionMileageIntervalKm === "" ? null : inspectionMileageIntervalKm,
                   weeklyMileageEnabled,
                   weeklyMileageWeekday,
                 },
@@ -124,6 +136,14 @@ export function ReminderSettingsCard() {
             <div className="crm-car-detail-dl__row">
               <dt>{t("tracking.inspectionReminders")}</dt>
               <dd>{formatDaysSummary(settings.data?.inspectionDaysBefore ?? "")}</dd>
+            </div>
+            <div className="crm-car-detail-dl__row">
+              <dt>{t("tracking.inspectionMileageIntervalKm")}</dt>
+              <dd>
+                {settings.data?.inspectionMileageIntervalKm
+                  ? t("tracking.everyKm", { value: settings.data.inspectionMileageIntervalKm })
+                  : t("common.none")}
+              </dd>
             </div>
             <div className="crm-car-detail-dl__row">
               <dt>{t("tracking.documentReminders")}</dt>
