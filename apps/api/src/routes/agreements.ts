@@ -93,4 +93,24 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
       return agreement;
     });
   });
+
+  app.delete("/agreements/:id", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const existing = await prisma.rentalAgreement.findFirst({
+      where: { id, ownerId: ownerId(req) },
+    });
+    if (!existing) return reply.code(404).send({ error: "not_found" });
+    return prisma.$transaction(async (tx) => {
+      await tx.rentalAgreement.delete({ where: { id } });
+      if (existing.status === "ACTIVE") {
+        const otherActiveOnCar = await tx.rentalAgreement.count({
+          where: { carId: existing.carId, status: "ACTIVE" },
+        });
+        if (otherActiveOnCar === 0) {
+          await tx.car.update({ where: { id: existing.carId }, data: { status: "AVAILABLE" } });
+        }
+      }
+      return { ok: true };
+    });
+  });
 }

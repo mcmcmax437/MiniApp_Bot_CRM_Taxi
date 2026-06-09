@@ -53,10 +53,11 @@ export function CarDetailPage() {
     () => (car ? carNeedsAttention(car.id, reminders.data) : false),
     [car, reminders.data],
   );
-  const activeDriver = useMemo(() => {
+  const assignedDriver = useMemo(() => {
     if (!car) return null;
-    const names = car.agreements?.map((a) => a.driver?.fullName).filter(Boolean) ?? [];
-    return names.length > 0 ? names.join(", ") : null;
+    const agreement = car.agreements?.find((a) => a.driver?.id && a.driver?.fullName);
+    if (!agreement?.driver) return null;
+    return { id: agreement.driver.id, name: agreement.driver.fullName };
   }, [car]);
 
   function refresh() {
@@ -114,11 +115,18 @@ export function CarDetailPage() {
               {needsAttention ? <CarAttentionMark /> : null}
             </span>
           </h1>
-          {activeDriver ? (
-            <div className="crm-car-detail-head__driver-pill" title={activeDriver}>
+          {assignedDriver ? (
+            <button
+              type="button"
+              className="crm-car-detail-head__driver-pill"
+              title={assignedDriver.name}
+              aria-label={t("cars.openDriverProfile")}
+              onClick={() => navigate(`/drivers?view=${assignedDriver.id}`)}
+            >
               <Icon name="user" size={14} color="var(--taxi-accent, #ffc107)" />
-              <span className="crm-car-detail-head__driver-pill-name">{activeDriver}</span>
-            </div>
+              <span className="crm-car-detail-head__driver-pill-name">{assignedDriver.name}</span>
+              <Icon name="arrow-right-01" size={12} color="rgba(255,255,255,0.45)" />
+            </button>
           ) : null}
         </div>
         {subtitle ? <p className="crm-doc-detail-head__subtitle">{subtitle}</p> : null}

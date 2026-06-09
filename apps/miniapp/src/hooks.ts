@@ -155,6 +155,18 @@ export function useEndAgreement() {
     },
   });
 }
+export function useDeleteAgreement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/agreements/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["agreements"] });
+      void qc.invalidateQueries({ queryKey: ["drivers"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
+      void qc.invalidateQueries({ queryKey: ["balances"] });
+    },
+  });
+}
 
 // --- Payments ---------------------------------------------------------------
 export function usePayments() {

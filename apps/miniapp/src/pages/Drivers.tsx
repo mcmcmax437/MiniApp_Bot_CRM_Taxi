@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AgreementStatus,
@@ -116,6 +117,7 @@ function tripsThisMonthByDriver(shifts: { driverId: string; date: string }[] | u
 
 export function DriversPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const drivers = useDrivers();
   const cars = useCars();
   const balances = useBalances();
@@ -142,6 +144,20 @@ export function DriversPage() {
       setForm(driverToForm(detail.data));
     }
   }, [detail.data, editId]);
+
+  useEffect(() => {
+    const viewId = searchParams.get("view");
+    if (!viewId || drivers.isLoading) return;
+    const driver = drivers.data?.find((d) => d.id === viewId);
+    if (driver) {
+      setEditId(driver.id);
+      setViewOnly(true);
+      setForm(driverToForm(driver));
+      setFieldErrors(new Set());
+      setOpen(true);
+    }
+    setSearchParams({}, { replace: true });
+  }, [searchParams, drivers.data, drivers.isLoading, setSearchParams]);
 
   const balanceById = new Map((balances.data ?? []).map((b) => [b.driverId, b]));
   const tripsByDriver = useMemo(() => tripsThisMonthByDriver(shifts.data), [shifts.data]);
