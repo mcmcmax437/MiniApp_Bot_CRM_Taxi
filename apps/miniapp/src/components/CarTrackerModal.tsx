@@ -10,6 +10,7 @@ export interface TrackerFormState {
   trackerLogin: string;
   trackerPassword: string;
   trackerUrl: string;
+  trackerSimNumber: string;
   trackerNotes: string;
 }
 
@@ -18,6 +19,7 @@ export function carToTrackerForm(car: Car): TrackerFormState {
     trackerLogin: car.trackerLogin ?? "",
     trackerPassword: car.trackerPassword ?? "",
     trackerUrl: car.trackerUrl ?? "",
+    trackerSimNumber: car.trackerSimNumber ?? "",
     trackerNotes: car.trackerNotes ?? "",
   };
 }
@@ -27,6 +29,7 @@ function trackerPayload(form: TrackerFormState): Record<string, unknown> {
     trackerLogin: form.trackerLogin.trim() || null,
     trackerPassword: form.trackerPassword.trim() || null,
     trackerUrl: form.trackerUrl.trim() || null,
+    trackerSimNumber: form.trackerSimNumber.trim() || null,
     trackerNotes: form.trackerNotes.trim() || null,
   };
 }
@@ -91,6 +94,13 @@ export function CarTrackerModal(props: {
           value={form.trackerUrl}
           placeholder={ph(t, "trackerUrl")}
           onChange={(v) => patch({ trackerUrl: v })}
+        />
+      </Field>
+      <Field label={t("cars.trackerSimNumber")}>
+        <TextInput
+          value={form.trackerSimNumber}
+          placeholder={ph(t, "trackerSimNumber")}
+          onChange={(v) => patch({ trackerSimNumber: v })}
         />
       </Field>
       <Field label={t("cars.trackerNotes")}>

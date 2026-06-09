@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Car } from "../types";
 
-export function CarTrackerSection(props: { car: Car; onEdit: () => void }) {
+export function CarTrackerSection(props: {
+  car: Car;
+  onEdit: () => void;
+  onShowMap?: () => void;
+}) {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -10,7 +14,10 @@ export function CarTrackerSection(props: { car: Car; onEdit: () => void }) {
     props.car.trackerLogin ||
     props.car.trackerPassword ||
     props.car.trackerUrl ||
+    props.car.trackerSimNumber ||
     props.car.trackerNotes;
+
+  const canLocate = Boolean(props.car.trackerLogin && props.car.trackerPassword);
 
   async function copyText(text: string) {
     try {
@@ -57,6 +64,11 @@ export function CarTrackerSection(props: { car: Car; onEdit: () => void }) {
               )}
             </dd>
           </div>
+          <TrackerRow
+            label={t("cars.trackerSimNumber")}
+            value={props.car.trackerSimNumber}
+            onCopy={copyText}
+          />
           {props.car.trackerUrl ? (
             <div className="crm-car-detail-dl__row">
               <dt>{t("cars.trackerUrl")}</dt>
@@ -77,6 +89,18 @@ export function CarTrackerSection(props: { car: Car; onEdit: () => void }) {
               <dt>{t("cars.trackerNotes")}</dt>
               <dd>{props.car.trackerNotes}</dd>
             </div>
+          ) : null}
+          {canLocate && props.onShowMap ? (
+            <button
+              type="button"
+              className="crm-btn-primary crm-tracker-map-btn"
+              onClick={props.onShowMap}
+            >
+              <span className="crm-tracker-map-btn__pin" aria-hidden>
+                📍
+              </span>
+              {t("cars.showOnMap")}
+            </button>
           ) : null}
         </dl>
       ) : (

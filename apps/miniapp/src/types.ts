@@ -49,11 +49,25 @@ export interface Car {
   trackerLogin?: string | null;
   trackerPassword?: string | null;
   trackerUrl?: string | null;
+  trackerSimNumber?: string | null;
   trackerNotes?: string | null;
   agreements?: Array<{
     id?: string;
     driver?: { id: string; fullName: string; phone?: string | null };
   }>;
+}
+
+export interface TrackerLocation {
+  deviceName: string | null;
+  latitude: number;
+  longitude: number;
+  speed: number | null;
+  course: number | null;
+  fixTime: string | null;
+  status: string | null;
+  online: boolean;
+  hasFix: boolean;
+  cached: boolean;
 }
 
 export interface Driver {

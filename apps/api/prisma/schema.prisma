@@ -130,6 +130,7 @@ model Car {
   trackerLogin     String?
   trackerPassword  String?
   trackerUrl       String?
+  trackerSimNumber String?
   trackerNotes     String?    @db.VarChar(2000)
   status           CarStatus  @default(AVAILABLE)
   insuranceExpiry  DateTime?

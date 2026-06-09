@@ -50,6 +50,7 @@ export interface CarFormState {
   trackerLogin: string;
   trackerPassword: string;
   trackerUrl: string;
+  trackerSimNumber: string;
   trackerNotes: string;
 }
 
@@ -79,6 +80,7 @@ export const emptyCarForm: CarFormState = {
   trackerLogin: "",
   trackerPassword: "",
   trackerUrl: "",
+  trackerSimNumber: "",
   trackerNotes: "",
 };
 
@@ -127,6 +129,7 @@ export function carToForm(car: Car): CarFormState {
     trackerLogin: car.trackerLogin ?? "",
     trackerPassword: car.trackerPassword ?? "",
     trackerUrl: car.trackerUrl ?? "",
+    trackerSimNumber: car.trackerSimNumber ?? "",
     trackerNotes: car.trackerNotes ?? "",
   };
 }
@@ -285,6 +288,7 @@ export function CarFormModal(props: {
       trackerLogin: form.trackerLogin.trim() || null,
       trackerPassword: form.trackerPassword.trim() || null,
       trackerUrl: form.trackerUrl.trim() || null,
+      trackerSimNumber: form.trackerSimNumber.trim() || null,
       trackerNotes: form.trackerNotes.trim() || null,
     };
 
@@ -537,6 +541,13 @@ export function CarFormModal(props: {
           value={form.trackerUrl}
           placeholder={ph(t, "trackerUrl")}
           onChange={(v) => patchForm({ trackerUrl: v })}
+        />
+      </Field>
+      <Field label={t("cars.trackerSimNumber")}>
+        <TextInput
+          value={form.trackerSimNumber}
+          placeholder={ph(t, "trackerSimNumber")}
+          onChange={(v) => patchForm({ trackerSimNumber: v })}
         />
       </Field>
       <Field label={t("cars.trackerNotes")}>

@@ -15,6 +15,7 @@ import { CarTrackerSection } from "../components/CarTrackerSection";
 import { CarFormModal } from "../components/CarFormModal";
 import { CarTiresModal } from "../components/CarTiresModal";
 import { CarTrackerModal } from "../components/CarTrackerModal";
+import { CarTrackerMapModal } from "../components/CarTrackerMapModal";
 
 const statusClass: Record<CarStatus, string> = {
   [CarStatus.AVAILABLE]: "crm-car-status--available",
@@ -32,6 +33,7 @@ export function CarDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [tiresOpen, setTiresOpen] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
+  const [trackerMapOpen, setTrackerMapOpen] = useState(false);
 
   const car = carQuery.data;
 
@@ -144,7 +146,11 @@ export function CarDetailPage() {
 
       <CarTrackingSections car={car} onUpdated={refresh} />
 
-      <CarTrackerSection car={car} onEdit={() => setTrackerOpen(true)} />
+      <CarTrackerSection
+        car={car}
+        onEdit={() => setTrackerOpen(true)}
+        onShowMap={() => setTrackerMapOpen(true)}
+      />
 
       <CarDocumentsSection carId={car.id} />
 
@@ -173,6 +179,12 @@ export function CarDetailPage() {
         car={car}
         onClose={() => setTrackerOpen(false)}
         onSaved={refresh}
+      />
+
+      <CarTrackerMapModal
+        open={trackerMapOpen}
+        carId={car.id}
+        onClose={() => setTrackerMapOpen(false)}
       />
     </div>
   );

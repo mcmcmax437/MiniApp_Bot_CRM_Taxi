@@ -21,6 +21,7 @@ const ALL_MIGRATIONS = [
   "20250611000000_expense_tag_optional_driver",
   "20250612000000_tire_front_rear",
   "20250613000000_inspection_mileage_interval",
+  "20250614000000_tracker_sim_number",
 ];
 
 function failedMigrationName(output) {

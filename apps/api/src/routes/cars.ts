@@ -3,6 +3,10 @@ import { prisma } from "../prisma.js";
 import { carCreateSchema, carUpdateSchema } from "@taxi/shared";
 import { ownerId, parse, toDates } from "./helpers.js";
 import { isImageDocument } from "../services/document-image.js";
+import { fetchMkingPosition, TrackerError, type TrackerPosition } from "../services/mking-tracker.js";
+
+const TRACKER_CACHE_TTL_MS = 20_000;
+const trackerCache = new Map<string, { at: number; position: TrackerPosition }>();
 
 async function resolveCoverDocumentId(
   ownerId: string,
@@ -102,5 +106,42 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     if (!existing) return reply.code(404).send({ error: "not_found" });
     await prisma.car.delete({ where: { id } });
     return { ok: true };
+  });
+
+  // Live GPS position from the car's MKing tracker portal (no public API; we
+  // replicate the web login server-side). Cached briefly to avoid hammering MKing.
+  app.get("/cars/:id/tracker/location", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const force = (req.query as { refresh?: string } | undefined)?.refresh === "1";
+    const car = await prisma.car.findFirst({ where: { id, ownerId: ownerId(req) } });
+    if (!car) return reply.code(404).send({ error: "not_found" });
+    if (!car.trackerLogin || !car.trackerPassword) {
+      return reply.code(400).send({ error: "tracker_not_configured" });
+    }
+
+    if (!force) {
+      const cached = trackerCache.get(id);
+      if (cached && Date.now() - cached.at < TRACKER_CACHE_TTL_MS) {
+        return { ...cached.position, cached: true };
+      }
+    }
+
+    try {
+      const position = await fetchMkingPosition({
+        baseUrl: car.trackerUrl,
+        login: car.trackerLogin,
+        password: car.trackerPassword,
+        loginType: "DEVICE",
+      });
+      trackerCache.set(id, { at: Date.now(), position });
+      return { ...position, cached: false };
+    } catch (err) {
+      if (err instanceof TrackerError) {
+        const status = err.code === "tracker_unavailable" ? 502 : 400;
+        return reply.code(status).send({ error: err.code });
+      }
+      req.log.error({ err }, "tracker location failed");
+      return reply.code(502).send({ error: "tracker_unavailable" });
+    }
   });
 }

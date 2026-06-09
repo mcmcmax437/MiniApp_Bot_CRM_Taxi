@@ -66,7 +66,11 @@ export function CarOverviewPanel(props: {
   const frontTire = tireSummary(car, "front", t);
   const rearTire = tireSummary(car, "rear", t);
   const hasTracker = Boolean(
-    car.trackerLogin || car.trackerPassword || car.trackerUrl || car.trackerNotes,
+    car.trackerLogin ||
+    car.trackerPassword ||
+    car.trackerUrl ||
+    car.trackerSimNumber ||
+    car.trackerNotes,
   );
   const subtitle = [car.make, car.model, car.year].filter(Boolean).join(" ");
 

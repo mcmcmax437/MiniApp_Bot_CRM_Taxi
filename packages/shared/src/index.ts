@@ -172,6 +172,7 @@ export const carCreateSchema = z.object({
   trackerLogin: z.string().trim().max(128).optional().nullable(),
   trackerPassword: z.string().trim().max(128).optional().nullable(),
   trackerUrl: z.string().trim().max(512).optional().nullable(),
+  trackerSimNumber: z.string().trim().max(32).optional().nullable(),
   trackerNotes: z.string().trim().max(2000).optional().nullable(),
 });
 export const carUpdateSchema = carCreateSchema.partial();

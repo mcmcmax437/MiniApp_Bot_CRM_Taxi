@@ -17,6 +17,7 @@ import type {
   DocumentItem,
   OwnerRow,
   Payment,
+  TrackerLocation,
 } from "./types";
 import { isCarGalleryPhoto } from "./components/documentUtils";
 import { setAppCurrency } from "./currency";
@@ -85,6 +86,17 @@ export function useDeleteCar() {
       void qc.invalidateQueries({ queryKey: ["cars"] });
       void qc.removeQueries({ queryKey: ["cars", id] });
     },
+  });
+}
+
+export function useTrackerLocation(carId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["cars", carId, "tracker-location"],
+    queryFn: () => apiFetch<TrackerLocation>(`/cars/${carId}/tracker/location`),
+    enabled: Boolean(carId) && enabled,
+    refetchInterval: enabled ? 30_000 : false,
+    retry: false,
+    staleTime: 15_000,
   });
 }
 
