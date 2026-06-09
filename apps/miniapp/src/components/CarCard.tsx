@@ -6,6 +6,7 @@ import { formatDate } from "./ui";
 import { Icon } from "./crm";
 import { DocumentThumbnail } from "./DocumentThumbnail";
 import { CardOpenHint } from "./CardOpenHint";
+import { CarAttentionMark } from "./CarAttentionMark";
 
 const statusClass: Record<CarStatus, string> = {
   [CarStatus.AVAILABLE]: "crm-car-status--available",
@@ -14,7 +15,7 @@ const statusClass: Record<CarStatus, string> = {
   [CarStatus.INACTIVE]: "crm-car-status--inactive",
 };
 
-export function CarCard(props: { car: Car; coverDocumentId?: string }) {
+export function CarCard(props: { car: Car; coverDocumentId?: string; needsAttention?: boolean }) {
   const { t } = useTranslation();
   const { car } = props;
   const subtitle = [car.make, car.model, car.year].filter(Boolean).join(" ");
@@ -31,7 +32,12 @@ export function CarCard(props: { car: Car; coverDocumentId?: string }) {
         </div>
 
         <div className="crm-car-card__meta">
-          <div className="crm-car-card__plate">{car.plate}</div>
+          <div className="crm-car-card__plate">
+            <span className="crm-car-card__plate-line">
+              <span>{car.plate}</span>
+              {props.needsAttention ? <CarAttentionMark /> : null}
+            </span>
+          </div>
           {subtitle ? <div className="crm-car-card__model">{subtitle}</div> : null}
           <div className={`crm-car-status ${statusClass[car.status]}`}>
             <Icon name="checkmark-circle-01" size={16} color="currentColor" />

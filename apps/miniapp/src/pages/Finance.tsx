@@ -43,6 +43,12 @@ import {
   type FinanceTabId,
   type FinancePeriod,
 } from "../components/finance/FinanceUi";
+import {
+  expenseDisplaySubtitle,
+  expenseDisplayTitle,
+  paymentDisplaySubtitle,
+  paymentDisplayTitle,
+} from "../components/finance/financeLabels";
 
 export function FinancePage() {
   const { t } = useTranslation();
@@ -259,8 +265,8 @@ function PaymentsTab() {
           {filtered.map((p) => (
             <FinanceListItem
               key={p.id}
-              title={p.driver?.fullName ?? t("common.none")}
-              subtitle={`${formatDate(p.date)} • ${t(`finance.${p.type}`)} • ${t(`finance.${p.method}`)}`}
+              title={paymentDisplayTitle(p, t, t("common.none"))}
+              subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t)}
               amount={formatMoney(p.amount)}
               amountTone="income"
               onClick={() => openEdit(p)}
@@ -458,14 +464,8 @@ function ExpensesTab() {
             return (
               <FinanceListItem
                 key={e.id}
-                title={t(`finance.${e.category}`)}
-                subtitle={[
-                  formatDate(e.date),
-                  e.car?.plate ?? t("common.none"),
-                  e.tag?.trim(),
-                ]
-                  .filter(Boolean)
-                  .join(" • ")}
+                title={expenseDisplayTitle(e, t)}
+                subtitle={expenseDisplaySubtitle(e, formatDate(e.date), t, t("common.none"))}
                 partnerAlert={partnerOpen}
                 partnerAlertLabel={t("finance.partnerUnsettledTitle")}
                 amount={formatMoney(e.amount)}
@@ -569,6 +569,7 @@ function ExpensesTab() {
         <Field label={t("finance.note")}>
           <TextInput value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
         </Field>
+        <p className="crm-field-hint">{t("finance.noteHint")}</p>
         <label className="crm-checkbox-field">
           <input
             type="checkbox"

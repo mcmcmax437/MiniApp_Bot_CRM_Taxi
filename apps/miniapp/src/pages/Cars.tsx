@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useCars, useCarCoverPhotos, useDeleteCar } from "../hooks";
+import { useCars, useCarCoverPhotos, useDeleteCar, useReminders } from "../hooks";
+import { carAttentionIds } from "../components/carAttention";
 import { AppHeader, Icon } from "../components/crm";
 import { CarCard, CarsEmptyState } from "../components/CarCard";
 import { CarFormModal } from "../components/CarFormModal";
@@ -13,6 +14,8 @@ export function CarsPage() {
   const cars = useCars();
   const covers = useCarCoverPhotos();
   const del = useDeleteCar();
+  const reminders = useReminders();
+  const attentionCarIds = useMemo(() => carAttentionIds(reminders.data), [reminders.data]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editCarId, setEditCarId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -98,7 +101,11 @@ export function CarsPage() {
               onEdit={() => setEditCarId(car.id)}
               onDelete={() => del.mutate(car.id)}
             >
-              <CarCard car={car} coverDocumentId={covers.data?.get(car.id)} />
+              <CarCard
+                car={car}
+                coverDocumentId={covers.data?.get(car.id)}
+                needsAttention={attentionCarIds.has(car.id)}
+              />
             </SwipeToDelete>
           ))}
         </div>

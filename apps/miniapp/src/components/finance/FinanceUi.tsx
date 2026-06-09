@@ -249,7 +249,9 @@ export function FinanceListItem(props: {
 }) {
   const tone = props.amountTone ?? "neutral";
   const Tag = props.onClick ? "button" : "div";
-  const rootClass = ["crm-finance-item", props.className].filter(Boolean).join(" ");
+  const rootClass = ["crm-finance-item", props.onClick ? "crm-finance-item--interactive" : "", props.className]
+    .filter(Boolean)
+    .join(" ");
   return (
     <Tag type={props.onClick ? "button" : undefined} className={rootClass} onClick={props.onClick}>
       <div className="crm-finance-item__main">
@@ -261,9 +263,6 @@ export function FinanceListItem(props: {
       </div>
       {props.amount ? (
         <div className={`crm-finance-item__amount crm-finance-item__amount--${tone}`}>{props.amount}</div>
-      ) : null}
-      {props.onClick ? (
-        <Icon className="crm-finance-item__chevron" name="arrow-right-01" size={22} color="rgba(255,255,255,0.4)" />
       ) : null}
     </Tag>
   );

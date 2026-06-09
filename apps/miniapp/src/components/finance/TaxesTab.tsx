@@ -149,7 +149,9 @@ export function TaxesTab() {
             <FinanceListItem
               key={e.id}
               title={e.note?.trim() || t("finance.TAX")}
-              subtitle={`${formatDate(e.date)} • ${e.car?.plate ?? t("finance.allCars")}`}
+              subtitle={[formatDate(e.date), e.car?.plate ?? t("finance.allCars"), t("finance.TAX")]
+                .filter(Boolean)
+                .join(" • ")}
               amount={formatMoney(e.amount)}
               amountTone="expense"
               onClick={() => {

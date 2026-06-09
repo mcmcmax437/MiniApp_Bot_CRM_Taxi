@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./crm";
-import { fetchDocumentBlob } from "./documentUtils";
+import { downloadDocumentFile, fetchDocumentBlob } from "./documentUtils";
 
 export type DocumentViewerItem = {
   documentId: string;
@@ -102,11 +102,23 @@ export function DocumentImageViewer(props: {
           <Icon name="arrow-left-01" size={22} color="#fff" />
           <span>{t("common.back")}</span>
         </button>
-        {hasGallery ? (
-          <span className="crm-image-viewer__counter">
-            {galleryIndex + 1} / {galleryLength}
-          </span>
-        ) : null}
+        <div className="crm-image-viewer__toolbar-actions">
+          {hasGallery ? (
+            <span className="crm-image-viewer__counter">
+              {galleryIndex + 1} / {galleryLength}
+            </span>
+          ) : null}
+          {current ? (
+            <button
+              type="button"
+              className="crm-image-viewer__download"
+              aria-label={t("documents.download")}
+              onClick={() => void downloadDocumentFile(current.documentId, current.fileName)}
+            >
+              <Icon name="download-01" size={20} color="#fff" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="crm-image-viewer__stage">

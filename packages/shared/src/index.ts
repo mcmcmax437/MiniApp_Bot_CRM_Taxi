@@ -159,6 +159,16 @@ export const carCreateSchema = z.object({
   tireSeason: z.nativeEnum(TireSeason).optional().nullable(),
   tireInstalledAt: optionalIsoDate,
   tireNotes: z.string().trim().max(2000).optional().nullable(),
+  tireFrontBrand: z.string().trim().max(64).optional().nullable(),
+  tireFrontSize: z.string().trim().max(32).optional().nullable(),
+  tireFrontSeason: z.nativeEnum(TireSeason).optional().nullable(),
+  tireFrontInstalledAt: optionalIsoDate,
+  tireFrontNotes: z.string().trim().max(2000).optional().nullable(),
+  tireRearBrand: z.string().trim().max(64).optional().nullable(),
+  tireRearSize: z.string().trim().max(32).optional().nullable(),
+  tireRearSeason: z.nativeEnum(TireSeason).optional().nullable(),
+  tireRearInstalledAt: optionalIsoDate,
+  tireRearNotes: z.string().trim().max(2000).optional().nullable(),
   trackerLogin: z.string().trim().max(128).optional().nullable(),
   trackerPassword: z.string().trim().max(128).optional().nullable(),
   trackerUrl: z.string().trim().max(512).optional().nullable(),
@@ -532,6 +542,7 @@ export interface ReminderItem {
     | "OVERDUE_PAYMENT"
     | "MILEAGE_REPORT";
   refId: string;
+  carId?: string;
   label: string;
   dueDate: string | null;
   amount?: number;

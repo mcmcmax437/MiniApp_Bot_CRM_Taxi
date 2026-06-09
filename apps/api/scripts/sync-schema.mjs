@@ -19,6 +19,7 @@ const ALL_MIGRATIONS = [
   "20250609000000_document_meta",
   "20250610000000_payment_partner_expense",
   "20250611000000_expense_tag_optional_driver",
+  "20250612000000_tire_front_rear",
 ];
 
 function failedMigrationName(output) {

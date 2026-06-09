@@ -145,6 +145,16 @@ model Car {
   tireSeason       TireSeason?
   tireInstalledAt  DateTime?
   tireNotes        String?    @db.VarChar(2000)
+  tireFrontBrand        String?
+  tireFrontSize         String?
+  tireFrontSeason       TireSeason?
+  tireFrontInstalledAt  DateTime?
+  tireFrontNotes        String?    @db.VarChar(2000)
+  tireRearBrand         String?
+  tireRearSize          String?
+  tireRearSeason        TireSeason?
+  tireRearInstalledAt   DateTime?
+  tireRearNotes         String?    @db.VarChar(2000)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 

@@ -36,6 +36,16 @@ export interface Car {
   tireSeason?: TireSeason | null;
   tireInstalledAt?: string | null;
   tireNotes?: string | null;
+  tireFrontBrand?: string | null;
+  tireFrontSize?: string | null;
+  tireFrontSeason?: TireSeason | null;
+  tireFrontInstalledAt?: string | null;
+  tireFrontNotes?: string | null;
+  tireRearBrand?: string | null;
+  tireRearSize?: string | null;
+  tireRearSeason?: TireSeason | null;
+  tireRearInstalledAt?: string | null;
+  tireRearNotes?: string | null;
   trackerLogin?: string | null;
   trackerPassword?: string | null;
   trackerUrl?: string | null;

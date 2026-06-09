@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDocuments, useUploadDocument, useDeleteDocument } from "../hooks";
 import type { DocumentItem } from "../types";
+import { downloadDocumentFile } from "./documentUtils";
 import { DocumentFileRow } from "./DocumentFileRow";
 import { DocumentMetaModal } from "./DocumentMetaModal";
 import { useDocumentImageViewer } from "./useDocumentImageViewer";
@@ -99,6 +100,7 @@ export function CarDocumentsSection(props: { carId: string; embedded?: boolean }
               key={doc.id}
               doc={doc}
               onOpen={() => openDocument(doc)}
+              onDownload={() => void downloadDocumentFile(doc.id, doc.fileName)}
               onEdit={() => setEditDoc(doc)}
               onDelete={() => void handleDelete(doc)}
             />

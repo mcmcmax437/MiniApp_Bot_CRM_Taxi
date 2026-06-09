@@ -52,15 +52,26 @@ export async function fetchDocumentBlob(documentId: string, fileName?: string): 
   return blobForImagePreview(blob, fileName);
 }
 
+function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName.replace(/\.heic$/i, ".jpg");
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+export async function downloadDocumentFile(documentId: string, fileName: string): Promise<void> {
+  const blob = await fetchDocumentBlob(documentId, fileName);
+  downloadBlob(blob, fileName);
+}
+
 export async function openDocumentFile(documentId: string, fileName: string): Promise<void> {
   const blob = await fetchDocumentBlob(documentId, fileName);
   const url = URL.createObjectURL(blob);
   const opened = window.open(url, "_blank");
   if (!opened) {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName.replace(/\.heic$/i, ".jpg");
-    link.click();
+    downloadBlob(blob, fileName);
   }
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

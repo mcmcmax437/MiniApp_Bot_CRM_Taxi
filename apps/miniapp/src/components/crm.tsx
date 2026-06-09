@@ -19,6 +19,7 @@ export type IconName =
   | "clock-01"
   | "credit-card"
   | "delete-02"
+  | "download-01"
   | "dollar-01"
   | "edit-02"
   | "file-02"

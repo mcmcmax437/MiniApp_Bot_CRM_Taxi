@@ -36,11 +36,16 @@ export interface CarFormState {
   notes: string;
   purchasePrice: number | "";
   purchaseDate: string;
-  tireBrand: string;
-  tireSize: string;
-  tireSeason: TireSeason | "";
-  tireInstalledAt: string;
-  tireNotes: string;
+  tireFrontBrand: string;
+  tireFrontSize: string;
+  tireFrontSeason: TireSeason | "";
+  tireFrontInstalledAt: string;
+  tireFrontNotes: string;
+  tireRearBrand: string;
+  tireRearSize: string;
+  tireRearSeason: TireSeason | "";
+  tireRearInstalledAt: string;
+  tireRearNotes: string;
   showTires: boolean;
   trackerLogin: string;
   trackerPassword: string;
@@ -60,11 +65,16 @@ export const emptyCarForm: CarFormState = {
   notes: "",
   purchasePrice: "",
   purchaseDate: todayInput(),
-  tireBrand: "",
-  tireSize: "",
-  tireSeason: "",
-  tireInstalledAt: "",
-  tireNotes: "",
+  tireFrontBrand: "",
+  tireFrontSize: "",
+  tireFrontSeason: "",
+  tireFrontInstalledAt: "",
+  tireFrontNotes: "",
+  tireRearBrand: "",
+  tireRearSize: "",
+  tireRearSeason: "",
+  tireRearInstalledAt: "",
+  tireRearNotes: "",
   showTires: false,
   trackerLogin: "",
   trackerPassword: "",
@@ -85,13 +95,34 @@ export function carToForm(car: Car): CarFormState {
     notes: car.notes ?? "",
     purchasePrice: car.purchasePrice ?? "",
     purchaseDate: car.purchaseDate ? car.purchaseDate.slice(0, 10) : todayInput(),
-    tireBrand: car.tireBrand ?? "",
-    tireSize: car.tireSize ?? "",
-    tireSeason: car.tireSeason ?? "",
-    tireInstalledAt: car.tireInstalledAt ? car.tireInstalledAt.slice(0, 10) : "",
-    tireNotes: car.tireNotes ?? "",
+    tireFrontBrand: car.tireFrontBrand ?? car.tireBrand ?? "",
+    tireFrontSize: car.tireFrontSize ?? car.tireSize ?? "",
+    tireFrontSeason: car.tireFrontSeason ?? car.tireSeason ?? "",
+    tireFrontInstalledAt: (car.tireFrontInstalledAt ?? car.tireInstalledAt)
+      ? (car.tireFrontInstalledAt ?? car.tireInstalledAt)!.slice(0, 10)
+      : "",
+    tireFrontNotes: car.tireFrontNotes ?? car.tireNotes ?? "",
+    tireRearBrand: car.tireRearBrand ?? "",
+    tireRearSize: car.tireRearSize ?? "",
+    tireRearSeason: car.tireRearSeason ?? "",
+    tireRearInstalledAt: car.tireRearInstalledAt ? car.tireRearInstalledAt.slice(0, 10) : "",
+    tireRearNotes: car.tireRearNotes ?? "",
     showTires: Boolean(
-      car.tireBrand || car.tireSize || car.tireSeason || car.tireInstalledAt || car.tireNotes,
+      car.tireFrontBrand ||
+        car.tireFrontSize ||
+        car.tireFrontSeason ||
+        car.tireFrontInstalledAt ||
+        car.tireFrontNotes ||
+        car.tireRearBrand ||
+        car.tireRearSize ||
+        car.tireRearSeason ||
+        car.tireRearInstalledAt ||
+        car.tireRearNotes ||
+        car.tireBrand ||
+        car.tireSize ||
+        car.tireSeason ||
+        car.tireInstalledAt ||
+        car.tireNotes,
     ),
     trackerLogin: car.trackerLogin ?? "",
     trackerPassword: car.trackerPassword ?? "",
@@ -177,11 +208,16 @@ export function CarFormModal(props: {
 
   function tirePayload(): Record<string, unknown> {
     const hasTireInput =
-      form.tireBrand.trim() ||
-      form.tireSize.trim() ||
-      form.tireSeason ||
-      form.tireInstalledAt ||
-      form.tireNotes.trim();
+      form.tireFrontBrand.trim() ||
+      form.tireFrontSize.trim() ||
+      form.tireFrontSeason ||
+      form.tireFrontInstalledAt ||
+      form.tireFrontNotes.trim() ||
+      form.tireRearBrand.trim() ||
+      form.tireRearSize.trim() ||
+      form.tireRearSeason ||
+      form.tireRearInstalledAt ||
+      form.tireRearNotes.trim();
 
     if (!form.showTires && !hasTireInput) {
       return isEdit
@@ -191,16 +227,36 @@ export function CarFormModal(props: {
             tireSeason: null,
             tireInstalledAt: null,
             tireNotes: null,
+            tireFrontBrand: null,
+            tireFrontSize: null,
+            tireFrontSeason: null,
+            tireFrontInstalledAt: null,
+            tireFrontNotes: null,
+            tireRearBrand: null,
+            tireRearSize: null,
+            tireRearSeason: null,
+            tireRearInstalledAt: null,
+            tireRearNotes: null,
           }
         : {};
     }
 
     return {
-      tireBrand: form.tireBrand.trim() || null,
-      tireSize: form.tireSize.trim() || null,
-      tireSeason: form.tireSeason || null,
-      tireInstalledAt: form.tireInstalledAt || null,
-      tireNotes: form.tireNotes.trim() || null,
+      tireBrand: null,
+      tireSize: null,
+      tireSeason: null,
+      tireInstalledAt: null,
+      tireNotes: null,
+      tireFrontBrand: form.tireFrontBrand.trim() || null,
+      tireFrontSize: form.tireFrontSize.trim() || null,
+      tireFrontSeason: form.tireFrontSeason || null,
+      tireFrontInstalledAt: form.tireFrontInstalledAt || null,
+      tireFrontNotes: form.tireFrontNotes.trim() || null,
+      tireRearBrand: form.tireRearBrand.trim() || null,
+      tireRearSize: form.tireRearSize.trim() || null,
+      tireRearSeason: form.tireRearSeason || null,
+      tireRearInstalledAt: form.tireRearInstalledAt || null,
+      tireRearNotes: form.tireRearNotes.trim() || null,
     };
   }
 
@@ -419,68 +475,44 @@ export function CarFormModal(props: {
           type="button"
           className="crm-link-btn"
           onClick={() => {
-            setForm((prev) => {
-              if (prev.showTires) {
-                return {
-                  ...prev,
-                  showTires: false,
-                  tireBrand: "",
-                  tireSize: "",
-                  tireSeason: "",
-                  tireInstalledAt: "",
-                  tireNotes: "",
-                };
-              }
-              return { ...prev, showTires: true };
-            });
+            setForm((prev) => ({
+              ...prev,
+              showTires: !prev.showTires,
+            }));
           }}
         >
           {form.showTires ? t("cars.hideTires") : t("cars.addTires")}
         </button>
         {form.showTires ? (
           <>
-            <Field label={t("cars.tireBrand")}>
-              <TextInput
-                value={form.tireBrand}
-                placeholder={ph(t, "tireBrand")}
-                onChange={(v) => patchForm({ tireBrand: v })}
-              />
-            </Field>
-            <Field label={t("cars.tireSize")}>
-              <TextInput
-                value={form.tireSize}
-                placeholder={ph(t, "tireSize")}
-                onChange={(v) => patchForm({ tireSize: v })}
-              />
-            </Field>
-            <Field label={t("cars.tireSeasonField")}>
-              <SelectInput
-                value={form.tireSeason}
-                onChange={(v) => patchForm({ tireSeason: v })}
-                options={[
-                  { value: "", label: "—" },
-                  ...Object.values(TireSeason).map((s) => ({
-                    value: s,
-                    label: t(`cars.tireSeason.${s}`),
-                  })),
-                ]}
-              />
-            </Field>
-            <Field label={t("cars.tireInstalledAt")}>
-              <DateInput
-                value={form.tireInstalledAt}
-                example={ph(t, "tireInstalledAt")}
-                clearable
-                onChange={(v) => patchForm({ tireInstalledAt: v })}
-              />
-            </Field>
-            <Field label={t("cars.tireNotes")}>
-              <TextInput
-                value={form.tireNotes}
-                placeholder={ph(t, "tireNotes")}
-                onChange={(v) => patchForm({ tireNotes: v })}
-              />
-            </Field>
+            <div className="crm-form-section-label">{t("cars.tireFrontTitle")}</div>
+            <TireAxleFields
+              t={t}
+              brand={form.tireFrontBrand}
+              size={form.tireFrontSize}
+              season={form.tireFrontSeason}
+              installedAt={form.tireFrontInstalledAt}
+              notes={form.tireFrontNotes}
+              onBrand={(v) => patchForm({ tireFrontBrand: v })}
+              onSize={(v) => patchForm({ tireFrontSize: v })}
+              onSeason={(v) => patchForm({ tireFrontSeason: v })}
+              onInstalledAt={(v) => patchForm({ tireFrontInstalledAt: v })}
+              onNotes={(v) => patchForm({ tireFrontNotes: v })}
+            />
+            <div className="crm-form-section-label">{t("cars.tireRearTitle")}</div>
+            <TireAxleFields
+              t={t}
+              brand={form.tireRearBrand}
+              size={form.tireRearSize}
+              season={form.tireRearSeason}
+              installedAt={form.tireRearInstalledAt}
+              notes={form.tireRearNotes}
+              onBrand={(v) => patchForm({ tireRearBrand: v })}
+              onSize={(v) => patchForm({ tireRearSize: v })}
+              onSeason={(v) => patchForm({ tireRearSeason: v })}
+              onInstalledAt={(v) => patchForm({ tireRearInstalledAt: v })}
+              onNotes={(v) => patchForm({ tireRearNotes: v })}
+            />
           </>
         ) : null}
       </div>
@@ -540,5 +572,66 @@ export function CarFormModal(props: {
         />
       )}
     </Modal>
+  );
+}
+
+function TireAxleFields(props: {
+  t: (key: string) => string;
+  brand: string;
+  size: string;
+  season: TireSeason | "";
+  installedAt: string;
+  notes: string;
+  onBrand: (v: string) => void;
+  onSize: (v: string) => void;
+  onSeason: (v: TireSeason | "") => void;
+  onInstalledAt: (v: string) => void;
+  onNotes: (v: string) => void;
+}) {
+  return (
+    <>
+      <Field label={props.t("cars.tireBrand")}>
+        <TextInput
+          value={props.brand}
+          placeholder={ph(props.t, "tireBrand")}
+          onChange={props.onBrand}
+        />
+      </Field>
+      <Field label={props.t("cars.tireSize")}>
+        <TextInput
+          value={props.size}
+          placeholder={ph(props.t, "tireSize")}
+          onChange={props.onSize}
+        />
+      </Field>
+      <Field label={props.t("cars.tireSeasonField")}>
+        <SelectInput
+          value={props.season}
+          onChange={props.onSeason}
+          options={[
+            { value: "", label: "—" },
+            ...Object.values(TireSeason).map((s) => ({
+              value: s,
+              label: props.t(`cars.tireSeason.${s}`),
+            })),
+          ]}
+        />
+      </Field>
+      <Field label={props.t("cars.tireInstalledAt")}>
+        <DateInput
+          value={props.installedAt}
+          example={ph(props.t, "tireInstalledAt")}
+          clearable
+          onChange={props.onInstalledAt}
+        />
+      </Field>
+      <Field label={props.t("cars.tireNotes")}>
+        <TextInput
+          value={props.notes}
+          placeholder={ph(props.t, "tireNotes")}
+          onChange={props.onNotes}
+        />
+      </Field>
+    </>
   );
 }

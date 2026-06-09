@@ -23,6 +23,7 @@ export function CarPhotosSection(props: {
   const del = useDeleteDocument();
   const save = useSaveCar();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [setAsCoverOnUpload, setSetAsCoverOnUpload] = useState(false);
   const { openDocuments, viewer } = useDocumentImageViewer();
 
@@ -32,9 +33,24 @@ export function CarPhotosSection(props: {
     save.mutate({ id: props.carId, data: { coverDocumentId: documentId } });
   }
 
-  function onUpload(file: File) {
+  function uploadFiles(fileList: FileList | File[]) {
+    const files = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    void (async () => {
+      for (const file of files) {
+        try {
+          await onUploadAsync(file);
+        } catch {
+          /* continue */
+        }
+      }
+      if (fileRef.current) fileRef.current.value = "";
+    })();
+  }
+
+  async function onUploadAsync(file: File) {
     const asCover = setAsCoverOnUpload || !props.coverDocumentId;
-    upload.mutate(
+    return upload.mutateAsync(
       {
         relatedType: "CAR",
         relatedId: props.carId,
@@ -48,11 +64,14 @@ export function CarPhotosSection(props: {
             setCover(doc.id);
           }
         },
-        onSettled: () => {
-          if (fileRef.current) fileRef.current.value = "";
-        },
       },
     );
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files);
   }
 
   function openPhoto(index: number) {
@@ -111,25 +130,45 @@ export function CarPhotosSection(props: {
         <span>{t("cars.setAsCoverOnUpload")}</span>
       </label>
 
+      <div
+        className={`crm-dropzone${dragOver ? " crm-dropzone--active" : ""}`}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+        }}
+        onDrop={onDrop}
+        onClick={() => fileRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileRef.current?.click();
+          }
+        }}
+      >
+        <p className="crm-dropzone__title">{t("cars.dropPhotos")}</p>
+        <p className="crm-dropzone__hint">{t("cars.dropPhotosHint")}</p>
+      </div>
+
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
+        multiple
         hidden
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onUpload(file);
+          if (e.target.files) uploadFiles(e.target.files);
         }}
       />
-      <button
-        type="button"
-        className="crm-btn-outline"
-        disabled={upload.isPending}
-        onClick={() => fileRef.current?.click()}
-        style={{ marginTop: 8 }}
-      >
-        + {t("documents.upload")}
-      </button>
 
       {viewer}
     </div>

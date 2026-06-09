@@ -1,4 +1,4 @@
-import { useId, useRef, type Dispatch, type SetStateAction } from "react";
+import { useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { Field } from "./ui";
 import { useDocumentImageViewer } from "./useDocumentImageViewer";
@@ -19,6 +19,7 @@ export function CarPhotoPicker(props: {
   const { t } = useTranslation();
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
   const { openUrl, viewer } = useDocumentImageViewer();
 
   function addFiles(files: FileList | null) {
@@ -99,20 +100,47 @@ export function CarPhotoPicker(props: {
       ) : (
         <div className="crm-car-photo-picker__placeholder">{t("cars.noPhoto")}</div>
       )}
-      <div className="crm-car-photo-picker__actions">
-        <label htmlFor={inputId} className="crm-btn-outline crm-car-photo-picker__add-label">
-          + {t("cars.addPhotos")}
-        </label>
-        <input
-          id={inputId}
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/*"
-          multiple
-          className="crm-file-input-hidden"
-          onChange={(e) => addFiles(e.target.files)}
-        />
+      <div
+        className={`crm-dropzone${dragOver ? " crm-dropzone--active" : ""}`}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          addFiles(e.dataTransfer.files);
+        }}
+        onClick={() => fileRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileRef.current?.click();
+          }
+        }}
+      >
+        <p className="crm-dropzone__title">{t("cars.dropPhotos")}</p>
+        <p className="crm-dropzone__hint">{t("cars.dropPhotosHint")}</p>
       </div>
+      <input
+        id={inputId}
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/*"
+        multiple
+        className="crm-file-input-hidden"
+        onChange={(e) => addFiles(e.target.files)}
+      />
       {viewer}
     </>
   );

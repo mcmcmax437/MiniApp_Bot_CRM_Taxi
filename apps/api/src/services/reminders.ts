@@ -23,12 +23,14 @@ function pushDateReminders(
   label: string,
   dueDate: Date,
   daysBeforeList: number[],
+  carId?: string,
 ): void {
   const left = daysUntil(dueDate);
   if (left < 0) {
     items.push({
       kind,
       refId,
+      carId,
       label,
       dueDate: dueDate.toISOString(),
       daysUntil: left,
@@ -41,6 +43,7 @@ function pushDateReminders(
       items.push({
         kind,
         refId,
+        carId,
         label,
         dueDate: dueDate.toISOString(),
         daysUntil: left,
@@ -63,10 +66,10 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
 
   for (const c of cars) {
     if (c.insuranceExpiry) {
-      pushDateReminders(items, "INSURANCE", c.id, carLabel(c), c.insuranceExpiry, insuranceDays);
+      pushDateReminders(items, "INSURANCE", c.id, carLabel(c), c.insuranceExpiry, insuranceDays, c.id);
     }
     if (c.inspectionExpiry) {
-      pushDateReminders(items, "INSPECTION", c.id, carLabel(c), c.inspectionExpiry, inspectionDays);
+      pushDateReminders(items, "INSPECTION", c.id, carLabel(c), c.inspectionExpiry, inspectionDays, c.id);
     }
   }
 
@@ -78,7 +81,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
   for (const doc of docs) {
     if (!doc.expiryDate) continue;
     const label = `${doc.title} — ${carLabel(doc.car)}`;
-    pushDateReminders(items, "DOCUMENT", doc.id, label, doc.expiryDate, docDays);
+    pushDateReminders(items, "DOCUMENT", doc.id, label, doc.expiryDate, docDays, doc.carId);
   }
 
   const maintDays = parseDaysBeforeList(settings.maintenanceDaysBefore);
@@ -92,6 +95,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
       items.push({
         kind: "MAINTENANCE",
         refId: rule.id,
+        carId: rule.carId,
         label,
         dueDate: rule.nextDueDate?.toISOString() ?? null,
         detail: "due",
@@ -99,7 +103,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
       continue;
     }
     if (rule.nextDueDate) {
-      pushDateReminders(items, "MAINTENANCE", rule.id, label, rule.nextDueDate, maintDays);
+      pushDateReminders(items, "MAINTENANCE", rule.id, label, rule.nextDueDate, maintDays, rule.carId);
     }
     if (rule.nextDueMileage != null && rule.car.currentMileage != null) {
       const kmLeft = rule.nextDueMileage - rule.car.currentMileage;
@@ -107,6 +111,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
         items.push({
           kind: "MAINTENANCE",
           refId: rule.id,
+          carId: rule.carId,
           label,
           dueDate: null,
           detail: `${kmLeft} km`,
@@ -118,6 +123,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
         items.push({
           kind: "MAINTENANCE",
           refId: rule.id,
+          carId: rule.carId,
           label,
           dueDate: null,
           detail: `${rule.nextDueMileage} km`,
@@ -136,6 +142,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
         items.push({
           kind: "MILEAGE_REPORT",
           refId: c.id,
+          carId: c.id,
           label: carLabel(c),
           dueDate: null,
           detail: "weekly",

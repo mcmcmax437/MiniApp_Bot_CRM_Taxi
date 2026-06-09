@@ -4,6 +4,12 @@ import { PaymentType } from "@taxi/shared";
 import { useExpenses, usePayments } from "../hooks";
 import type { Expense, Payment } from "../types";
 import { PartnerAlertMark } from "./finance/FinanceUi";
+import {
+  expenseDisplaySubtitle,
+  expenseDisplayTitle,
+  paymentDisplaySubtitle,
+  paymentDisplayTitle,
+} from "./finance/financeLabels";
 import { Icon, SectionCard } from "./crm";
 import { formatDate, formatMoney } from "./ui";
 
@@ -41,29 +47,22 @@ export function RecentActivitySection() {
 
     for (const p of payments.data ?? []) {
       const outflow = paymentIsOutflow(p.type);
-      const parts = [
-        formatDate(p.date),
-        p.driver?.fullName,
-        p.car?.plate,
-        p.note,
-      ].filter(Boolean);
       rows.push({
         id: `payment-${p.id}`,
         kind: outflow ? "expense" : "income",
-        title: `${t(`finance.${p.type}`)}${p.driver?.fullName ? ` · ${p.driver.fullName}` : ""}`,
-        subtitle: parts.join(" · "),
+        title: paymentDisplayTitle(p, t, t("common.none")),
+        subtitle: paymentDisplaySubtitle(p, formatDate(p.date), t),
         amount: p.amount,
         sortAt: paymentSortTime(p),
       });
     }
 
     for (const e of expenses.data ?? []) {
-      const parts = [formatDate(e.date), e.car?.plate, e.tag, e.note].filter(Boolean);
       rows.push({
         id: `expense-${e.id}`,
         kind: "expense",
-        title: t(`finance.${e.category}`),
-        subtitle: parts.join(" · "),
+        title: expenseDisplayTitle(e, t),
+        subtitle: expenseDisplaySubtitle(e, formatDate(e.date), t, t("common.none")),
         amount: e.amount,
         sortAt: expenseSortTime(e),
         partnerUnsettled: e.paidByPartner && !e.partnerSettled,

@@ -8,13 +8,20 @@ import {
   useDeleteDocument,
   useDrivers,
   useUploadDocument,
+  useReminders,
 } from "../hooks";
 import type { DocumentItem } from "../types";
 import { AppHeader, Icon } from "../components/crm";
 import { DocumentThumbnail } from "../components/DocumentThumbnail";
 import { DocumentFileRow } from "../components/DocumentFileRow";
 import { DocumentMetaModal } from "../components/DocumentMetaModal";
-import { isCarGalleryPhoto, isImageDocument } from "../components/documentUtils";
+import { carAttentionIds } from "../components/carAttention";
+import { CarAttentionMark } from "../components/CarAttentionMark";
+import {
+  downloadDocumentFile,
+  isCarGalleryPhoto,
+  isImageDocument,
+} from "../components/documentUtils";
 import { useDocumentImageViewer } from "../components/useDocumentImageViewer";
 import { confirmAction } from "../telegram";
 
@@ -44,6 +51,11 @@ export function DocumentsPage() {
   const [selected, setSelected] = useState<{ type: DocumentRelatedType; id: string } | null>(null);
   const [editDoc, setEditDoc] = useState<DocumentItem | null>(null);
   const { openDocument, openDocuments, viewer } = useDocumentImageViewer();
+  const reminders = useReminders();
+  const attentionCarIds = useMemo(
+    () => carAttentionIds(reminders.data),
+    [reminders.data],
+  );
 
   const docsByEntity = useMemo(() => {
     const map = new Map<string, DocumentItem[]>();
@@ -68,7 +80,10 @@ export function DocumentsPage() {
 
     function previewId(type: DocumentRelatedType, list: DocumentItem[]): string | undefined {
       if (type === DocumentRelatedType.CAR) {
-        return list.find(isCarGalleryPhoto)?.id;
+        return (
+          list.find(isCarGalleryPhoto)?.id ??
+          list.find((d) => !d.isCarPhoto && isImageDocument(d))?.id
+        );
       }
       return list.find(isImageDocument)?.id;
     }
@@ -153,16 +168,24 @@ export function DocumentsPage() {
     return docsByEntity.get(`${selected.type}:${selected.id}`) ?? [];
   }, [docsByEntity, selected]);
 
-  const { imageDocs, fileDocs } = useMemo(() => {
-    if (!selected) return { imageDocs: [] as DocumentItem[], fileDocs: [] as DocumentItem[] };
+  const { imageDocs, documentImageDocs, fileDocs } = useMemo(() => {
+    if (!selected) {
+      return {
+        imageDocs: [] as DocumentItem[],
+        documentImageDocs: [] as DocumentItem[],
+        fileDocs: [] as DocumentItem[],
+      };
+    }
     if (selected.type === DocumentRelatedType.CAR) {
       return {
         imageDocs: selectedDocs.filter(isCarGalleryPhoto),
-        fileDocs: selectedDocs.filter((d) => !d.isCarPhoto),
+        documentImageDocs: selectedDocs.filter((d) => !d.isCarPhoto && isImageDocument(d)),
+        fileDocs: selectedDocs.filter((d) => !isImageDocument(d)),
       };
     }
     return {
       imageDocs: selectedDocs.filter(isImageDocument),
+      documentImageDocs: [] as DocumentItem[],
       fileDocs: selectedDocs.filter((d) => !isImageDocument(d)),
     };
   }, [selected, selectedDocs]);
@@ -199,7 +222,14 @@ export function DocumentsPage() {
 
         <div className="crm-doc-detail-head">
           <div className="crm-doc-detail-head__badge">{t(`documents.${selected.type}`)}</div>
-          <h2 className="crm-doc-detail-head__title">{selectedEntity.label}</h2>
+          <h2 className="crm-doc-detail-head__title">
+            <span className="crm-doc-detail-head__title-line">
+              <span>{selectedEntity.label}</span>
+              {selected.type === DocumentRelatedType.CAR && attentionCarIds.has(selected.id) ? (
+                <CarAttentionMark />
+              ) : null}
+            </span>
+          </h2>
           {selectedEntity.subtitle ? (
             <p className="crm-doc-detail-head__subtitle">{selectedEntity.subtitle}</p>
           ) : null}
@@ -221,52 +251,43 @@ export function DocumentsPage() {
         ) : (
           <>
             {imageDocs.length > 0 ? (
-              <section className="crm-doc-section">
-                <h3 className="crm-doc-section__title">{t("documents.photos")}</h3>
-                <div className="crm-doc-grid">
-                  {imageDocs.map((doc, index) => (
-                    <div key={doc.id} className="crm-car-photo-tile">
-                      <button
-                        type="button"
-                        className="crm-car-photo-tile__select"
-                        onClick={() =>
-                          openDocuments(
-                            imageDocs.map((d) => ({
-                              documentId: d.id,
-                              fileName: d.fileName,
-                              alt: d.fileName,
-                            })),
-                            index,
-                          )
-                        }
-                      >
-                        <DocumentThumbnail
-                          documentId={doc.id}
-                          fileName={doc.fileName}
-                          alt={doc.fileName}
-                          className="crm-car-photo-tile__img"
-                        />
-                      </button>
-                      <button
-                        type="button"
-                        className="crm-car-photo-tile__remove"
-                        disabled={del.isPending && del.variables === doc.id}
-                        onClick={async () => {
-                          const ok = await confirmAction(
-                            t("common.confirmDelete"),
-                            t("common.delete"),
-                            t("common.cancel"),
-                          );
-                          if (ok) del.mutate(doc.id);
-                        }}
-                        aria-label={t("common.delete")}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <DocImageGridSection
+                title={t("documents.photos")}
+                docs={imageDocs}
+                del={del}
+                onPreview={(docs, index) =>
+                  openDocuments(
+                    docs.map((d) => ({
+                      documentId: d.id,
+                      fileName: d.fileName,
+                      alt: d.fileName,
+                    })),
+                    index,
+                  )
+                }
+                onDelete={handleDelete}
+                t={t}
+              />
+            ) : null}
+
+            {documentImageDocs.length > 0 ? (
+              <DocImageGridSection
+                title={t("documents.documentImages")}
+                docs={documentImageDocs}
+                del={del}
+                onPreview={(docs, index) =>
+                  openDocuments(
+                    docs.map((d) => ({
+                      documentId: d.id,
+                      fileName: d.fileName,
+                      alt: d.fileName,
+                    })),
+                    index,
+                  )
+                }
+                onDelete={handleDelete}
+                t={t}
+              />
             ) : null}
 
             {fileDocs.length > 0 ? (
@@ -278,6 +299,7 @@ export function DocumentsPage() {
                       key={doc.id}
                       doc={doc}
                       onOpen={() => openDocument(doc)}
+                      onDownload={() => void downloadDocumentFile(doc.id, doc.fileName)}
                       onEdit={() => setEditDoc(doc)}
                       onDelete={() => void handleDelete(doc)}
                     />
@@ -384,7 +406,14 @@ export function DocumentsPage() {
 
               <div className="crm-doc-entity__meta">
                 <div className="crm-doc-entity__type">{t(`documents.${entity.type}`)}</div>
-                <div className="crm-doc-entity__label">{entity.label}</div>
+                <div className="crm-doc-entity__label">
+                  <span className="crm-doc-entity__label-line">
+                    <span>{entity.label}</span>
+                    {entity.type === DocumentRelatedType.CAR && attentionCarIds.has(entity.id) ? (
+                      <CarAttentionMark />
+                    ) : null}
+                  </span>
+                </div>
                 {entity.subtitle ? <div className="crm-doc-entity__subtitle">{entity.subtitle}</div> : null}
               </div>
 
@@ -401,3 +430,63 @@ export function DocumentsPage() {
   );
 }
 
+function DocImageGridSection(props: {
+  title: string;
+  docs: DocumentItem[];
+  del: { isPending: boolean; variables?: string };
+  onPreview: (docs: DocumentItem[], index: number) => void;
+  onDelete: (doc: DocumentItem) => Promise<void>;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  return (
+    <section className="crm-doc-section">
+      <h3 className="crm-doc-section__title">{props.title}</h3>
+      <div className="crm-doc-grid">
+        {props.docs.map((doc, index) => (
+          <div key={doc.id} className="crm-car-photo-tile">
+            <button
+              type="button"
+              className="crm-car-photo-tile__select"
+              onClick={() => props.onPreview(props.docs, index)}
+            >
+              <DocumentThumbnail
+                documentId={doc.id}
+                fileName={doc.fileName}
+                alt={doc.fileName}
+                className="crm-car-photo-tile__img"
+              />
+            </button>
+            <button
+              type="button"
+              className="crm-car-photo-tile__download"
+              aria-label={props.t("documents.download")}
+              onClick={(e) => {
+                e.stopPropagation();
+                void downloadDocumentFile(doc.id, doc.fileName);
+              }}
+            >
+              <Icon name="download-01" size={16} color="#fff" />
+            </button>
+            <button
+              type="button"
+              className="crm-car-photo-tile__remove"
+              disabled={props.del.isPending && props.del.variables === doc.id}
+              onClick={async (e) => {
+                e.stopPropagation();
+                const ok = await confirmAction(
+                  props.t("common.confirmDelete"),
+                  props.t("common.delete"),
+                  props.t("common.cancel"),
+                );
+                if (ok) await props.onDelete(doc);
+              }}
+              aria-label={props.t("common.delete")}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
