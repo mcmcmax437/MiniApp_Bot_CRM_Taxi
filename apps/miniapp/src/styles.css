@@ -2306,6 +2306,12 @@ body {
   color: rgba(255, 255, 255, 0.78);
 }
 
+.crm-fleet-history-add {
+  width: 100%;
+  margin-top: 14px;
+  justify-content: center;
+}
+
 .crm-agreement-section {
   margin-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);

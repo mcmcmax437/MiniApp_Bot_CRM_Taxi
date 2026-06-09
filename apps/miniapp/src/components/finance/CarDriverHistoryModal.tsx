@@ -12,6 +12,7 @@ export function CarDriverHistoryModal(props: {
   carSubtitle?: string;
   history: Agreement[];
   onClose: () => void;
+  onAddPast?: () => void;
 }) {
   const { t } = useTranslation();
   const del = useDeleteAgreement();
@@ -88,6 +89,11 @@ export function CarDriverHistoryModal(props: {
           })}
         </ul>
       )}
+      {props.onAddPast ? (
+        <button type="button" className="crm-btn-outline crm-fleet-history-add" onClick={props.onAddPast}>
+          + {t("fleet.addPastRental")}
+        </button>
+      ) : null}
     </Modal>
   );
 }

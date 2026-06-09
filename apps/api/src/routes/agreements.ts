@@ -35,24 +35,35 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     ]);
     if (!car || !driver) return reply.code(400).send({ error: "invalid_car_or_driver" });
 
-    const duplicate = await prisma.rentalAgreement.findFirst({
-      where: {
-        ownerId: oid,
-        driverId: body.driverId,
-        carId: body.carId,
-        status: "ACTIVE",
-      },
-    });
-    if (duplicate) return reply.code(400).send({ error: "agreement_exists" });
-
-    const carBusy = await prisma.rentalAgreement.findFirst({
-      where: { ownerId: oid, carId: body.carId, status: "ACTIVE" },
-    });
-    if (carBusy) return reply.code(400).send({ error: "car_already_rented" });
-
     const data = toDates(body, ["startDate", "endDate"]);
+    const isHistorical = Boolean(data.endDate);
+    const status = isHistorical ? "ENDED" : (body.status ?? "ACTIVE");
+
+    if (isHistorical && data.endDate && data.startDate && data.endDate < data.startDate) {
+      return reply.code(400).send({ error: "end_before_start" });
+    }
+
+    if (status === "ACTIVE") {
+      const duplicate = await prisma.rentalAgreement.findFirst({
+        where: {
+          ownerId: oid,
+          driverId: body.driverId,
+          carId: body.carId,
+          status: "ACTIVE",
+        },
+      });
+      if (duplicate) return reply.code(400).send({ error: "agreement_exists" });
+
+      const carBusy = await prisma.rentalAgreement.findFirst({
+        where: { ownerId: oid, carId: body.carId, status: "ACTIVE" },
+      });
+      if (carBusy) return reply.code(400).send({ error: "car_already_rented" });
+    }
+
     const created = await prisma.$transaction(async (tx) => {
-      const agreement = await tx.rentalAgreement.create({ data: { ...data, ownerId: oid } });
+      const agreement = await tx.rentalAgreement.create({
+        data: { ...data, ownerId: oid, status },
+      });
       if (agreement.status === "ACTIVE") {
         await tx.car.update({ where: { id: body.carId }, data: { status: "RENTED" } });
       }

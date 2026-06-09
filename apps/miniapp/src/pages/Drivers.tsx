@@ -38,7 +38,7 @@ import { Documents } from "../components/Documents";
 import { AppHeader, Icon } from "../components/crm";
 import { DriverCard, DriversEmptyState } from "../components/DriverCard";
 import { SwipeToDelete } from "../components/SwipeToDelete";
-import { confirmAction } from "../telegram";
+import { confirmAction, showAlert } from "../telegram";
 
 const ph = (t: (k: string) => string, key: string) => t(`drivers.placeholder.${key}`);
 
@@ -698,6 +698,7 @@ function AgreementSection(props: {
   const [depositAmount, setDepositAmount] = useState<number | "">("");
   const [period, setPeriod] = useState<RentPeriod>(RentPeriod.DAILY);
   const [startDate, setStartDate] = useState(todayInput());
+  const [endDate, setEndDate] = useState("");
 
   const active = props.agreements.filter((a) => a.status === AgreementStatus.ACTIVE);
 
@@ -764,11 +765,20 @@ function AgreementSection(props: {
       <Field label={t("drivers.startDate")}>
         <DateInput value={startDate} example={ph(t, "startDate")} onChange={setStartDate} />
       </Field>
+      <Field label={t("drivers.endDate")}>
+        <DateInput value={endDate} clearable onChange={setEndDate} />
+      </Field>
+      <p className="crm-form-hint">{t("fleet.endDateHint")}</p>
       <button
         type="button"
         className="crm-btn-primary"
         disabled={!carId || rentAmount === "" || create.isPending}
-        onClick={() =>
+        onClick={() => {
+          const end = endDate.trim();
+          if (end && startDate && end < startDate) {
+            showAlert(t("fleet.endBeforeStart"));
+            return;
+          }
           create.mutate(
             {
               driverId: props.driverId,
@@ -777,6 +787,7 @@ function AgreementSection(props: {
               depositAmount: depositAmount === "" ? 0 : depositAmount,
               period,
               startDate,
+              ...(end ? { endDate: end, status: AgreementStatus.ENDED } : {}),
             },
             {
               onSuccess: () => {
@@ -784,10 +795,11 @@ function AgreementSection(props: {
                 setRentAmount("");
                 setDepositAmount("");
                 setStartDate(todayInput());
+                setEndDate("");
               },
             },
-          )
-        }
+          );
+        }}
       >
         + {t("drivers.rentAgreement")}
       </button>
