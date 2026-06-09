@@ -16,7 +16,13 @@
  */
 
 const DEFAULT_BASE_URL = "http://mking.aika168.com";
-const DEFAULT_TIMEZONE = "0:00";
+/**
+ * The GetDevicesByUserID endpoint formats timestamps with a server-side
+ * TimeZoneInfo lookup, and different MKing skins expect different formats:
+ * aika168 wants a Windows time-zone id, gps.mking.pl wants a GMT offset.
+ * An unexpected value makes the .NET server throw, so we try these in order.
+ */
+const TIMEZONE_CANDIDATES = ["Central European Standard Time", "0:00", "2:00"];
 const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_REDIRECTS = 8;
 
@@ -265,6 +271,81 @@ function pickDevice(devices: DeviceRecord[], login: string): DeviceRecord | null
   return devices.find(hasFix) ?? devices[0];
 }
 
+interface MonitorContext {
+  userId: string;
+  deviceId: string;
+}
+
+/** Returns all hidden <input> name/value pairs from an ASP.NET form. */
+function parseHidden(html: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const re = /<input[^>]*type="hidden"[^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    const tag = m[0];
+    const name = (tag.match(/name="([^"]*)"/) || [])[1];
+    const value = (tag.match(/value="([^"]*)"/) || [])[1] ?? "";
+    if (name) out[name] = value;
+  }
+  return out;
+}
+
+/** Candidate login-page URLs, preferring the one saved on the car. */
+function loginPageCandidates(base: string, trackerUrl: string | null | undefined): string[] {
+  const candidates: string[] = [];
+  if (trackerUrl) {
+    try {
+      const u = new URL(trackerUrl);
+      if (/\/LoginPage\/.*\.aspx$/i.test(u.pathname)) candidates.push(u.href);
+    } catch {
+      /* ignore malformed URL */
+    }
+  }
+  candidates.push(`${base}/LoginPage/mking/login.aspx`);
+  candidates.push(`${base}/LoginPage/mking/index.aspx`);
+  return [...new Set(candidates)];
+}
+
+/**
+ * Authenticates via the ASP.NET form postback (works for device login on every
+ * MKing skin, unlike UrlLoginGet). Echoes back all hidden fields, then overrides
+ * the credentials for the chosen login type.
+ */
+async function loginPostback(
+  base: string,
+  trackerUrl: string | null | undefined,
+  creds: MkingCredentials,
+  loginType: TrackerLoginType,
+  jar: CookieJar,
+): Promise<boolean> {
+  const isDevice = loginType === "DEVICE";
+  for (const loginUrl of loginPageCandidates(base, trackerUrl)) {
+    const pageRes = await rawFetch(loginUrl, jar, { method: "GET" });
+    const html = await pageRes.text().catch(() => "");
+    if (!/txtImeiNo|txtUserName/i.test(html)) continue;
+
+    const body = new URLSearchParams(parseHidden(html));
+    body.set("LType", isDevice ? "1" : "0");
+    body.set("txtUserName", isDevice ? "" : creds.login);
+    body.set("txtAccountPassword", isDevice ? "" : creds.password);
+    body.set("txtImeiNo", isDevice ? creds.login : "");
+    body.set("txtImeiPassword", isDevice ? creds.password : "");
+    body.set("btnLogin", "Login");
+
+    // The postback sets the session cookie on success. The returned HTML always
+    // contains the loginFaild() definition, so success can't be read from the
+    // body; resolveContext() is the authority on whether the session is authed.
+    await follow(loginUrl, jar, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Referer: loginUrl },
+      body: body.toString(),
+    });
+    return true;
+  }
+  return false;
+}
+
+/** Fallback GET login (works for account login / micodus skin). */
 async function loginViaUrl(
   base: string,
   creds: MkingCredentials,
@@ -278,43 +359,51 @@ async function loginViaUrl(
   });
   const { body } = await follow(`${base}/UrlLoginGet.aspx?${q.toString()}`, jar);
   if (/check your account|check the IMEI|loginFaild/i.test(body)) return false;
-  // We are authenticated as long as we are not staring at the login form again.
   return !isLoginPage(body) || /hidUserID/i.test(body);
 }
 
-async function resolveUserId(base: string, jar: CookieJar): Promise<string | null> {
+async function resolveContext(base: string, jar: CookieJar): Promise<MonitorContext | null> {
   for (const path of ["/Index.aspx", "/Monitor.aspx", "/Distributor.aspx"]) {
     const { body } = await follow(`${base}${path}`, jar);
     const userId = extractInput(body, "hidUserID");
-    if (userId) return userId;
+    if (userId) return { userId, deviceId: extractInput(body, "hidDeviceID") };
   }
   return null;
 }
 
 async function fetchDevicePayload(
   base: string,
-  userId: string,
+  ctx: MonitorContext,
   jar: CookieJar,
 ): Promise<string | null> {
-  const res = await rawFetch(`${base}/Ajax/DevicesAjax.asmx/GetDevicesByUserID`, jar, {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=UTF-8" },
-    body: JSON.stringify({
-      UserID: Number(userId),
-      isFirst: true,
-      TimeZones: DEFAULT_TIMEZONE,
-      DeviceID: 0,
-    }),
-  });
-  if (!res.ok) return null;
-  const envelope = (await res.json().catch(() => null)) as { d?: string } | null;
-  if (!envelope || typeof envelope.d !== "string") return null;
-  return envelope.d;
+  // Prefer the account's currently-selected device to avoid pulling a huge
+  // device tree on reseller accounts; fall back to all devices (DeviceID 0).
+  const deviceIds = ctx.deviceId ? [Number(ctx.deviceId), 0] : [0];
+  for (const deviceId of deviceIds) {
+    for (const tz of TIMEZONE_CANDIDATES) {
+      const res = await rawFetch(`${base}/Ajax/DevicesAjax.asmx/GetDevicesByUserID`, jar, {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
+        body: JSON.stringify({
+          UserID: Number(ctx.userId),
+          isFirst: true,
+          TimeZones: tz,
+          DeviceID: deviceId,
+        }),
+      });
+      if (!res.ok) continue;
+      const envelope = (await res.json().catch(() => null)) as { d?: string } | null;
+      if (envelope && typeof envelope.d === "string" && /\{id:\d+/.test(envelope.d)) {
+        return envelope.d;
+      }
+    }
+  }
+  return null;
 }
 
 /**
  * Logs into MKing and returns the live position for the configured device.
- * Tries the configured login type first, then falls back to the other type.
+ * Tries postback then GET login, for the configured login type then the other.
  */
 export async function fetchMkingPosition(creds: MkingCredentials): Promise<TrackerPosition> {
   if (!creds.login?.trim() || !creds.password?.trim()) {
@@ -327,21 +416,27 @@ export async function fetchMkingPosition(creds: MkingCredentials): Promise<Track
   let authenticated = false;
   let sawNoFix = false;
   for (const loginType of order) {
-    const jar = new CookieJar();
-    if (!(await loginViaUrl(base, creds, loginType, jar))) continue;
-    const userId = await resolveUserId(base, jar);
-    if (!userId) continue;
-    authenticated = true;
-    const payload = await fetchDevicePayload(base, userId, jar);
-    if (payload == null) continue;
-    const device = pickDevice(parseDevices(payload), creds.login);
-    if (!device) continue;
-    const position = toPosition(device);
-    if (!position.hasFix) {
-      sawNoFix = true;
-      continue;
+    for (const attempt of ["postback", "urlget"] as const) {
+      const jar = new CookieJar();
+      const ok =
+        attempt === "postback"
+          ? await loginPostback(base, creds.baseUrl, creds, loginType, jar)
+          : await loginViaUrl(base, creds, loginType, jar);
+      if (!ok) continue;
+      const ctx = await resolveContext(base, jar);
+      if (!ctx) continue;
+      authenticated = true;
+      const payload = await fetchDevicePayload(base, ctx, jar);
+      if (payload == null) continue;
+      const device = pickDevice(parseDevices(payload), creds.login);
+      if (!device) continue;
+      const position = toPosition(device);
+      if (!position.hasFix) {
+        sawNoFix = true;
+        continue;
+      }
+      return position;
     }
-    return position;
   }
 
   if (sawNoFix) throw new TrackerError("tracker_no_fix");
