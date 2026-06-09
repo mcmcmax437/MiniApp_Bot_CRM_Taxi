@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
 import { useMaintenanceRules } from "../hooks";
 import type { Car } from "../types";
-import { formatDate } from "./ui";
+import { IconActionButton } from "./crm";
+import { CopyOnDoubleTap, formatDate } from "./ui";
 import { formatMoney } from "../currency";
 import { maintenanceRuleLabel } from "./trackingLabels";
 import type { MaintenanceRule } from "../types";
@@ -82,7 +83,7 @@ export function CarOverviewPanel(props: {
       </div>
 
       <div className="crm-car-overview__grid">
-        <OverviewCell label={t("cars.plate")} value={car.plate} />
+        <OverviewCell label={t("cars.plate")} copyValue={car.plate} value={car.plate} />
         <OverviewCell label={t("cars.status")}>
           <span className={`crm-car-status crm-car-status--compact ${statusClass[car.status]}`}>
             {t(`cars.${car.status}`)}
@@ -95,7 +96,7 @@ export function CarOverviewPanel(props: {
         />
         <OverviewCell label={t("cars.insurance")} value={formatDate(car.insuranceExpiry)} />
         <OverviewCell label={t("cars.inspection")} value={formatDate(car.inspectionExpiry)} />
-        <OverviewCell label={t("cars.vin")} value={car.vin ?? "—"} />
+        <OverviewCell label={t("cars.vin")} copyValue={car.vin ?? undefined} value={car.vin ?? "—"} />
         {car.purchasePrice != null ? (
           <OverviewCell label={t("cars.purchasePrice")} value={formatMoney(car.purchasePrice)} />
         ) : null}
@@ -111,9 +112,11 @@ export function CarOverviewPanel(props: {
       <div className="crm-car-overview__tires">
         <div className="crm-car-overview__tires-head">
           <span className="crm-car-overview__tires-label">{t("cars.tiresTitle")}</span>
-          <button type="button" className="crm-link-btn" onClick={props.onEditTires}>
-            {frontTire || rearTire ? t("common.edit") : t("cars.addTires")}
-          </button>
+          <IconActionButton
+            icon={frontTire || rearTire ? "edit-02" : "add-01"}
+            label={frontTire || rearTire ? t("common.edit") : t("cars.addTires")}
+            onClick={props.onEditTires}
+          />
         </div>
         <div className="crm-car-overview__tire-rows">
           <div className="crm-car-overview__tire-row">
@@ -137,13 +140,25 @@ export function CarOverviewPanel(props: {
   );
 }
 
-function OverviewCell(props: { label: string; value?: string; children?: ReactNode }) {
+function OverviewCell(props: {
+  label: string;
+  value?: string;
+  copyValue?: string;
+  children?: ReactNode;
+}) {
+  const display = props.value ?? "—";
   return (
     <div className="crm-car-overview__cell">
       <div className="crm-car-overview__cell-label">{props.label}</div>
-      {props.children ?? (
-        <div className="crm-car-overview__cell-value" title={props.value}>
-          {props.value ?? "—"}
+      {props.children ? (
+        props.children
+      ) : props.copyValue ? (
+        <CopyOnDoubleTap value={props.copyValue} className="crm-car-overview__cell-value">
+          {display}
+        </CopyOnDoubleTap>
+      ) : (
+        <div className="crm-car-overview__cell-value" title={display}>
+          {display}
         </div>
       )}
     </div>

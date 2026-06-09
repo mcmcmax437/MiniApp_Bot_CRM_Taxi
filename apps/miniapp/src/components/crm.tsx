@@ -33,8 +33,10 @@ export type IconName =
   | "lock"
   | "notification-01"
   | "parking-area-circle"
+  | "minus-sign"
   | "pencil"
   | "receipt-dollar"
+  | "refresh-01"
   | "search-01"
   | "settings-01"
   | "shield-01"
@@ -61,6 +63,36 @@ export function Icon(props: {
       style={{ fontSize: size, color, lineHeight: 1, ...props.style }}
       aria-hidden
     />
+  );
+}
+
+/** Compact icon-only control with an accessible label. */
+export function IconActionButton(props: {
+  icon: IconName;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  size?: number;
+  className?: string;
+  spinning?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={[
+        "crm-icon-action-btn",
+        props.spinning ? "crm-icon-action-btn--spinning" : "",
+        props.className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onClick={props.onClick}
+      disabled={props.disabled}
+      aria-label={props.label}
+      title={props.label}
+    >
+      <Icon name={props.icon} size={props.size ?? 20} color="currentColor" />
+    </button>
   );
 }
 

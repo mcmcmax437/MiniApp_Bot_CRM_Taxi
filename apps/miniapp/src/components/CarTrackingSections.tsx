@@ -12,6 +12,7 @@ import {
   useMileageLogs,
 } from "../hooks";
 import { confirmAction } from "../telegram";
+import { IconActionButton } from "./crm";
 import type { Car, MaintenanceRule } from "../types";
 import {
   hasMaintenancePreset,
@@ -130,9 +131,11 @@ export function CarTrackingSections(props: {
       <section className="glass-card crm-car-detail-section">
         <div className="crm-section-head">
           <h3 className="crm-car-detail-section__title">{t("tracking.maintenanceRules")}</h3>
-          <button type="button" className="crm-link-btn" onClick={() => setRuleOpen(true)}>
-            {t("tracking.addRule")}
-          </button>
+          <IconActionButton
+            icon="add-01"
+            label={t("tracking.addRule")}
+            onClick={() => setRuleOpen(true)}
+          />
         </div>
         <div className="crm-tracking-presets">
           <span className="crm-form-hint">{t("tracking.presetsHint")}</span>

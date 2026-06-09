@@ -1,4 +1,12 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -237,6 +245,53 @@ export function SelectInput<T extends string>(props: {
         </option>
       ))}
     </select>
+  );
+}
+
+/** Copies `value` on double-tap (touch) or double-click (desktop). */
+export function CopyOnDoubleTap(props: {
+  value: string;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const lastTapRef = useRef(0);
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    const text = props.value.trim();
+    if (!text || text === "—") return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      /* clipboard may be unavailable in some WebViews */
+    }
+  }
+
+  function onTap() {
+    const now = Date.now();
+    if (now - lastTapRef.current < 400) void copy();
+    lastTapRef.current = now;
+  }
+
+  return (
+    <span
+      className={["crm-copyable", copied ? "crm-copyable--copied" : "", props.className]
+        .filter(Boolean)
+        .join(" ")}
+      onDoubleClick={() => void copy()}
+      onClick={onTap}
+      title={copied ? t("common.copied") : t("common.doubleTapToCopy")}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") void copy();
+      }}
+    >
+      {props.children ?? props.value}
+    </span>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReminderSettings, useSaveReminderSettings } from "../hooks";
-import { SectionCard, Icon } from "./crm";
+import { SectionCard, Icon, IconActionButton } from "./crm";
 import { Field, SelectInput, NumberInput, FormActions } from "./ui";
 import { parseReminderDays, ReminderDayChips } from "./ReminderDayChips";
 
@@ -162,9 +162,12 @@ export function ReminderSettingsCard() {
               </dd>
             </div>
           </dl>
-          <button type="button" className="crm-btn-outline" style={{ marginTop: 12 }} onClick={() => setEditing(true)}>
-            {t("common.edit")}
-          </button>
+          <IconActionButton
+            icon="edit-02"
+            label={t("common.edit")}
+            onClick={() => setEditing(true)}
+            className="crm-reminder-settings__edit"
+          />
         </div>
       )}
     </SectionCard>

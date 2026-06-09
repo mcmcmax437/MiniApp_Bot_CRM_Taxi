@@ -421,8 +421,14 @@ export function DriversPage() {
         footer={
           viewOnly ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <button type="button" className="crm-btn-primary" onClick={switchToEdit}>
-                {t("common.edit")}
+              <button
+                type="button"
+                className="crm-btn-primary crm-btn-icon-only"
+                onClick={switchToEdit}
+                aria-label={t("common.edit")}
+                title={t("common.edit")}
+              >
+                <Icon name="edit-02" size={22} color="currentColor" />
               </button>
               <button type="button" className="crm-btn-outline" onClick={requestCloseModal}>
                 {t("common.back")}

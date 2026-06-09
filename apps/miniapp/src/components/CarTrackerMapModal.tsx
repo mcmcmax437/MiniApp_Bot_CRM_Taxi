@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useTrackerLocation } from "../hooks";
 import { ApiError } from "../api";
+import { IconActionButton } from "./crm";
 import { Modal } from "./ui";
 
 function osmEmbedUrl(lat: number, lng: number): string {
@@ -36,15 +37,14 @@ export function CarTrackerMapModal(props: { open: boolean; carId: string; onClos
       open={props.open}
       title={t("cars.trackerMap.title")}
       headerAction={
-        <button
-          type="button"
-          className="crm-modal-head__action crm-link-btn"
+        <IconActionButton
+          icon="refresh-01"
+          label={refreshLabel}
           onClick={() => void query.refresh()}
           disabled={query.isFetching}
-          aria-label={refreshLabel}
-        >
-          {refreshLabel}
-        </button>
+          spinning={query.isFetching}
+          className="crm-modal-head__action"
+        />
       }
       onClose={props.onClose}
     >

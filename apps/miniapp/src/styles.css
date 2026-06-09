@@ -1360,12 +1360,6 @@ body {
   gap: 8px;
 }
 
-.crm-car-detail-edit {
-  width: 100%;
-  margin-top: 8px;
-  justify-content: center;
-}
-
 .crm-car-detail-head {
   margin-top: 8px;
 }
@@ -3637,6 +3631,56 @@ div.crm-finance-item {
   padding: 0 4px;
 }
 
+.crm-icon-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--taxi-accent, #ffc107);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.crm-icon-action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.crm-icon-action-btn--spinning .crm-icon {
+  animation: crm-spin 0.8s linear infinite;
+}
+
+.crm-btn-icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.crm-copyable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.crm-copyable--copied {
+  color: var(--taxi-accent, #ffc107);
+}
+
+.crm-car-detail-head__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.crm-reminder-settings__edit {
+  margin-top: 12px;
+}
+
 .crm-badge {
   display: inline-block;
   margin-left: 8px;
@@ -4274,13 +4318,6 @@ select.crm-input option {
 
 .crm-modal-head__action {
   flex-shrink: 0;
-  white-space: nowrap;
-  font-size: 14px;
-}
-
-.crm-modal-head__action:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .crm-modal-back {

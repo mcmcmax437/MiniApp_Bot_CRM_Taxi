@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
 import { useCar, useReminders } from "../hooks";
-import { AppHeader, Icon } from "../components/crm";
+import { AppHeader, Icon, IconActionButton } from "../components/crm";
+import { CopyOnDoubleTap } from "../components/ui";
 import { carNeedsAttention } from "../components/carAttention";
 import { CarAttentionMark } from "../components/CarAttentionMark";
 import { CarDetailHeroGallery } from "../components/CarDetailHeroGallery";
@@ -113,10 +114,16 @@ export function CarDetailPage() {
         <div className="crm-car-detail-head__title-row">
           <h1 className="crm-doc-detail-head__title">
             <span className="crm-doc-detail-head__title-line">
-              <span>{car.plate}</span>
+              <CopyOnDoubleTap value={car.plate}>{car.plate}</CopyOnDoubleTap>
               {needsAttention ? <CarAttentionMark /> : null}
             </span>
           </h1>
+          <div className="crm-car-detail-head__actions">
+            <IconActionButton
+              icon="edit-02"
+              label={t("common.edit")}
+              onClick={() => setEditOpen(true)}
+            />
           {assignedDriver ? (
             <button
               type="button"
@@ -130,6 +137,7 @@ export function CarDetailPage() {
               <Icon name="arrow-right-01" size={12} color="rgba(255,255,255,0.45)" />
             </button>
           ) : null}
+          </div>
         </div>
         {subtitle ? <p className="crm-doc-detail-head__subtitle">{subtitle}</p> : null}
         <div className={`crm-car-status ${statusClass[car.status]}`} style={{ marginTop: 8 }}>
@@ -137,10 +145,6 @@ export function CarDetailPage() {
           <span>{t(`cars.${car.status}`)}</span>
         </div>
       </div>
-
-      <button type="button" className="crm-btn-primary crm-car-detail-edit" onClick={() => setEditOpen(true)}>
-        {t("common.edit")}
-      </button>
 
       <CarOverviewPanel car={car} onEditTires={() => setTiresOpen(true)} />
 

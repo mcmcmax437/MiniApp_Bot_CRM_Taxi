@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { IconActionButton } from "./crm";
 import type { Car } from "../types";
 
 export function CarTrackerSection(props: {
@@ -31,9 +32,11 @@ export function CarTrackerSection(props: {
     <section className="glass-card crm-car-detail-section">
       <div className="crm-section-head">
         <h3 className="crm-car-detail-section__title">{t("cars.trackerTitle")}</h3>
-        <button type="button" className="crm-link-btn" onClick={props.onEdit}>
-          {hasTracker ? t("common.edit") : t("cars.addTracker")}
-        </button>
+        <IconActionButton
+          icon={hasTracker ? "edit-02" : "add-01"}
+          label={hasTracker ? t("common.edit") : t("cars.addTracker")}
+          onClick={props.onEdit}
+        />
       </div>
       {hasTracker ? (
         <dl className="crm-car-detail-dl">

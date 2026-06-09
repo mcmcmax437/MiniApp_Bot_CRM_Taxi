@@ -16,6 +16,7 @@ import {
   PasswordInput,
   todayInput,
 } from "./ui";
+import { IconActionButton } from "./crm";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
 import { CarPhotosSection } from "./CarPhotosSection";
 import { CarDocumentsSection } from "./CarDocumentsSection";
@@ -475,18 +476,16 @@ export function CarFormModal(props: {
       {!isEdit ? <p className="crm-field-hint">{t("cars.purchasePriceHint")}</p> : null}
 
       <div className="crm-form-optional-block">
-        <button
-          type="button"
-          className="crm-link-btn"
+        <IconActionButton
+          icon={form.showTires ? "minus-sign" : "add-01"}
+          label={form.showTires ? t("cars.hideTires") : t("cars.addTires")}
           onClick={() => {
             setForm((prev) => ({
               ...prev,
               showTires: !prev.showTires,
             }));
           }}
-        >
-          {form.showTires ? t("cars.hideTires") : t("cars.addTires")}
-        </button>
+        />
         {form.showTires ? (
           <>
             <div className="crm-form-section-label">{t("cars.tireFrontTitle")}</div>

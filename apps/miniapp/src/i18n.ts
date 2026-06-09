@@ -22,6 +22,8 @@ const en = {
     show: "Show",
     hide: "Hide",
     copy: "Copy",
+    copied: "Copied",
+    doubleTapToCopy: "Double-tap to copy",
     retry: "Retry",
   },
   nav: {
@@ -578,6 +580,8 @@ const uk: Resources = {
     show: "Показати",
     hide: "Приховати",
     copy: "Копіювати",
+    copied: "Скопійовано",
+    doubleTapToCopy: "Подвійний дотик, щоб скопіювати",
     retry: "Повторити",
   },
   nav: {
@@ -1132,6 +1136,8 @@ const ru: Resources = {
     show: "Показать",
     hide: "Скрыть",
     copy: "Копировать",
+    copied: "Скопировано",
+    doubleTapToCopy: "Двойное нажатие, чтобы скопировать",
     retry: "Повторить",
   },
   nav: {
