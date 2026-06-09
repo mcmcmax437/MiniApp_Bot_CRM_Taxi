@@ -216,7 +216,7 @@ export function FinanceEmptyState(props: {
   );
 }
 
-export function FinanceList(props: { loading?: boolean; children: ReactNode }) {
+export function FinanceList(props: { loading?: boolean; className?: string; children: ReactNode }) {
   const { t } = useTranslation();
   if (props.loading) {
     return (
@@ -226,7 +226,8 @@ export function FinanceList(props: { loading?: boolean; children: ReactNode }) {
       </div>
     );
   }
-  return <div className="crm-finance-list">{props.children}</div>;
+  const rootClass = ["crm-finance-list", props.className].filter(Boolean).join(" ");
+  return <div className={rootClass}>{props.children}</div>;
 }
 
 export function PartnerAlertMark(props: { label: string }) {

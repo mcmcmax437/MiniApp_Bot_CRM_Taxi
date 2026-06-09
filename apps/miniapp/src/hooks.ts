@@ -124,7 +124,7 @@ export function useDeleteDriver() {
 }
 
 // --- Agreements -------------------------------------------------------------
-export function useAgreements(params?: { driverId?: string }) {
+export function useAgreements(params?: { driverId?: string; carId?: string; status?: string }) {
   return useQuery({
     queryKey: ["agreements", params],
     queryFn: () => apiFetch<Agreement[]>("/agreements", { query: params }),

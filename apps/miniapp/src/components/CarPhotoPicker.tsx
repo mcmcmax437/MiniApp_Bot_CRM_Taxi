@@ -72,7 +72,6 @@ export function CarPhotoPicker(props: {
                     aria-label={t("cars.photo")}
                   >
                     <img src={photo.previewUrl} alt="" className="crm-car-photo-tile__img" />
-                    {isCover ? <span className="crm-car-photo-tile__badge">{t("cars.coverPhoto")}</span> : null}
                   </button>
                   <button
                     type="button"

@@ -194,7 +194,6 @@ function CarImageTile(props: {
           alt={props.doc.fileName}
           className="crm-car-photo-tile__img"
         />
-        {props.isCover ? <span className="crm-car-photo-tile__badge">{t("cars.coverPhoto")}</span> : null}
       </button>
       <button
         type="button"

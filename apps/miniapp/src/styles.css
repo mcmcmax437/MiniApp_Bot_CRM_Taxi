@@ -94,6 +94,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .crm-page > .crm-stat-grid,
@@ -1365,45 +1370,42 @@ body {
   margin-top: 8px;
 }
 
-.crm-car-detail-head__row {
+.crm-car-detail-head__title-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  margin-top: 2px;
 }
 
-.crm-car-detail-head__main {
+.crm-car-detail-head__title-row .crm-doc-detail-head__title {
+  margin-top: 8px;
   min-width: 0;
   flex: 1;
 }
 
-.crm-car-detail-head__driver {
-  flex-shrink: 0;
-  max-width: 42%;
-  text-align: right;
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.crm-car-detail-head__driver-pill {
+  flex-shrink: 1;
+  max-width: min(48%, 168px);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.28);
+  min-width: 0;
 }
 
-.crm-car-detail-head__driver-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.45);
-  margin-bottom: 4px;
-}
-
-.crm-car-detail-head__driver-name {
-  display: block;
-  font-size: 13px;
+.crm-car-detail-head__driver-pill-name {
+  font-size: 12px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
-  line-height: 1.3;
-  word-break: break-word;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .crm-car-overview {
@@ -2090,50 +2092,193 @@ body {
   line-height: 1.4;
 }
 
-.crm-fleet-row {
+.crm-fleet-list {
+  gap: 8px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  overflow: visible;
+}
+
+.crm-fleet-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 14px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.crm-fleet-row:last-child {
-  border-bottom: none;
-}
-
-.crm-fleet-row .crm-finance-item {
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(19, 35, 58, 0.95), rgba(10, 20, 36, 0.95));
 }
 
-.crm-fleet-row .crm-finance-item__main {
+.crm-fleet-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 0;
 }
 
-.crm-fleet-row .crm-finance-item__title,
-.crm-fleet-row .crm-finance-item__subtitle {
+.crm-fleet-card__plate {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.crm-fleet-row .crm-finance-item__amount {
-  max-width: 46%;
-  white-space: normal;
+.crm-fleet-card__amount {
+  flex-shrink: 0;
+  max-width: 52%;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
   text-align: right;
+  color: rgba(255, 255, 255, 0.85);
   word-break: break-word;
-  line-height: 1.25;
 }
 
-.crm-fleet-row__action {
+.crm-fleet-card__amount--income {
+  color: #69f0ae;
+}
+
+.crm-fleet-card__meta {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-fleet-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.crm-fleet-card__body:active {
+  opacity: 0.88;
+}
+
+.crm-fleet-card__history-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.42);
+  margin-top: 2px;
+}
+
+.crm-fleet-card__action {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   justify-content: center;
+  margin-top: 2px;
+}
+
+.crm-fleet-history-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.crm-fleet-history-head__plate {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.crm-fleet-history-head__subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.crm-fleet-history {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crm-fleet-history__item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-fleet-history__item--active {
+  border-color: rgba(105, 240, 174, 0.35);
+  background: rgba(105, 240, 174, 0.08);
+}
+
+.crm-fleet-history__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crm-fleet-history__driver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-fleet-history__status {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.crm-fleet-history__status--active {
+  color: #69f0ae;
+  background: rgba(105, 240, 174, 0.15);
+}
+
+.crm-fleet-history__dates {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.crm-fleet-history__rent {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .crm-agreement-section {
@@ -3091,16 +3236,6 @@ div.crm-finance-item {
     padding: 0 12px;
   }
 
-  .crm-fleet-row .crm-finance-item {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .crm-fleet-row .crm-finance-item__amount {
-    max-width: none;
-    text-align: left;
-    font-size: 14px;
-  }
 }
 
 /* Owners / Admin page */

@@ -106,27 +106,25 @@ export function CarDetailPage() {
       />
 
       <div className="crm-doc-detail-head crm-car-detail-head">
-        <div className="crm-car-detail-head__row">
-          <div className="crm-car-detail-head__main">
-            <span className="crm-doc-detail-head__badge">{t("cars.title")}</span>
-            <h1 className="crm-doc-detail-head__title">
-              <span className="crm-doc-detail-head__title-line">
-                <span>{car.plate}</span>
-                {needsAttention ? <CarAttentionMark /> : null}
-              </span>
-            </h1>
-            {subtitle ? <p className="crm-doc-detail-head__subtitle">{subtitle}</p> : null}
-            <div className={`crm-car-status ${statusClass[car.status]}`} style={{ marginTop: 8 }}>
-              <Icon name="checkmark-circle-01" size={16} color="currentColor" />
-              <span>{t(`cars.${car.status}`)}</span>
-            </div>
-          </div>
+        <span className="crm-doc-detail-head__badge">{t("cars.title")}</span>
+        <div className="crm-car-detail-head__title-row">
+          <h1 className="crm-doc-detail-head__title">
+            <span className="crm-doc-detail-head__title-line">
+              <span>{car.plate}</span>
+              {needsAttention ? <CarAttentionMark /> : null}
+            </span>
+          </h1>
           {activeDriver ? (
-            <div className="crm-car-detail-head__driver">
-              <span className="crm-car-detail-head__driver-label">{t("cars.currentDriver")}</span>
-              <span className="crm-car-detail-head__driver-name">{activeDriver}</span>
+            <div className="crm-car-detail-head__driver-pill" title={activeDriver}>
+              <Icon name="user" size={14} color="var(--taxi-accent, #ffc107)" />
+              <span className="crm-car-detail-head__driver-pill-name">{activeDriver}</span>
             </div>
           ) : null}
+        </div>
+        {subtitle ? <p className="crm-doc-detail-head__subtitle">{subtitle}</p> : null}
+        <div className={`crm-car-status ${statusClass[car.status]}`} style={{ marginTop: 8 }}>
+          <Icon name="checkmark-circle-01" size={16} color="currentColor" />
+          <span>{t(`cars.${car.status}`)}</span>
         </div>
       </div>
 
