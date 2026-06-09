@@ -1354,6 +1354,137 @@ body {
   justify-content: center;
 }
 
+.crm-car-overview {
+  margin-top: 14px;
+  padding: 14px 16px;
+}
+
+.crm-car-overview__head {
+  margin-bottom: 12px;
+}
+
+.crm-car-overview__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.crm-car-overview__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.crm-car-overview__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.crm-car-overview__cell {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0;
+}
+
+.crm-car-overview__cell-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.42);
+  margin-bottom: 4px;
+}
+
+.crm-car-overview__cell-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-car-status--compact {
+  display: inline-flex;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.crm-car-overview__tires {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.crm-car-overview__tires-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.crm-car-overview__tires-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.crm-car-overview__tire-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-car-overview__tire-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13px;
+  align-items: baseline;
+}
+
+.crm-car-overview__tire-axle {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.crm-car-overview__tire-value {
+  color: rgba(255, 255, 255, 0.9);
+  word-break: break-word;
+}
+
+.crm-car-overview__notes {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.crm-car-overview__notes-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.42);
+  margin-bottom: 6px;
+}
+
+.crm-car-overview__notes-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.82);
+  word-break: break-word;
+}
+
 .crm-car-detail-section {
   margin-top: 14px;
   padding: 16px;
@@ -3186,6 +3317,24 @@ div.crm-finance-item {
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-tracking-history__item {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.crm-tracking-history__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crm-tracking-history__delete {
+  flex-shrink: 0;
 }
 
 .crm-tracking-rules__item {

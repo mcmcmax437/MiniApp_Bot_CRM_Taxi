@@ -49,4 +49,28 @@ export async function mileageRoutes(app: FastifyInstance): Promise<void> {
       return log;
     });
   });
+
+  app.delete("/mileage/:id", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const oid = ownerId(req);
+    const existing = await prisma.mileageLog.findFirst({ where: { id, ownerId: oid } });
+    if (!existing) return reply.code(404).send({ error: "not_found" });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.mileageLog.delete({ where: { id } });
+      const latest = await tx.mileageLog.findFirst({
+        where: { carId: existing.carId },
+        orderBy: [{ recordedAt: "desc" }, { createdAt: "desc" }],
+      });
+      await tx.car.update({
+        where: { id: existing.carId },
+        data: {
+          currentMileage: latest?.odometer ?? null,
+          mileageUpdatedAt: latest?.recordedAt ?? null,
+        },
+      });
+    });
+
+    return { ok: true };
+  });
 }

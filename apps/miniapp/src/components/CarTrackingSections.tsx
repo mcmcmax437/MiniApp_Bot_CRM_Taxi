@@ -5,11 +5,13 @@ import {
   useCompleteMaintenance,
   useCreateMaintenanceRule,
   useDeleteMaintenanceRule,
+  useDeleteMileageLog,
   useLogMileage,
   useMaintenanceRecords,
   useMaintenanceRules,
   useMileageLogs,
 } from "../hooks";
+import { confirmAction } from "../telegram";
 import type { Car, MaintenanceRule } from "../types";
 import {
   hasMaintenancePreset,
@@ -55,6 +57,7 @@ export function CarTrackingSections(props: {
   const rules = useMaintenanceRules(carId);
   const records = useMaintenanceRecords(carId);
   const mileageLogs = useMileageLogs(carId);
+  const deleteMileage = useDeleteMileageLog();
 
   const [mileageOpen, setMileageOpen] = useState(false);
   const [ruleOpen, setRuleOpen] = useState(false);
@@ -89,11 +92,32 @@ export function CarTrackingSections(props: {
         ) : mileageLogs.data && mileageLogs.data.length > 0 ? (
           <ul className="crm-tracking-history">
             {mileageLogs.data.slice(0, 8).map((log) => (
-              <li key={log.id}>
-                <span>{formatMileage(log.odometer)}</span>
-                <span className="crm-tracking-history__meta">
-                  {formatDate(log.recordedAt)} · {t(`tracking.source.${log.source}`)}
-                </span>
+              <li key={log.id} className="crm-tracking-history__item">
+                <div className="crm-tracking-history__text">
+                  <span>{formatMileage(log.odometer)}</span>
+                  <span className="crm-tracking-history__meta">
+                    {formatDate(log.recordedAt)} · {t(`tracking.source.${log.source}`)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="crm-icon-btn crm-tracking-history__delete"
+                  disabled={deleteMileage.isPending && deleteMileage.variables === log.id}
+                  aria-label={t("common.delete")}
+                  onClick={() => {
+                    void confirmAction(
+                      t("tracking.deleteMileageConfirm"),
+                      t("common.delete"),
+                      t("common.cancel"),
+                    ).then((ok) => {
+                      if (ok) {
+                        deleteMileage.mutate(log.id, { onSuccess: () => props.onUpdated?.() });
+                      }
+                    });
+                  }}
+                >
+                  ×
+                </button>
               </li>
             ))}
           </ul>

@@ -377,6 +377,17 @@ export function useLogMileage() {
     },
   });
 }
+export function useDeleteMileageLog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/mileage/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["mileage"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
+      void qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
 export function useReminderSettings() {
   return useQuery({
     queryKey: ["reminder-settings"],
