@@ -4256,11 +4256,31 @@ select.crm-input option {
   margin-bottom: 12px;
 }
 
+.crm-modal-head__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
 .crm-modal-head__title {
   margin: 0;
   font-size: 18px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   color: var(--taxi-text, #fff);
+}
+
+.crm-modal-head__action {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.crm-modal-head__action:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .crm-modal-back {

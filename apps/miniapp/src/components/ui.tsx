@@ -9,6 +9,8 @@ export type ModalHandle = { dismiss: () => void };
 export type ModalProps = {
   open: boolean;
   title: string;
+  /** Optional control rendered to the right of the title (e.g. refresh). */
+  headerAction?: React.ReactNode;
   /** Called after the slide-down exit animation finishes. */
   onClose: () => void;
   backLabel?: string;
@@ -70,7 +72,10 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, r
               {props.backLabel}
             </button>
           ) : null}
-          <h3 className="crm-modal-head__title">{props.title}</h3>
+          <div className="crm-modal-head__row">
+            <h3 className="crm-modal-head__title">{props.title}</h3>
+            {props.headerAction ?? null}
+          </div>
         </div>
         <div className="crm-modal-body">{props.children}</div>
         {props.footer ? <div className="crm-modal-footer">{props.footer}</div> : null}

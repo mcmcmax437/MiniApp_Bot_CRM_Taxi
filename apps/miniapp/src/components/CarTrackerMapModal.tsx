@@ -27,17 +27,32 @@ export function CarTrackerMapModal(props: { open: boolean; carId: string; onClos
   const { t } = useTranslation();
   const query = useTrackerLocation(props.carId, props.open);
   const loc = query.data;
+  const refreshLabel = query.isFetching
+    ? t("cars.trackerMap.refreshing")
+    : t("cars.trackerMap.refresh");
 
   return (
-    <Modal open={props.open} title={t("cars.trackerMap.title")} onClose={props.onClose}>
+    <Modal
+      open={props.open}
+      title={t("cars.trackerMap.title")}
+      headerAction={
+        <button
+          type="button"
+          className="crm-modal-head__action crm-link-btn"
+          onClick={() => void query.refresh()}
+          disabled={query.isFetching}
+          aria-label={refreshLabel}
+        >
+          {refreshLabel}
+        </button>
+      }
+      onClose={props.onClose}
+    >
       {query.isLoading ? (
         <p className="crm-form-hint">{t("cars.trackerMap.loading")}</p>
       ) : query.isError ? (
         <div className="crm-tracker-map__state">
           <p className="crm-form-hint">{t(trackerErrorKey(query.error))}</p>
-          <button type="button" className="crm-link-btn" onClick={() => void query.refetch()}>
-            {t("common.retry")}
-          </button>
         </div>
       ) : loc ? (
         <div className="crm-tracker-map">
@@ -86,11 +101,6 @@ export function CarTrackerMapModal(props: { open: boolean; carId: string; onClos
           >
             {t("cars.trackerMap.openGoogle")}
           </a>
-          {query.isFetching ? (
-            <p className="crm-form-hint crm-tracker-map__refreshing">
-              {t("cars.trackerMap.refreshing")}
-            </p>
-          ) : null}
         </div>
       ) : null}
     </Modal>

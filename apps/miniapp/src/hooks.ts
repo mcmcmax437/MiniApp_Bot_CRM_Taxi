@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiUpload } from "./api";
 import type {
@@ -90,14 +90,27 @@ export function useDeleteCar() {
 }
 
 export function useTrackerLocation(carId: string | undefined, enabled: boolean) {
-  return useQuery({
+  // When the user taps refresh we force a live read, bypassing the backend cache.
+  const forceRef = useRef(false);
+  const query = useQuery({
     queryKey: ["cars", carId, "tracker-location"],
-    queryFn: () => apiFetch<TrackerLocation>(`/cars/${carId}/tracker/location`),
+    queryFn: () => {
+      const force = forceRef.current;
+      forceRef.current = false;
+      return apiFetch<TrackerLocation>(
+        `/cars/${carId}/tracker/location${force ? "?refresh=1" : ""}`,
+      );
+    },
     enabled: Boolean(carId) && enabled,
     refetchInterval: enabled ? 30_000 : false,
     retry: false,
     staleTime: 15_000,
   });
+  const refresh = () => {
+    forceRef.current = true;
+    return query.refetch();
+  };
+  return { ...query, refresh };
 }
 
 // --- Drivers ----------------------------------------------------------------
