@@ -1,21 +1,24 @@
 /**
  * MKing GPS connector.
  *
- * MKing (aika168 platform) exposes no public API, so we replicate the browser
- * login flow server-side:
- *   1. GET  /LoginPage/mking/index.aspx        -> read ASP.NET __VIEWSTATE / __EVENTVALIDATION + cookies
- *   2. POST /LoginPage/mking/index.aspx        -> authenticate (device-id or account login), keep session cookie
- *   3. GET  /Monitor.aspx                       -> read hidUserID / hidDeviceID
- *   4. POST /Ajax/DevicesAjax.asmx/GetDevicesByUserID -> live position payload
+ * MKing (aika168 / micodus platform) exposes no public API, so we replicate the
+ * browser login server-side. The platform ships in slightly different skins
+ * (e.g. mking.aika168.com and gps.mking.pl), but they share these endpoints,
+ * all served from the portal origin:
+ *
+ *   GET  /UrlLoginGet.aspx?loginType=<0|1>&txtUserName=<login>&txtUserPassword=<pass>
+ *        -> authenticates and redirects (HTTP and/or JS) into the app, setting the session cookie
+ *   GET  /Index.aspx | /Monitor.aspx       -> authenticated shell exposing <input id="hidUserID">
+ *   POST /Ajax/DevicesAjax.asmx/GetDevicesByUserID -> live position payload for all devices
  *
  * The position payload is an ASP.NET `{ "d": "<js-object-literal>" }` envelope whose
- * inner string uses unquoted keys, so we extract the fields we need with regexes
- * rather than JSON.parse.
+ * inner string uses unquoted keys, so we extract fields with regexes, not JSON.parse.
  */
 
 const DEFAULT_BASE_URL = "http://mking.aika168.com";
-const DEFAULT_TIMEZONE = "Central European Standard Time";
+const DEFAULT_TIMEZONE = "0:00";
 const REQUEST_TIMEOUT_MS = 15_000;
+const MAX_REDIRECTS = 8;
 
 export type TrackerLoginType = "DEVICE" | "ACCOUNT";
 
@@ -63,8 +66,7 @@ class CookieJar {
   private jar = new Map<string, string>();
 
   store(res: Response): void {
-    const setCookies = readSetCookies(res);
-    for (const raw of setCookies) {
+    for (const raw of readSetCookies(res)) {
       const pair = raw.split(";", 1)[0];
       const eq = pair.indexOf("=");
       if (eq <= 0) continue;
@@ -98,16 +100,63 @@ function originOf(url: string | null | undefined): string {
   }
 }
 
-async function timedFetch(url: string, init: RequestInit): Promise<Response> {
+async function rawFetch(url: string, jar: CookieJar, init: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await fetch(url, { ...init, signal: controller.signal, redirect: "manual" });
+    const res = await fetch(url, {
+      ...init,
+      redirect: "manual",
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        ...(init.headers ?? {}),
+        Cookie: jar.header(),
+      },
+    });
+    jar.store(res);
+    return res;
   } catch (err) {
     throw new TrackerError("tracker_unavailable", `MKing request failed: ${String(err)}`);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Detects a JS redirect (`location.href='...'` / `top.location.href='...'`) in a tiny body. */
+function jsRedirectTarget(body: string): string | null {
+  if (body.length > 600) return null;
+  const m =
+    body.match(/(?:top\.)?location(?:\.href)?\s*=\s*['"]([^'"]+)['"]/i) ||
+    body.match(/window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]/i);
+  return m ? m[1] : null;
+}
+
+/** Follows HTTP (3xx) and JS redirects while accumulating cookies; returns the final response + URL. */
+async function follow(
+  startUrl: string,
+  jar: CookieJar,
+  init: RequestInit = {},
+): Promise<{ res: Response; url: string; body: string }> {
+  let url = startUrl;
+  for (let i = 0; i < MAX_REDIRECTS; i++) {
+    const res = await rawFetch(url, jar, i === 0 ? init : { method: "GET" });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) return { res, url, body: "" };
+      url = new URL(loc, url).toString();
+      continue;
+    }
+    const body = await res.text().catch(() => "");
+    const jsTarget = jsRedirectTarget(body);
+    if (jsTarget) {
+      url = new URL(jsTarget, url).toString();
+      continue;
+    }
+    return { res, url, body };
+  }
+  return { res: await rawFetch(url, jar, { method: "GET" }), url, body: "" };
 }
 
 function extractInput(html: string, id: string): string {
@@ -116,9 +165,21 @@ function extractInput(html: string, id: string): string {
   return (html.match(re) || html.match(alt) || [])[1] ?? "";
 }
 
-/** Reads a field from the unquoted JS-object-literal device payload. */
+function isLoginPage(html: string): boolean {
+  return (
+    /txtAccountPassword|txtImeiPassword/i.test(html) ||
+    /check your account|loginFaild|check the IMEI/i.test(html) ||
+    /login\.aspx|Index\.aspx\?ReturnUrl/i.test(html)
+  );
+}
+
+/**
+ * Reads a field from the unquoted JS-object-literal device payload.
+ * The key must start at a `{`/`,` boundary so suffix collisions like
+ * `carStatus` vs `status` or `modelName` vs `name` don't mis-match.
+ */
 function field(payload: string, name: string): string | null {
-  const re = new RegExp(`"?${name}"?\\s*:\\s*"?([^",}]*)"?`, "i");
+  const re = new RegExp(`[,{]\\s*"?${name}"?\\s*:\\s*"?([^",}]*)"?`, "i");
   const m = payload.match(re);
   if (!m) return null;
   const value = m[1].trim();
@@ -131,115 +192,124 @@ function num(value: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-async function login(base: string, creds: MkingCredentials, jar: CookieJar): Promise<boolean> {
-  const loginUrl = `${base}/LoginPage/mking/index.aspx`;
-  const pageRes = await timedFetch(loginUrl, { method: "GET" });
-  jar.store(pageRes);
-  const html = await pageRes.text();
-
-  const viewState = extractInput(html, "__VIEWSTATE");
-  const eventValidation = extractInput(html, "__EVENTVALIDATION");
-
-  const isDevice = (creds.loginType ?? "DEVICE") === "DEVICE";
-  const body = new URLSearchParams();
-  if (viewState) body.set("__VIEWSTATE", viewState);
-  if (eventValidation) body.set("__EVENTVALIDATION", eventValidation);
-  body.set("LType", isDevice ? "1" : "0");
-  body.set("txtUserName", isDevice ? "" : creds.login);
-  body.set("txtAccountPassword", isDevice ? "" : creds.password);
-  body.set("txtImeiNo", isDevice ? creds.login : "");
-  body.set("txtImeiPassword", isDevice ? creds.password : "");
-  body.set("btnLogin", "Login");
-
-  const res = await timedFetch(loginUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: jar.header(),
-      Referer: loginUrl,
-    },
-    body: body.toString(),
-  });
-  jar.store(res);
-
-  // Success either redirects (302 -> Monitor.aspx) or returns a JS redirect page.
-  if (res.status === 302) return true;
-  const text = await res.text().catch(() => "");
-  if (/check your account|loginFaild\(\)|check the IMEI/i.test(text)) return false;
-  // A returned login form (with the password fields) means we are still not authenticated.
-  return !/id="txtImeiPassword"/i.test(text) || /Monitor\.aspx/i.test(text);
+interface DeviceRecord {
+  raw: string;
+  serial: string | null;
+  name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  speed: number | null;
+  course: number | null;
+  fixTime: string | null;
+  status: string | null;
 }
 
-interface MonitorContext {
-  userId: string;
-  deviceId: string;
+/** Splits the payload into per-device chunks and parses each one. */
+function parseDevices(payload: string): DeviceRecord[] {
+  const records: DeviceRecord[] = [];
+  // Each device object starts with `{id:<number>`.
+  const re = /\{id:\d+/g;
+  const starts: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(payload))) starts.push(m.index);
+  for (let i = 0; i < starts.length; i++) {
+    const chunk = payload.slice(starts[i], starts[i + 1] ?? payload.length);
+    records.push({
+      raw: chunk,
+      serial: field(chunk, "sn") ?? field(chunk, "imei"),
+      name: field(chunk, "name"),
+      latitude: num(field(chunk, "latitude")),
+      longitude: num(field(chunk, "longitude")),
+      speed: num(field(chunk, "speed")),
+      course: num(field(chunk, "course")),
+      fixTime: field(chunk, "deviceUtcDate"),
+      status: field(chunk, "status"),
+    });
+  }
+  return records;
 }
 
-async function readMonitorContext(base: string, jar: CookieJar): Promise<MonitorContext | null> {
-  const res = await timedFetch(`${base}/Monitor.aspx`, {
-    method: "GET",
-    headers: { Cookie: jar.header() },
+function hasFix(d: DeviceRecord): boolean {
+  return (
+    d.latitude != null &&
+    d.longitude != null &&
+    !(d.latitude === -1 && d.longitude === -1) &&
+    !(d.latitude === 0 && d.longitude === 0)
+  );
+}
+
+function toPosition(d: DeviceRecord): TrackerPosition {
+  const status = d.status;
+  const offline = status != null && /offline|loggedoff|expire/i.test(status);
+  return {
+    deviceName: d.name,
+    latitude: d.latitude ?? 0,
+    longitude: d.longitude ?? 0,
+    speed: d.speed,
+    course: d.course,
+    fixTime: d.fixTime,
+    status,
+    online: !offline,
+    hasFix: hasFix(d),
+  };
+}
+
+/** Picks the device matching the login serial, else the first device with a fix. */
+function pickDevice(devices: DeviceRecord[], login: string): DeviceRecord | null {
+  if (!devices.length) return null;
+  const needle = login.trim();
+  const match = devices.find(
+    (d) => (d.serial && d.serial.includes(needle)) || (d.name && d.name.includes(needle)),
+  );
+  if (match) return match;
+  return devices.find(hasFix) ?? devices[0];
+}
+
+async function loginViaUrl(
+  base: string,
+  creds: MkingCredentials,
+  loginType: TrackerLoginType,
+  jar: CookieJar,
+): Promise<boolean> {
+  const q = new URLSearchParams({
+    loginType: loginType === "DEVICE" ? "1" : "0",
+    txtUserName: creds.login,
+    txtUserPassword: creds.password,
   });
-  jar.store(res);
-  if (res.status === 302) return null;
-  const html = await res.text();
-  const userId = extractInput(html, "hidUserID");
-  const deviceId = extractInput(html, "hidDeviceID");
-  if (!userId) return null;
-  return { userId, deviceId };
+  const { body } = await follow(`${base}/UrlLoginGet.aspx?${q.toString()}`, jar);
+  if (/check your account|check the IMEI|loginFaild/i.test(body)) return false;
+  // We are authenticated as long as we are not staring at the login form again.
+  return !isLoginPage(body) || /hidUserID/i.test(body);
+}
+
+async function resolveUserId(base: string, jar: CookieJar): Promise<string | null> {
+  for (const path of ["/Index.aspx", "/Monitor.aspx", "/Distributor.aspx"]) {
+    const { body } = await follow(`${base}${path}`, jar);
+    const userId = extractInput(body, "hidUserID");
+    if (userId) return userId;
+  }
+  return null;
 }
 
 async function fetchDevicePayload(
   base: string,
-  ctx: MonitorContext,
+  userId: string,
   jar: CookieJar,
 ): Promise<string | null> {
-  const res = await timedFetch(`${base}/Ajax/DevicesAjax.asmx/GetDevicesByUserID`, {
+  const res = await rawFetch(`${base}/Ajax/DevicesAjax.asmx/GetDevicesByUserID`, jar, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=UTF-8",
-      Cookie: jar.header(),
-    },
+    headers: { "Content-Type": "application/json; charset=UTF-8" },
     body: JSON.stringify({
-      UserID: Number(ctx.userId),
+      UserID: Number(userId),
       isFirst: true,
       TimeZones: DEFAULT_TIMEZONE,
-      DeviceID: ctx.deviceId ? Number(ctx.deviceId) : 0,
+      DeviceID: 0,
     }),
   });
   if (!res.ok) return null;
   const envelope = (await res.json().catch(() => null)) as { d?: string } | null;
   if (!envelope || typeof envelope.d !== "string") return null;
   return envelope.d;
-}
-
-function parsePosition(payload: string): TrackerPosition {
-  // Isolate the first device object so regexes don't cross device boundaries.
-  const start = payload.indexOf("{", payload.indexOf("devices"));
-  const deviceChunk = start >= 0 ? payload.slice(start) : payload;
-
-  const lat = num(field(deviceChunk, "latitude"));
-  const lng = num(field(deviceChunk, "longitude"));
-  const status = field(deviceChunk, "status");
-  const online = status != null && !/LoggedOff/i.test(status);
-
-  const hasFix =
-    lat != null &&
-    lng != null &&
-    !(lat === -1 && lng === -1) &&
-    !(lat === 0 && lng === 0);
-
-  return {
-    deviceName: field(deviceChunk, "name"),
-    latitude: lat ?? 0,
-    longitude: lng ?? 0,
-    speed: num(field(deviceChunk, "speed")),
-    course: num(field(deviceChunk, "course")),
-    fixTime: field(deviceChunk, "deviceUtcDate"),
-    status,
-    online,
-    hasFix,
-  };
 }
 
 /**
@@ -254,23 +324,27 @@ export async function fetchMkingPosition(creds: MkingCredentials): Promise<Track
   const primary: TrackerLoginType = creds.loginType ?? "DEVICE";
   const order: TrackerLoginType[] = primary === "DEVICE" ? ["DEVICE", "ACCOUNT"] : ["ACCOUNT", "DEVICE"];
 
-  let lastContext: MonitorContext | null = null;
+  let authenticated = false;
+  let sawNoFix = false;
   for (const loginType of order) {
     const jar = new CookieJar();
-    const ok = await login(base, { ...creds, loginType }, jar);
-    if (!ok) continue;
-    const ctx = await readMonitorContext(base, jar);
-    if (!ctx) continue;
-    lastContext = ctx;
-    const payload = await fetchDevicePayload(base, ctx, jar);
+    if (!(await loginViaUrl(base, creds, loginType, jar))) continue;
+    const userId = await resolveUserId(base, jar);
+    if (!userId) continue;
+    authenticated = true;
+    const payload = await fetchDevicePayload(base, userId, jar);
     if (payload == null) continue;
-    const position = parsePosition(payload);
+    const device = pickDevice(parseDevices(payload), creds.login);
+    if (!device) continue;
+    const position = toPosition(device);
     if (!position.hasFix) {
-      throw new TrackerError("tracker_no_fix");
+      sawNoFix = true;
+      continue;
     }
     return position;
   }
 
-  if (lastContext) throw new TrackerError("tracker_unavailable");
+  if (sawNoFix) throw new TrackerError("tracker_no_fix");
+  if (authenticated) throw new TrackerError("tracker_unavailable");
   throw new TrackerError("tracker_login_failed");
 }
