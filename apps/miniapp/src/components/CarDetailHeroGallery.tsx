@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useDocuments } from "../hooks";
 import { isCarGalleryPhoto } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
+import { useDocumentImageViewer } from "./useDocumentImageViewer";
 import { Icon } from "./crm";
 
 export function CarDetailHeroGallery(props: {
@@ -14,6 +15,7 @@ export function CarDetailHeroGallery(props: {
   const docs = useDocuments("CAR", props.carId);
   const photos = useMemo(() => (docs.data ?? []).filter(isCarGalleryPhoto), [docs.data]);
   const [index, setIndex] = useState(0);
+  const { openDocuments, viewer } = useDocumentImageViewer();
 
   useEffect(() => {
     const preferredIdx = props.coverDocumentId
@@ -43,6 +45,17 @@ export function CarDetailHeroGallery(props: {
     setIndex((i) => (i >= photos.length - 1 ? 0 : i + 1));
   }
 
+  function openCurrentPhoto() {
+    openDocuments(
+      photos.map((doc) => ({
+        documentId: doc.id,
+        fileName: doc.fileName,
+        alt: props.alt,
+      })),
+      index,
+    );
+  }
+
   if (!current) {
     return (
       <div className="crm-car-detail-hero">
@@ -54,34 +67,43 @@ export function CarDetailHeroGallery(props: {
   }
 
   return (
-    <div className="crm-car-detail-hero">
-      <DocumentThumbnail
-        key={current.id}
-        documentId={current.id}
-        fileName={current.fileName}
-        alt={props.alt}
-        className="crm-car-detail-hero__img"
-      />
-      {hasMultiple ? (
-        <>
-          <button
-            type="button"
-            className="crm-car-detail-hero__nav crm-car-detail-hero__nav--prev"
-            onClick={goPrev}
-            aria-label={t("cars.prevPhoto")}
-          >
-            <Icon name="arrow-left-01" size={22} color="#fff" />
-          </button>
-          <button
-            type="button"
-            className="crm-car-detail-hero__nav crm-car-detail-hero__nav--next"
-            onClick={goNext}
-            aria-label={t("cars.nextPhoto")}
-          >
-            <Icon name="arrow-right-01" size={22} color="#fff" />
-          </button>
-        </>
-      ) : null}
-    </div>
+    <>
+      <div className="crm-car-detail-hero">
+        <DocumentThumbnail
+          key={current.id}
+          documentId={current.id}
+          fileName={current.fileName}
+          alt={props.alt}
+          className="crm-car-detail-hero__img"
+        />
+        <button
+          type="button"
+          className="crm-car-detail-hero__tap"
+          onClick={openCurrentPhoto}
+          aria-label={t("cars.photo")}
+        />
+        {hasMultiple ? (
+          <>
+            <button
+              type="button"
+              className="crm-car-detail-hero__nav crm-car-detail-hero__nav--prev"
+              onClick={goPrev}
+              aria-label={t("cars.prevPhoto")}
+            >
+              <Icon name="arrow-left-01" size={22} color="#fff" />
+            </button>
+            <button
+              type="button"
+              className="crm-car-detail-hero__nav crm-car-detail-hero__nav--next"
+              onClick={goNext}
+              aria-label={t("cars.nextPhoto")}
+            >
+              <Icon name="arrow-right-01" size={22} color="#fff" />
+            </button>
+          </>
+        ) : null}
+      </div>
+      {viewer}
+    </>
   );
 }

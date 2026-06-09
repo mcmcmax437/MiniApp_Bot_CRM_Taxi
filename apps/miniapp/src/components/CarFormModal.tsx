@@ -18,6 +18,7 @@ import {
 } from "./ui";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
 import { CarPhotosSection } from "./CarPhotosSection";
+import { CarDocumentsSection } from "./CarDocumentsSection";
 import { showAlert } from "../telegram";
 import { ApiError } from "../api";
 
@@ -514,15 +515,29 @@ export function CarFormModal(props: {
         />
       </Field>
 
+      <div className="crm-form-section-label">{t("tracking.documentsTitle")}</div>
+      {isEdit ? (
+        <CarDocumentsSection carId={props.car!.id} embedded />
+      ) : (
+        <p className="crm-form-hint">{t("cars.documentsHintCreate")}</p>
+      )}
+
+      <div className="crm-form-section-label">{t("cars.carPhotosTitle")}</div>
+      <p className="crm-form-hint">{t("cars.carPhotosHint")}</p>
       {!isEdit ? (
         <CarPhotoPicker
           photos={pendingPhotos}
           coverKey={coverKey}
           onPhotosChange={setPendingPhotos}
           onCoverKeyChange={setCoverKey}
+          hideLabel
         />
       ) : (
-        <CarPhotosSection carId={props.car!.id} coverDocumentId={props.car!.coverDocumentId} />
+        <CarPhotosSection
+          carId={props.car!.id}
+          coverDocumentId={props.car!.coverDocumentId}
+          embedded
+        />
       )}
     </Modal>
   );

@@ -9,9 +9,14 @@ import {
 import type { DocumentItem } from "../types";
 import { isCarGalleryPhoto } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
+import { useDocumentImageViewer } from "./useDocumentImageViewer";
 import { confirmAction } from "../telegram";
 
-export function CarPhotosSection(props: { carId: string; coverDocumentId: string | null | undefined }) {
+export function CarPhotosSection(props: {
+  carId: string;
+  coverDocumentId: string | null | undefined;
+  embedded?: boolean;
+}) {
   const { t } = useTranslation();
   const docs = useDocuments("CAR", props.carId);
   const upload = useUploadDocument();
@@ -19,6 +24,7 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
   const save = useSaveCar();
   const fileRef = useRef<HTMLInputElement>(null);
   const [setAsCoverOnUpload, setSetAsCoverOnUpload] = useState(false);
+  const { openDocuments, viewer } = useDocumentImageViewer();
 
   const images = (docs.data ?? []).filter(isCarGalleryPhoto);
 
@@ -49,18 +55,33 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
     );
   }
 
+  function openPhoto(index: number) {
+    openDocuments(
+      images.map((doc) => ({
+        documentId: doc.id,
+        fileName: doc.fileName,
+        alt: doc.fileName,
+      })),
+      index,
+    );
+  }
+
   return (
     <div className="crm-agreement-section">
-      <strong>{t("cars.photos")}</strong>
+      {!props.embedded ? <strong>{t("cars.carPhotosTitle")}</strong> : null}
+      {!props.embedded ? (
+        <p className="crm-form-hint">{t("cars.carPhotosHint")}</p>
+      ) : null}
       {images.length > 0 ? (
         <>
           <p className="crm-form-hint">{t("cars.pickCoverHint")}</p>
           <div className="crm-car-photo-grid">
-            {images.map((doc) => (
+            {images.map((doc, index) => (
               <CarImageTile
                 key={doc.id}
                 doc={doc}
                 isCover={props.coverDocumentId === doc.id}
+                onPreview={() => openPhoto(index)}
                 onSetCover={() => setCover(doc.id)}
                 onDelete={async () => {
                   const ok = await confirmAction(
@@ -110,6 +131,7 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
         + {t("documents.upload")}
       </button>
 
+      {viewer}
     </div>
   );
 }
@@ -117,6 +139,7 @@ export function CarPhotosSection(props: { carId: string; coverDocumentId: string
 function CarImageTile(props: {
   doc: DocumentItem;
   isCover: boolean;
+  onPreview: () => void;
   onSetCover: () => void;
   onDelete: () => void;
   deleting: boolean;
@@ -125,7 +148,7 @@ function CarImageTile(props: {
 
   return (
     <div className={`crm-car-photo-tile${props.isCover ? " crm-car-photo-tile--cover" : ""}`}>
-      <button type="button" className="crm-car-photo-tile__select" onClick={props.onSetCover}>
+      <button type="button" className="crm-car-photo-tile__select" onClick={props.onPreview}>
         <DocumentThumbnail
           documentId={props.doc.id}
           fileName={props.doc.fileName}
@@ -133,6 +156,16 @@ function CarImageTile(props: {
           className="crm-car-photo-tile__img"
         />
         {props.isCover ? <span className="crm-car-photo-tile__badge">{t("cars.coverPhoto")}</span> : null}
+      </button>
+      <button
+        type="button"
+        className={`crm-car-photo-tile__cover-btn${props.isCover ? " crm-car-photo-tile__cover-btn--active" : ""}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          props.onSetCover();
+        }}
+      >
+        {t("cars.coverPhoto")}
       </button>
       <button
         type="button"
@@ -150,4 +183,3 @@ function CarImageTile(props: {
     </div>
   );
 }
-

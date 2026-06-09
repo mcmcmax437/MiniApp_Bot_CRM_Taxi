@@ -14,7 +14,8 @@ import { AppHeader, Icon } from "../components/crm";
 import { DocumentThumbnail } from "../components/DocumentThumbnail";
 import { DocumentFileRow } from "../components/DocumentFileRow";
 import { DocumentMetaModal } from "../components/DocumentMetaModal";
-import { isCarGalleryPhoto, isImageDocument, openDocumentFile } from "../components/documentUtils";
+import { isCarGalleryPhoto, isImageDocument } from "../components/documentUtils";
+import { useDocumentImageViewer } from "../components/useDocumentImageViewer";
 import { confirmAction } from "../telegram";
 
 type Category = "ALL" | DocumentRelatedType;
@@ -42,6 +43,7 @@ export function DocumentsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<{ type: DocumentRelatedType; id: string } | null>(null);
   const [editDoc, setEditDoc] = useState<DocumentItem | null>(null);
+  const { openDocument, openDocuments, viewer } = useDocumentImageViewer();
 
   const docsByEntity = useMemo(() => {
     const map = new Map<string, DocumentItem[]>();
@@ -222,12 +224,21 @@ export function DocumentsPage() {
               <section className="crm-doc-section">
                 <h3 className="crm-doc-section__title">{t("documents.photos")}</h3>
                 <div className="crm-doc-grid">
-                  {imageDocs.map((doc) => (
+                  {imageDocs.map((doc, index) => (
                     <div key={doc.id} className="crm-car-photo-tile">
                       <button
                         type="button"
                         className="crm-car-photo-tile__select"
-                        onClick={() => void openDocumentFile(doc.id, doc.fileName)}
+                        onClick={() =>
+                          openDocuments(
+                            imageDocs.map((d) => ({
+                              documentId: d.id,
+                              fileName: d.fileName,
+                              alt: d.fileName,
+                            })),
+                            index,
+                          )
+                        }
                       >
                         <DocumentThumbnail
                           documentId={doc.id}
@@ -266,7 +277,7 @@ export function DocumentsPage() {
                     <DocumentFileRow
                       key={doc.id}
                       doc={doc}
-                      onOpen={() => void openDocumentFile(doc.id, doc.fileName)}
+                      onOpen={() => openDocument(doc)}
                       onEdit={() => setEditDoc(doc)}
                       onDelete={() => void handleDelete(doc)}
                     />
@@ -299,6 +310,7 @@ export function DocumentsPage() {
         </button>
 
         <DocumentMetaModal doc={editDoc} open={editDoc != null} onClose={() => setEditDoc(null)} />
+        {viewer}
       </div>
     );
   }

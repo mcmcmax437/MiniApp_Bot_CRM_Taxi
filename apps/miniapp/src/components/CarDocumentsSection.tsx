@@ -2,12 +2,12 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDocuments, useUploadDocument, useDeleteDocument } from "../hooks";
 import type { DocumentItem } from "../types";
-import { openDocumentFile } from "./documentUtils";
 import { DocumentFileRow } from "./DocumentFileRow";
 import { DocumentMetaModal } from "./DocumentMetaModal";
+import { useDocumentImageViewer } from "./useDocumentImageViewer";
 import { confirmAction } from "../telegram";
 
-export function CarDocumentsSection(props: { carId: string }) {
+export function CarDocumentsSection(props: { carId: string; embedded?: boolean }) {
   const { t } = useTranslation();
   const docs = useDocuments("CAR", props.carId);
   const upload = useUploadDocument();
@@ -15,6 +15,7 @@ export function CarDocumentsSection(props: { carId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [editDoc, setEditDoc] = useState<DocumentItem | null>(null);
+  const { openDocument, viewer } = useDocumentImageViewer();
 
   const items = (docs.data ?? []).filter((d) => !d.isCarPhoto);
 
@@ -49,9 +50,8 @@ export function CarDocumentsSection(props: { carId: string }) {
     if (ok) del.mutate(doc.id);
   }
 
-  return (
-    <section className="glass-card crm-car-detail-section">
-      <h3 className="crm-car-detail-section__title">{t("tracking.documentsTitle")}</h3>
+  const content = (
+    <>
       <div
         className={`crm-dropzone${dragOver ? " crm-dropzone--active" : ""}`}
         onDragEnter={(e) => {
@@ -98,7 +98,7 @@ export function CarDocumentsSection(props: { carId: string }) {
             <DocumentFileRow
               key={doc.id}
               doc={doc}
-              onOpen={() => void openDocumentFile(doc.id, doc.fileName)}
+              onOpen={() => openDocument(doc)}
               onEdit={() => setEditDoc(doc)}
               onDelete={() => void handleDelete(doc)}
             />
@@ -109,6 +109,18 @@ export function CarDocumentsSection(props: { carId: string }) {
       )}
 
       <DocumentMetaModal doc={editDoc} open={editDoc != null} onClose={() => setEditDoc(null)} />
+      {viewer}
+    </>
+  );
+
+  if (props.embedded) {
+    return <div className="crm-agreement-section">{content}</div>;
+  }
+
+  return (
+    <section className="glass-card crm-car-detail-section">
+      <h3 className="crm-car-detail-section__title">{t("tracking.documentsTitle")}</h3>
+      {content}
     </section>
   );
 }

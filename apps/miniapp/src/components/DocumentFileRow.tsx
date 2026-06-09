@@ -1,5 +1,6 @@
 import type { DocumentItem } from "../types";
 import { documentDisplayName, isImageDocument, isPdfDocument } from "./documentUtils";
+import { DocumentThumbnail } from "./DocumentThumbnail";
 import { formatDate } from "./ui";
 import { SwipeToDelete } from "./SwipeToDelete";
 
@@ -24,9 +25,19 @@ export function DocumentFileRow(props: {
       onDelete={props.onDelete}
     >
       <div className="crm-doc-file">
-        <div className={`crm-doc-file__icon${pdf ? " crm-doc-file__icon--pdf" : isImg ? " crm-doc-file__icon--img" : ""}`}>
-          {pdf ? "PDF" : isImg ? "IMG" : "FILE"}
-        </div>
+        {isImg ? (
+          <div className="crm-doc-file__thumb">
+            <DocumentThumbnail
+              documentId={props.doc.id}
+              fileName={props.doc.fileName}
+              alt={title}
+            />
+          </div>
+        ) : (
+          <div className={`crm-doc-file__icon${pdf ? " crm-doc-file__icon--pdf" : ""}`}>
+            {pdf ? "PDF" : "FILE"}
+          </div>
+        )}
         <div className="crm-doc-file__text">
           <div className="crm-doc-file__name" title={title}>
             {title}

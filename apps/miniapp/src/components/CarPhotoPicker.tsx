@@ -1,6 +1,7 @@
 import { useId, useRef, type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { Field } from "./ui";
+import { useDocumentImageViewer } from "./useDocumentImageViewer";
 
 export interface PendingCarPhoto {
   key: string;
@@ -13,10 +14,12 @@ export function CarPhotoPicker(props: {
   coverKey: string | null;
   onPhotosChange: Dispatch<SetStateAction<PendingCarPhoto[]>>;
   onCoverKeyChange: (key: string | null) => void;
+  hideLabel?: boolean;
 }) {
   const { t } = useTranslation();
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
+  const { openUrl, viewer } = useDocumentImageViewer();
 
   function addFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -51,8 +54,8 @@ export function CarPhotoPicker(props: {
     });
   }
 
-  return (
-    <Field label={t("cars.photos")}>
+  const grid = (
+    <>
       {props.photos.length > 0 ? (
         <>
           <p className="crm-form-hint">{t("cars.pickCoverHint")}</p>
@@ -64,11 +67,21 @@ export function CarPhotoPicker(props: {
                   <button
                     type="button"
                     className="crm-car-photo-tile__select"
-                    onClick={() => props.onCoverKeyChange(photo.key)}
-                    aria-label={t("cars.setAsCover")}
+                    onClick={() => openUrl(photo.previewUrl, t("cars.photo"))}
+                    aria-label={t("cars.photo")}
                   >
                     <img src={photo.previewUrl} alt="" className="crm-car-photo-tile__img" />
                     {isCover ? <span className="crm-car-photo-tile__badge">{t("cars.coverPhoto")}</span> : null}
+                  </button>
+                  <button
+                    type="button"
+                    className={`crm-car-photo-tile__cover-btn${isCover ? " crm-car-photo-tile__cover-btn--active" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      props.onCoverKeyChange(photo.key);
+                    }}
+                  >
+                    {t("cars.coverPhoto")}
                   </button>
                   <button
                     type="button"
@@ -100,6 +113,13 @@ export function CarPhotoPicker(props: {
           onChange={(e) => addFiles(e.target.files)}
         />
       </div>
-    </Field>
+      {viewer}
+    </>
   );
+
+  if (props.hideLabel) {
+    return <div className="crm-agreement-section">{grid}</div>;
+  }
+
+  return <Field label={t("cars.photos")}>{grid}</Field>;
 }
