@@ -958,7 +958,7 @@ body {
 .crm-confirm-overlay {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 700;
   display: grid;
   place-items: center;
   padding: 24px;
