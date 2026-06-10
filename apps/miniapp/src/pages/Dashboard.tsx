@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useBalances, useMe, useReminders, useReport, useSetCurrency, useSetLocale } from "../hooks";
+import { useBalances, useCars, useMe, useReminders, useReport, useSetCurrency, useSetLocale } from "../hooks";
 import { CURRENCY_OPTIONS } from "../currency";
 import type { Currency } from "@taxi/shared";
 import { formatMoney } from "../components/ui";
 import { ImportSection } from "../components/ImportSection";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
-import { FleetMembersCard } from "../components/FleetMembersCard";
 import { useReadOnly } from "../readOnly";
 import { ReminderList } from "../components/ReminderList";
 import { RecentActivitySection } from "../components/RecentActivitySection";
@@ -20,14 +19,20 @@ import {
   type DashboardStatsPeriod,
 } from "../components/crm";
 import i18n from "../i18n";
+import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
 import { closeTelegramApp } from "../telegram";
 
 const STATS_PERIOD_KEY = "dashboard-stats-period";
+const STATS_CAR_KEY = "dashboard-stats-car";
 
 function formatRoi(percent: number | null | undefined): string {
   if (percent == null) return "—";
   const sign = percent > 0 ? "+" : "";
   return `${sign}${percent.toFixed(1)}%`;
+}
+
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
 function todayIso(): string {
@@ -49,30 +54,74 @@ function loadStatsPeriod(): DashboardStatsPeriod {
   return stored === "month" ? "month" : "all";
 }
 
+function loadStatsCarId(): string {
+  return localStorage.getItem(STATS_CAR_KEY) ?? "";
+}
+
+function carLabel(plate: string, make?: string | null, model?: string | null): string {
+  const name = [make, model].filter(Boolean).join(" ");
+  return [plate, name].filter(Boolean).join(" · ");
+}
+
 export function Dashboard() {
   const { t } = useTranslation();
   const readOnly = useReadOnly();
   const navigate = useNavigate();
   const [statsPeriod, setStatsPeriod] = useState<DashboardStatsPeriod>(loadStatsPeriod);
+  const [statsCarId, setStatsCarId] = useState(loadStatsCarId);
   const reportRange = useMemo(() => reportDateRange(statsPeriod), [statsPeriod]);
   const report = useReport(reportRange.from, reportRange.to);
+  const cars = useCars();
   const reminders = useReminders();
   const balances = useBalances();
   const me = useMe();
   const setLocale = useSetLocale();
   const setCurrency = useSetCurrency();
 
+  const stats = useMemo(() => {
+    if (!report.data) {
+      return {
+        income: 0,
+        expenses: 0,
+        profit: 0,
+        roiPercent: null as number | null,
+        totalInvestment: 0,
+      };
+    }
+
+    if (!statsCarId) {
+      return {
+        income: report.data.income,
+        expenses: report.data.expenses,
+        profit: report.data.profit,
+        roiPercent: report.data.roiPercent,
+        totalInvestment: report.data.totalInvestment,
+      };
+    }
+
+    const carRow = report.data.byCar.find((row) => row.carId === statsCarId);
+    const car = cars.data?.find((c) => c.id === statsCarId);
+    const income = carRow?.income ?? 0;
+    const expenses = carRow?.expenses ?? 0;
+    const profit = carRow?.profit ?? round2(income - expenses);
+    const totalInvestment =
+      car?.purchasePrice != null && car.purchasePrice > 0 ? round2(car.purchasePrice) : 0;
+    const roiPercent = totalInvestment > 0 ? round2((profit / totalInvestment) * 100) : null;
+
+    return { income, expenses, profit, roiPercent, totalInvestment };
+  }, [report.data, statsCarId, cars.data]);
+
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
-  const income = formatMoney(report.data?.income ?? 0);
-  const expenses = formatMoney(report.data?.expenses ?? 0);
-  const profit = formatMoney(report.data?.profit ?? 0);
-  const roi = formatRoi(report.data?.roiPercent);
+  const income = formatMoney(stats.income);
+  const expenses = formatMoney(stats.expenses);
+  const profit = formatMoney(stats.profit);
+  const roi = formatRoi(stats.roiPercent);
   const periodSuffix =
     statsPeriod === "month" ? t("dashboard.monthSuffix") : t("dashboard.allTimeSuffix");
   const roiHint =
-    report.data && report.data.totalInvestment > 0
+    stats.totalInvestment > 0
       ? t(statsPeriod === "month" ? "dashboard.roiHint" : "dashboard.roiHintAllTime", {
-          investment: formatMoney(report.data.totalInvestment),
+          investment: formatMoney(stats.totalInvestment),
         })
       : t("dashboard.roiNoInvestment");
 
@@ -81,12 +130,14 @@ export function Dashboard() {
     localStorage.setItem(STATS_PERIOD_KEY, period);
   }
 
-  const localeOptions = [
-    { value: "uk" as const, label: "Українська" },
-    { value: "ru" as const, label: "Русский" },
-    { value: "en" as const, label: "English" },
-  ];
-  const currentLocale = localeOptions.find((o) => o.value === i18n.language)?.label ?? "English";
+  function onStatsCarChange(carId: string) {
+    setStatsCarId(carId);
+    if (carId) localStorage.setItem(STATS_CAR_KEY, carId);
+    else localStorage.removeItem(STATS_CAR_KEY);
+  }
+
+  const currentLocale =
+    LOCALE_OPTIONS.find((o) => o.value === normalizeLocale(i18n.language))?.label ?? "English";
   const activeCurrency = me.data?.currency ?? "UAH";
   const currentCurrency =
     CURRENCY_OPTIONS.find((o) => o.value === activeCurrency)?.symbol ?? activeCurrency;
@@ -95,7 +146,22 @@ export function Dashboard() {
     <div className="crm-page">
       <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
 
-      <div className="crm-stat-period-bar">
+      <div className="crm-stat-filters">
+        <label className="crm-stat-car-filter">
+          <span className="crm-stat-car-filter__label">{t("dashboard.filterCar")}</span>
+          <select
+            className="crm-stat-car-filter__select"
+            value={statsCarId}
+            onChange={(e) => onStatsCarChange(e.target.value)}
+          >
+            <option value="">{t("dashboard.allCars")}</option>
+            {(cars.data ?? []).map((car) => (
+              <option key={car.id} value={car.id}>
+                {carLabel(car.plate, car.make, car.model)}
+              </option>
+            ))}
+          </select>
+        </label>
         <StatPeriodToggle
           value={statsPeriod}
           onChange={onStatsPeriodChange}
@@ -206,8 +272,6 @@ export function Dashboard() {
         )}
       </SectionCard>
 
-      {!readOnly ? <FleetMembersCard /> : null}
-
       {!readOnly ? <ReminderSettingsCard /> : null}
 
       {!readOnly ? <ImportSection /> : null}
@@ -221,15 +285,15 @@ export function Dashboard() {
         <label className="crm-language">
           <select
             className="crm-language__select"
-            value={i18n.language}
+            value={normalizeLocale(i18n.language)}
             onChange={(e) => {
-              const v = e.target.value as "uk" | "ru" | "en";
+              const v = e.target.value as AppLocale;
               void i18n.changeLanguage(v);
               localStorage.setItem("locale", v);
               setLocale.mutate(v);
             }}
           >
-            {localeOptions.map((o) => (
+            {LOCALE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
@@ -242,49 +306,54 @@ export function Dashboard() {
 
       {!readOnly && !me.data?.isSuperAdmin ? (
         <>
-      <SectionCard
-        storageKey="currency"
-        defaultOpen={false}
-        title={t("settings.currency")}
-        icon={<Icon name="dollar-01" size={24} color="var(--taxi-text-muted)" />}
-      >
-        <label className="crm-language">
-          <select
-            className="crm-language__select"
-            value={activeCurrency}
-            onChange={(e) => {
-              const v = e.target.value as Currency;
-              setCurrency.mutate(v);
-            }}
+          <SectionCard
+            storageKey="currency"
+            defaultOpen={false}
+            title={t("settings.currency")}
+            icon={<Icon name="dollar-01" size={24} color="var(--taxi-text-muted)" />}
           >
-            {CURRENCY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {t(o.nameKey)} ({o.symbol})
-              </option>
-            ))}
-          </select>
-          <span className="crm-language__label crm-currency-picker__value" aria-label={t(CURRENCY_OPTIONS.find((o) => o.value === activeCurrency)?.nameKey ?? "currency.UAH")}>
-            {currentCurrency}
-          </span>
-          <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
-        </label>
-      </SectionCard>
+            <label className="crm-language">
+              <select
+                className="crm-language__select"
+                value={activeCurrency}
+                onChange={(e) => {
+                  const v = e.target.value as Currency;
+                  setCurrency.mutate(v);
+                }}
+              >
+                {CURRENCY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {t(o.nameKey)} ({o.symbol})
+                  </option>
+                ))}
+              </select>
+              <span
+                className="crm-language__label crm-currency-picker__value"
+                aria-label={t(
+                  CURRENCY_OPTIONS.find((o) => o.value === activeCurrency)?.nameKey ?? "currency.UAH",
+                )}
+              >
+                {currentCurrency}
+              </span>
+              <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
+            </label>
+          </SectionCard>
 
-      <SectionCard
-        storageKey="logout"
-        defaultOpen={false}
-        title={t("settings.account")}
-        icon={<Icon name="user" size={24} color="var(--taxi-text-muted)" />}
-      >
-        <p className="crm-form-hint">{t("settings.logoutHint")}</p>
-        <button
-          type="button"
-          className="crm-btn-outline crm-logout-btn"
-          onClick={() => closeTelegramApp()}
-        >
-          {t("settings.logout")}
-        </button>
-      </SectionCard>
+          <SectionCard
+            storageKey="logout"
+            defaultOpen={false}
+            title={t("settings.account")}
+            icon={<Icon name="user" size={24} color="var(--taxi-text-muted)" />}
+          >
+            <p className="crm-form-hint">{t("settings.logoutHint")}</p>
+            <button
+              type="button"
+              className="crm-btn-outline crm-logout-btn"
+              onClick={() => closeTelegramApp()}
+            >
+              {t("settings.logout")}
+            </button>
+          </SectionCard>
         </>
       ) : null}
     </div>

@@ -17,7 +17,7 @@ export function Layout(props: { isSuperAdmin: boolean; isViewer?: boolean }) {
           <Outlet />
         </MoneyRefreshBoundary>
       </div>
-      <BottomNav isSuperAdmin={props.isSuperAdmin} />
+      <BottomNav isViewer={Boolean(props.isViewer)} />
     </div>
   );
 }

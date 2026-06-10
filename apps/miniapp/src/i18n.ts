@@ -106,6 +106,8 @@ const en = {
     periodMonth: "Month",
     allTimeSuffix: "(all time)",
     monthSuffix: "(month)",
+    allCars: "All cars",
+    filterCar: "Car",
     viewAll: "View all",
     caughtUp: "You're all caught up!",
     settledSubtitle: "Great! No pending payments.",
@@ -721,6 +723,8 @@ const uk: Resources = {
     periodMonth: "Місяць",
     allTimeSuffix: "(весь час)",
     monthSuffix: "(місяць)",
+    allCars: "Усі авто",
+    filterCar: "Авто",
     viewAll: "Дивитись усі",
     caughtUp: "Усе під контролем!",
     settledSubtitle: "Чудово! Немає неоплачених платежів.",
@@ -1334,6 +1338,8 @@ const ru: Resources = {
     periodMonth: "Месяц",
     allTimeSuffix: "(всё время)",
     monthSuffix: "(месяц)",
+    allCars: "Все авто",
+    filterCar: "Авто",
     viewAll: "Смотреть все",
     caughtUp: "Всё под контролем!",
     settledSubtitle: "Отлично! Нет неоплаченных платежей.",
@@ -1843,13 +1849,14 @@ const ru: Resources = {
   },
 };
 
-function pickInitialLocale(): "uk" | "ru" | "en" {
+function pickInitialLocale(): "uk" | "en" {
   const stored = localStorage.getItem("locale");
-  if (stored === "uk" || stored === "ru" || stored === "en") return stored;
+  if (stored === "en") return "en";
+  if (stored === "ru") return "uk";
+  if (stored === "uk") return "uk";
   const code = (getTelegramLocale() ?? "uk").toLowerCase();
-  if (code.startsWith("ru")) return "ru";
-  if (code.startsWith("uk")) return "uk";
-  return "en";
+  if (code.startsWith("en")) return "en";
+  return "uk";
 }
 
 void i18n.use(initReactI18next).init({

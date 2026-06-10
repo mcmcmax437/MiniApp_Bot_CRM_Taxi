@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Icon, type IconName } from "./crm";
 
-export function BottomNav({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+export function BottomNav(props: { isViewer: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,7 +15,7 @@ export function BottomNav({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     { id: "/finance", label: t("nav.finance"), icon: "dollar-01" },
     { id: "/reports", label: t("nav.reports"), icon: "clipboard" },
   ];
-  if (isSuperAdmin) tabs.push({ id: "/admin", label: t("nav.admin"), icon: "settings-01" });
+  if (!props.isViewer) tabs.push({ id: "/admin", label: t("nav.admin"), icon: "settings-01" });
 
   const current = "/" + (location.pathname.split("/")[1] ?? "");
 

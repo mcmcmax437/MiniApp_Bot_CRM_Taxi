@@ -5,6 +5,7 @@ import { ApiError } from "../api";
 import { useRegisterAsOwner, useRequestFleetAccess, useSetLocale } from "../hooks";
 import { Icon } from "./crm";
 import { Field, TextInput } from "./ui";
+import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
 
 type AuthVariant = "login" | "chooseRole" | "ownerPending" | "viewerPending" | "suspended";
 type AccountRole = "owner" | "investor";
@@ -27,12 +28,6 @@ function requestErrorKey(code: string | undefined): string {
       return "common.error";
   }
 }
-
-const LOCALE_OPTIONS = [
-  { value: "uk" as const, label: "Українська" },
-  { value: "ru" as const, label: "Русский" },
-  { value: "en" as const, label: "English" },
-];
 
 export function AuthScreen(props: {
   variant: AuthVariant;
@@ -93,7 +88,7 @@ export function AuthScreen(props: {
     });
   }
 
-  function changeLanguage(value: "uk" | "ru" | "en") {
+  function changeLanguage(value: AppLocale) {
     void i18n.changeLanguage(value);
     localStorage.setItem("locale", value);
     setLocale.mutate(value);
@@ -120,8 +115,8 @@ export function AuthScreen(props: {
               <label className="crm-language crm-auth-language">
                 <select
                   className="crm-language__select"
-                  value={i18n.language}
-                  onChange={(e) => changeLanguage(e.target.value as "uk" | "ru" | "en")}
+                  value={normalizeLocale(i18n.language)}
+                  onChange={(e) => changeLanguage(e.target.value as AppLocale)}
                 >
                   {LOCALE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -130,7 +125,8 @@ export function AuthScreen(props: {
                   ))}
                 </select>
                 <span className="crm-language__label">
-                  {LOCALE_OPTIONS.find((o) => o.value === i18n.language)?.label ?? "English"}
+                  {LOCALE_OPTIONS.find((o) => o.value === normalizeLocale(i18n.language))?.label ??
+                    "English"}
                 </span>
               </label>
             </Field>

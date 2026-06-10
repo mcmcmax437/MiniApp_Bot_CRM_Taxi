@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
+import { normalizeLocale } from "./locales";
 import { useMe } from "./hooks";
 import { setAppCurrency } from "./currency";
 import type { Currency } from "@taxi/shared";
@@ -24,8 +25,11 @@ export function App() {
   const me = useMe();
 
   useEffect(() => {
-    if (me.data?.locale && me.data.locale !== i18n.language) {
-      void i18n.changeLanguage(me.data.locale);
+    if (me.data?.locale) {
+      const locale = normalizeLocale(me.data.locale);
+      if (locale !== i18n.language) {
+        void i18n.changeLanguage(locale);
+      }
     }
   }, [me.data?.locale]);
 
@@ -85,7 +89,9 @@ export function App() {
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="finance" element={<FinancePage />} />
           <Route path="reports" element={<ReportsPage />} />
-          {account.isSuperAdmin && <Route path="admin" element={<AdminPage />} />}
+          {!account.isViewer ? (
+            <Route path="admin" element={<AdminPage isSuperAdmin={account.isSuperAdmin} />} />
+          ) : null}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

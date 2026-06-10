@@ -179,10 +179,42 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.crm-stat-period-bar {
+.crm-stat-period-bar,
+.crm-stat-filters {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 8px;
+}
+
+.crm-stat-car-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.crm-stat-car-filter__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--taxi-text-muted);
+}
+
+.crm-stat-car-filter__select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+  background: rgba(8, 18, 31, 0.65);
+}
+
+.crm-stat-period-bar {
+  justify-content: flex-end;
 }
 
 .crm-period-toggle {
