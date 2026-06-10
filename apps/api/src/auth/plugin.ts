@@ -10,6 +10,13 @@ declare module "fastify" {
     fleetMember?: FleetMember;
     isSuperAdmin?: boolean;
     isViewer?: boolean;
+    unregistered?: boolean;
+    telegramUser?: {
+      id: bigint;
+      name: string | null;
+      username: string | null;
+      languageCode?: string;
+    };
   }
 }
 
@@ -88,6 +95,13 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
   const name = fullNameOf(tgUser) || tgUser.username || null;
   const superAdmin = isSuperAdmin(tgUser.id);
 
+  req.telegramUser = {
+    id: tgUser.id,
+    name,
+    username: tgUser.username ?? null,
+    languageCode: tgUser.language_code,
+  };
+
   const owner = await prisma.owner.findUnique({ where: { telegramUserId: tgUser.id } });
   const membership = await prisma.fleetMember.findFirst({
     where: { telegramUserId: tgUser.id },
@@ -151,17 +165,7 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply): Pr
     return;
   }
 
-  const created = await prisma.owner.create({
-    data: {
-      telegramUserId: tgUser.id,
-      name,
-      username: tgUser.username ?? null,
-      locale: deriveLocale(tgUser.language_code),
-      status: superAdmin ? "ACTIVE" : "PENDING",
-    },
-  });
-  req.owner = created;
-  req.isSuperAdmin = isSuperAdmin(created.telegramUserId);
+  req.unregistered = true;
 }
 
 /** Require an authenticated, ACTIVE account (owner or approved viewer). */

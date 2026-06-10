@@ -20,6 +20,7 @@ import {
   type DashboardStatsPeriod,
 } from "../components/crm";
 import i18n from "../i18n";
+import { closeTelegramApp } from "../telegram";
 
 const STATS_PERIOD_KEY = "dashboard-stats-period";
 
@@ -211,7 +212,35 @@ export function Dashboard() {
 
       {!readOnly ? <ImportSection /> : null}
 
-      {!readOnly ? (
+      <SectionCard
+        storageKey="language"
+        defaultOpen={false}
+        title={t("settings.language")}
+        icon={<Icon name="globe" size={24} color="var(--taxi-text-muted)" />}
+      >
+        <label className="crm-language">
+          <select
+            className="crm-language__select"
+            value={i18n.language}
+            onChange={(e) => {
+              const v = e.target.value as "uk" | "ru" | "en";
+              void i18n.changeLanguage(v);
+              localStorage.setItem("locale", v);
+              setLocale.mutate(v);
+            }}
+          >
+            {localeOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <span className="crm-language__label">{currentLocale}</span>
+          <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
+        </label>
+      </SectionCard>
+
+      {!readOnly && !me.data?.isSuperAdmin ? (
         <>
       <SectionCard
         storageKey="currency"
@@ -242,31 +271,19 @@ export function Dashboard() {
       </SectionCard>
 
       <SectionCard
-        storageKey="language"
+        storageKey="logout"
         defaultOpen={false}
-        title={t("settings.language")}
-        icon={<Icon name="globe" size={24} color="var(--taxi-text-muted)" />}
+        title={t("settings.account")}
+        icon={<Icon name="user" size={24} color="var(--taxi-text-muted)" />}
       >
-        <label className="crm-language">
-          <select
-            className="crm-language__select"
-            value={i18n.language}
-            onChange={(e) => {
-              const v = e.target.value as "uk" | "ru" | "en";
-              void i18n.changeLanguage(v);
-              localStorage.setItem("locale", v);
-              setLocale.mutate(v);
-            }}
-          >
-            {localeOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <span className="crm-language__label">{currentLocale}</span>
-          <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
-        </label>
+        <p className="crm-form-hint">{t("settings.logoutHint")}</p>
+        <button
+          type="button"
+          className="crm-btn-outline crm-logout-btn"
+          onClick={() => closeTelegramApp()}
+        >
+          {t("settings.logout")}
+        </button>
       </SectionCard>
         </>
       ) : null}

@@ -56,6 +56,10 @@ export function App() {
 
   const account = me.data!;
 
+  if (account.needsOnboarding) {
+    return <AuthScreen variant="chooseRole" telegramUserId={account.telegramUserId} />;
+  }
+
   if (!account.isSuperAdmin && account.status !== "ACTIVE") {
     const suspended = account.status === "SUSPENDED";
     return (

@@ -3850,6 +3850,57 @@ div.crm-finance-item {
   text-align: left;
 }
 
+.crm-auth-role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: min(320px, 100%);
+}
+
+.crm-auth-role-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.crm-auth-role-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.crm-auth-role-btn--active {
+  border-color: var(--taxi-accent, #ffc107);
+  background: rgba(255, 193, 7, 0.08);
+}
+
+.crm-auth-role-btn__title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.crm-auth-role-btn__hint {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--taxi-text-muted);
+}
+
+.crm-auth-language {
+  width: 100%;
+}
+
+.crm-logout-btn {
+  width: 100%;
+}
+
 .crm-auth-screen__success {
   margin: 0;
   color: var(--taxi-accent);

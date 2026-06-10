@@ -88,6 +88,15 @@ function syncDocumentTheme(): void {
   tg.setBackgroundColor?.(secondary);
 }
 
+/** Close the Telegram Mini App (when supported). */
+export function closeTelegramApp(): void {
+  try {
+    tg?.close?.();
+  } catch {
+    /* noop */
+  }
+}
+
 /** initData string used to authenticate API requests. */
 export function getInitData(): string {
   return tg?.initData ?? "";

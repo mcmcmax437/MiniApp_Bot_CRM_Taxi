@@ -612,6 +612,14 @@ export function useRequestFleetAccess() {
   });
 }
 
+export function useRegisterAsOwner() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch("/auth/register-owner", { method: "POST" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["me"] }),
+  });
+}
+
 // --- Admin ------------------------------------------------------------------
 export function useOwners(enabled: boolean) {
   return useQuery({

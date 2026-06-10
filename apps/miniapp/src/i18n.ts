@@ -45,6 +45,15 @@ const en = {
   auth: {
     loginTitle: "Sign in to TaxiCRM",
     loginText: "Open this app from the Telegram bot to sign in securely.",
+    chooseRoleTitle: "Welcome to TaxiCRM",
+    chooseRoleText: "Choose how you want to use the app, then send your access request.",
+    roleOwnerTitle: "Fleet owner",
+    roleOwnerHint: "Manage your taxi fleet, drivers, and finances.",
+    roleInvestorTitle: "Investor",
+    roleInvestorHint: "View fleet data in read-only mode.",
+    roleOwnerRequestHint: "Your request goes to the super-admin for approval.",
+    requestBusinessAccess: "Request business account",
+    switchToInvestorTitle: "Not a fleet owner?",
     registerTitle: "Registration submitted",
     registerText: "Your business account is waiting for super-admin approval.",
     registerHint: "Share your Telegram ID with the administrator if approval is delayed.",
@@ -60,6 +69,8 @@ const en = {
       alreadyRequested: "You already requested access to this fleet.",
       cannotRequestSelf: "You cannot request access to your own account.",
       alreadyViewer: "You already have investor access.",
+      alreadyOwner: "You already have an active business account.",
+      alreadyInvestor: "You already have an investor access request.",
     },
   },
   team: {
@@ -591,6 +602,9 @@ const en = {
   settings: {
     language: "Language",
     currency: "Currency",
+    account: "Account",
+    logout: "Close app",
+    logoutHint: "Close TaxiCRM and return to Telegram.",
   },
   currency: {
     UAH: "Ukrainian hryvnia",
@@ -646,6 +660,15 @@ const uk: Resources = {
   auth: {
     loginTitle: "Вхід у TaxiCRM",
     loginText: "Відкрийте застосунок через Telegram-бота для безпечного входу.",
+    chooseRoleTitle: "Ласкаво просимо до TaxiCRM",
+    chooseRoleText: "Оберіть, як ви хочете користуватися застосунком, і надішліть запит на доступ.",
+    roleOwnerTitle: "Власник автопарку",
+    roleOwnerHint: "Керуйте автопарком, водіями та фінансами.",
+    roleInvestorTitle: "Інвестор",
+    roleInvestorHint: "Перегляд даних автопарку без можливості змін.",
+    roleOwnerRequestHint: "Запит надсилається супер-адміну на схвалення.",
+    requestBusinessAccess: "Запросити бізнес-акаунт",
+    switchToInvestorTitle: "Не власник автопарку?",
     registerTitle: "Реєстрацію надіслано",
     registerText: "Ваш бізнес-акаунт очікує схвалення супер-адміна.",
     registerHint: "Надішліть свій Telegram ID адміністратору, якщо схвалення затримується.",
@@ -661,6 +684,8 @@ const uk: Resources = {
       alreadyRequested: "Ви вже надіслали запит на доступ до цього автопарку.",
       cannotRequestSelf: "Не можна запросити доступ до власного акаунта.",
       alreadyViewer: "У вас уже є доступ інвестора.",
+      alreadyOwner: "У вас уже є активний бізнес-акаунт.",
+      alreadyInvestor: "У вас уже є запит на доступ інвестора.",
     },
   },
   team: {
@@ -1192,6 +1217,9 @@ const uk: Resources = {
   settings: {
     language: "Мова",
     currency: "Валюта",
+    account: "Акаунт",
+    logout: "Закрити застосунок",
+    logoutHint: "Закрити TaxiCRM і повернутися до Telegram.",
   },
   currency: {
     UAH: "Українська гривня",
@@ -1245,6 +1273,15 @@ const ru: Resources = {
   auth: {
     loginTitle: "Вход в TaxiCRM",
     loginText: "Откройте приложение через Telegram-бота для безопасного входа.",
+    chooseRoleTitle: "Добро пожаловать в TaxiCRM",
+    chooseRoleText: "Выберите, как вы хотите использовать приложение, и отправьте запрос на доступ.",
+    roleOwnerTitle: "Владелец автопарка",
+    roleOwnerHint: "Управление автопарком, водителями и финансами.",
+    roleInvestorTitle: "Инвестор",
+    roleInvestorHint: "Просмотр данных автопарка без возможности изменений.",
+    roleOwnerRequestHint: "Запрос отправляется супер-админу на одобрение.",
+    requestBusinessAccess: "Запросить бизнес-аккаунт",
+    switchToInvestorTitle: "Не владелец автопарка?",
     registerTitle: "Регистрация отправлена",
     registerText: "Ваш бизнес-аккаунт ожидает одобрения супер-админа.",
     registerHint: "Отправьте свой Telegram ID администратору, если одобрение задерживается.",
@@ -1260,6 +1297,8 @@ const ru: Resources = {
       alreadyRequested: "Вы уже отправили запрос на доступ к этому автопарку.",
       cannotRequestSelf: "Нельзя запросить доступ к своему аккаунту.",
       alreadyViewer: "У вас уже есть доступ инвестора.",
+      alreadyOwner: "У вас уже есть активный бизнес-аккаунт.",
+      alreadyInvestor: "У вас уже есть запрос на доступ инвестора.",
     },
   },
   team: {
@@ -1791,6 +1830,9 @@ const ru: Resources = {
   settings: {
     language: "Язык",
     currency: "Валюта",
+    account: "Аккаунт",
+    logout: "Закрыть приложение",
+    logoutHint: "Закрыть TaxiCRM и вернуться в Telegram.",
   },
   currency: {
     UAH: "Украинская гривна",

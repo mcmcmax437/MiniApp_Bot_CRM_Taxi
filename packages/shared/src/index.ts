@@ -506,7 +506,8 @@ export interface MeResponse {
   name: string | null;
   username: string | null;
   status: OwnerStatus;
-  role: "owner" | "viewer";
+  role: "owner" | "viewer" | "none";
+  needsOnboarding: boolean;
   isViewer: boolean;
   fleetOwnerName: string | null;
   locale: Locale;
