@@ -24,7 +24,9 @@ import {
   FinanceList,
   FinanceListItem,
   financeInPeriod,
+  sortFinanceByDate,
   type FinancePeriod,
+  type FinanceDateSort,
 } from "./FinanceUi";
 import { useReadOnly } from "../../readOnly";
 
@@ -40,6 +42,8 @@ export function TaxesTab() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [periodOpen, setPeriodOpen] = useState(false);
+  const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
+  const [sortOpen, setSortOpen] = useState(false);
   const [form, setForm] = useState<{
     carId: string;
     amount: number | "";
@@ -65,13 +69,14 @@ export function TaxesTab() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return taxItems.filter((e) => {
+    const list = taxItems.filter((e) => {
       if (!financeInPeriod(e.date, period)) return false;
       if (!q) return true;
       const hay = `${e.car?.plate ?? ""} ${e.note ?? ""} ${e.amount}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [taxItems, period, search]);
+    return sortFinanceByDate(list, dateSort, (e) => e.date);
+  }, [taxItems, period, search, dateSort]);
 
   function openCreate() {
     setEditId(null);
@@ -136,6 +141,10 @@ export function TaxesTab() {
         onPeriodChange={setPeriod}
         periodOpen={periodOpen}
         onPeriodOpenChange={setPeriodOpen}
+        dateSort={dateSort}
+        onDateSortChange={setDateSort}
+        sortOpen={sortOpen}
+        onSortOpenChange={setSortOpen}
       />
 
       {!expenses.isLoading && filtered.length === 0 ? (

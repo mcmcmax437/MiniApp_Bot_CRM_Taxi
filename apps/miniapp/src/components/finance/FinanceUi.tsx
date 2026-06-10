@@ -119,6 +119,19 @@ export function FinanceStatsRow(props: { children: ReactNode }) {
 
 export type FinancePeriod = "all" | "month" | "year";
 
+export type FinanceDateSort = "newest" | "oldest";
+
+export function sortFinanceByDate<T>(
+  items: T[],
+  sort: FinanceDateSort,
+  getDate: (item: T) => string,
+): T[] {
+  return [...items].sort((a, b) => {
+    const diff = new Date(getDate(b)).getTime() - new Date(getDate(a)).getTime();
+    return sort === "newest" ? diff : -diff;
+  });
+}
+
 export function FinanceSearchRow(props: {
   search: string;
   onSearchChange: (v: string) => void;
@@ -127,6 +140,10 @@ export function FinanceSearchRow(props: {
   onPeriodChange: (v: FinancePeriod) => void;
   periodOpen: boolean;
   onPeriodOpenChange: (v: boolean) => void;
+  dateSort?: FinanceDateSort;
+  onDateSortChange?: (v: FinanceDateSort) => void;
+  sortOpen?: boolean;
+  onSortOpenChange?: (v: boolean) => void;
   filterLabel?: string;
   filterActive?: boolean;
   onFilterClick?: () => void;
@@ -134,6 +151,7 @@ export function FinanceSearchRow(props: {
 }) {
   const { t } = useTranslation();
   const periods: FinancePeriod[] = ["all", "month", "year"];
+  const dateSorts: FinanceDateSort[] = ["newest", "oldest"];
 
   return (
     <div className="crm-finance-filters">
@@ -151,7 +169,10 @@ export function FinanceSearchRow(props: {
         <button
           type="button"
           className={`crm-finance-filter-btn${props.period !== "all" ? " crm-finance-filter-btn--active" : ""}`}
-          onClick={() => props.onPeriodOpenChange(!props.periodOpen)}
+          onClick={() => {
+            props.onSortOpenChange?.(false);
+            props.onPeriodOpenChange(!props.periodOpen);
+          }}
         >
           <Icon name="calendar-01" size={18} color="rgba(255,255,255,0.7)" />
           <span className="crm-finance-filter-btn__label">{t("finance.period")}</span>
@@ -176,12 +197,50 @@ export function FinanceSearchRow(props: {
         ) : null}
       </div>
 
+      {props.onDateSortChange ? (
+        <div className="crm-filter-wrap">
+          <button
+            type="button"
+            className={`crm-finance-filter-btn${props.dateSort !== "newest" ? " crm-finance-filter-btn--active" : ""}`}
+            onClick={() => {
+              props.onPeriodOpenChange(false);
+              props.onSortOpenChange?.(!props.sortOpen);
+            }}
+          >
+            <Icon name="clock-01" size={18} color="rgba(255,255,255,0.7)" />
+            <span className="crm-finance-filter-btn__label">{t("finance.sortByDate")}</span>
+            <Icon name="arrow-down-01" size={16} color="rgba(255,255,255,0.5)" />
+          </button>
+          {props.sortOpen ? (
+            <div className="crm-filter-menu crm-finance-period-menu">
+              {dateSorts.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={`crm-filter-menu__item${props.dateSort === s ? " crm-filter-menu__item--active" : ""}`}
+                  onClick={() => {
+                    props.onDateSortChange?.(s);
+                    props.onSortOpenChange?.(false);
+                  }}
+                >
+                  {t(`finance.dateSort_${s}`)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {props.onFilterClick ? (
         <div className="crm-filter-wrap">
           <button
             type="button"
             className={`crm-finance-filter-btn${props.filterActive ? " crm-finance-filter-btn--active" : ""}`}
-            onClick={props.onFilterClick}
+            onClick={() => {
+              props.onPeriodOpenChange(false);
+              props.onSortOpenChange?.(false);
+              props.onFilterClick?.();
+            }}
           >
             <Icon name="filter" size={18} color="rgba(255,255,255,0.7)" />
             <span className="crm-finance-filter-btn__label">{props.filterLabel ?? t("finance.filter")}</span>

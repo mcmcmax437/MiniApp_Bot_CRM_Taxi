@@ -40,8 +40,10 @@ import {
   FinanceListItem,
   PartnerAlertMark,
   financeInPeriod,
+  sortFinanceByDate,
   type FinanceTabId,
   type FinancePeriod,
+  type FinanceDateSort,
 } from "../components/finance/FinanceUi";
 import {
   expenseDisplaySubtitle,
@@ -86,6 +88,8 @@ function PaymentsTab() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [periodOpen, setPeriodOpen] = useState(false);
+  const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
+  const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<PaymentType | "ALL">("ALL");
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean }>({});
@@ -115,14 +119,15 @@ function PaymentsTab() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return all.filter((p) => {
+    const list = all.filter((p) => {
       if (!financeInPeriod(p.date, period)) return false;
       if (typeFilter !== "ALL" && p.type !== typeFilter) return false;
       if (!q) return true;
       const hay = `${p.driver?.fullName ?? ""} ${p.note ?? ""} ${p.amount}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [all, period, search, typeFilter]);
+    return sortFinanceByDate(list, dateSort, (p) => p.date);
+  }, [all, period, search, typeFilter, dateSort]);
 
   function openCreate() {
     setEditId(null);
@@ -222,6 +227,10 @@ function PaymentsTab() {
         onPeriodChange={setPeriod}
         periodOpen={periodOpen}
         onPeriodOpenChange={setPeriodOpen}
+        dateSort={dateSort}
+        onDateSortChange={setDateSort}
+        sortOpen={sortOpen}
+        onSortOpenChange={setSortOpen}
         filterActive={typeFilter !== "ALL"}
         onFilterClick={() => setFilterOpen((v) => !v)}
         filterMenu={
@@ -313,6 +322,8 @@ function ExpensesTab() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [periodOpen, setPeriodOpen] = useState(false);
+  const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
+  const [sortOpen, setSortOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [form, setForm] = useState<{
     carId: string;
@@ -351,13 +362,14 @@ function ExpensesTab() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return all.filter((e) => {
+    const list = all.filter((e) => {
       if (!financeInPeriod(e.date, period)) return false;
       if (!q) return true;
       const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [all, period, search, t]);
+    return sortFinanceByDate(list, dateSort, (e) => e.date);
+  }, [all, period, search, t, dateSort]);
 
   function openCreate() {
     setEditId(null);
@@ -451,6 +463,10 @@ function ExpensesTab() {
         onPeriodChange={setPeriod}
         periodOpen={periodOpen}
         onPeriodOpenChange={setPeriodOpen}
+        dateSort={dateSort}
+        onDateSortChange={setDateSort}
+        sortOpen={sortOpen}
+        onSortOpenChange={setSortOpen}
       />
 
       {!expenses.isLoading && filtered.length === 0 ? (
