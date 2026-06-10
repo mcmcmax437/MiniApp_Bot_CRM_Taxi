@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
+import { formatMoney } from "../../currency";
 import { Icon } from "../crm";
 
 export type FinanceTabId = "payments" | "expenses" | "taxes" | "fleet" | "balances";
@@ -362,7 +363,13 @@ function groupFinanceByMonth<T>(items: T[], getDate: (item: T) => string) {
   return groups;
 }
 
-export function FinanceMonthDivider(props: { label: string; isFirst?: boolean }) {
+export function FinanceMonthDivider(props: {
+  label: string;
+  isFirst?: boolean;
+  total?: number;
+  countLabel?: string;
+  summaryTone?: "income" | "expense";
+}) {
   return (
     <div
       className={`crm-finance-month-divider${props.isFirst ? " crm-finance-month-divider--first" : ""}`}
@@ -370,7 +377,21 @@ export function FinanceMonthDivider(props: { label: string; isFirst?: boolean })
       aria-label={props.label}
     >
       <span className="crm-finance-month-divider__line" aria-hidden />
-      <span className="crm-finance-month-divider__label">{props.label}</span>
+      <div className="crm-finance-month-divider__content">
+        <span className="crm-finance-month-divider__label">{props.label}</span>
+        {props.total != null ? (
+          <div className="crm-finance-month-divider__summary">
+            <span
+              className={`crm-finance-month-divider__total crm-finance-month-divider__total--${props.summaryTone ?? "neutral"}`}
+            >
+              {formatMoney(props.total)}
+            </span>
+            {props.countLabel ? (
+              <span className="crm-finance-month-divider__count">{props.countLabel}</span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -379,6 +400,9 @@ export function FinanceDateGroupedList<T>(props: {
   items: T[];
   getDate: (item: T) => string;
   getKey: (item: T) => string;
+  getAmount: (item: T) => number;
+  formatCount?: (count: number) => string;
+  summaryTone?: "income" | "expense";
   renderItem: (item: T) => ReactNode;
 }) {
   const { i18n } = useTranslation();
@@ -391,22 +415,29 @@ export function FinanceDateGroupedList<T>(props: {
 
   return (
     <>
-      {groups.map((group, index) => (
-        <div
-          key={group.monthKey}
-          className={`crm-finance-month-group${index % 2 === 1 ? " crm-finance-month-group--alt" : ""}`}
-        >
-          <FinanceMonthDivider
-            label={formatFinanceMonthLabel(group.monthKey, locale)}
-            isFirst={index === 0}
-          />
-          {group.items.map((item) => (
-            <div key={props.getKey(item)} className="crm-finance-month-group__item">
-              {props.renderItem(item)}
-            </div>
-          ))}
-        </div>
-      ))}
+      {groups.map((group, index) => {
+        const total = group.items.reduce((sum, item) => sum + props.getAmount(item), 0);
+        const countLabel = props.formatCount?.(group.items.length);
+        return (
+          <div
+            key={group.monthKey}
+            className={`crm-finance-month-group${index % 2 === 1 ? " crm-finance-month-group--alt" : ""}`}
+          >
+            <FinanceMonthDivider
+              label={formatFinanceMonthLabel(group.monthKey, locale)}
+              isFirst={index === 0}
+              total={total}
+              countLabel={countLabel}
+              summaryTone={props.summaryTone}
+            />
+            {group.items.map((item) => (
+              <div key={props.getKey(item)} className="crm-finance-month-group__item">
+                {props.renderItem(item)}
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </>
   );
 }

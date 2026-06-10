@@ -3012,7 +3012,7 @@ body {
 
 .crm-finance-month-divider {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 10px;
   padding: 10px 14px 8px;
   background: rgba(255, 255, 255, 0.03);
@@ -3036,12 +3036,57 @@ body {
   display: none;
 }
 
+.crm-finance-month-divider__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .crm-finance-month-divider__label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(255, 193, 7, 0.85);
+  padding-top: 2px;
+}
+
+.crm-finance-month-divider__summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.crm-finance-month-divider__total {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.crm-finance-month-divider__total--income {
+  color: #69f0ae;
+}
+
+.crm-finance-month-divider__total--expense {
+  color: #ff5252;
+}
+
+.crm-finance-month-divider__total--neutral {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.crm-finance-month-divider__count {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
 }
 
 .crm-finance-month-group__item:last-child .crm-finance-item {

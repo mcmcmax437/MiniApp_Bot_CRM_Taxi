@@ -361,7 +361,7 @@ export const paymentCreateSchema = z.object({
   carId: z.string().cuid().optional().nullable(),
   amount: money,
   date: isoDate,
-  method: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
+  method: z.nativeEnum(PaymentMethod).default(PaymentMethod.BANK),
   type: z.nativeEnum(PaymentType).default(PaymentType.RENT),
   note: z.string().trim().max(2000).optional().nullable(),
 });

@@ -161,6 +161,9 @@ export function TaxesTab() {
             items={filtered}
             getDate={(e) => e.date}
             getKey={(e) => e.id}
+            getAmount={(e) => e.amount}
+            formatCount={(count) => t("finance.taxCount", { count })}
+            summaryTone="expense"
             renderItem={(e) => (
               <FinanceListItem
                 title={e.note?.trim() || t("finance.TAX")}

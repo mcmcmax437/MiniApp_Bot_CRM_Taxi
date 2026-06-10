@@ -107,7 +107,7 @@ function PaymentsTab() {
     carId: "",
     amount: "",
     date: todayInput(),
-    method: PaymentMethod.CASH,
+    method: PaymentMethod.BANK,
     type: PaymentType.RENT,
     note: "",
   });
@@ -138,7 +138,7 @@ function PaymentsTab() {
       carId: "",
       amount: "",
       date: todayInput(),
-      method: PaymentMethod.CASH,
+      method: PaymentMethod.BANK,
       type: PaymentType.RENT,
       note: "",
     });
@@ -278,6 +278,9 @@ function PaymentsTab() {
             items={filtered}
             getDate={(p) => p.date}
             getKey={(p) => p.id}
+            getAmount={(p) => p.amount}
+            formatCount={(count) => t("finance.paymentCount", { count })}
+            summaryTone="income"
             renderItem={(p) => (
               <FinanceListItem
                 title={paymentDisplayTitle(p, t, t("common.none"))}
@@ -487,6 +490,9 @@ function ExpensesTab() {
             items={filtered}
             getDate={(e) => e.date}
             getKey={(e) => e.id}
+            getAmount={(e) => e.amount}
+            formatCount={(count) => t("finance.expenseCount", { count })}
+            summaryTone="expense"
             renderItem={(e) => {
               const partnerOpen = e.paidByPartner && !e.partnerSettled;
               return (
