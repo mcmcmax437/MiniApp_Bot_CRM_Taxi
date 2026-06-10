@@ -26,9 +26,11 @@ import {
   financeInPeriod,
   type FinancePeriod,
 } from "./FinanceUi";
+import { useReadOnly } from "../../readOnly";
 
 export function TaxesTab() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const expenses = useExpenses();
   const cars = useCars();
   const save = useSaveExpense();
@@ -96,7 +98,7 @@ export function TaxesTab() {
 
   return (
     <>
-      <FinanceAddButton label={t("finance.addTax")} onClick={openCreate} />
+      {!readOnly ? <FinanceAddButton label={t("finance.addTax")} onClick={openCreate} /> : null}
 
       <p className="crm-form-hint" style={{ margin: "0 0 8px" }}>
         {t("finance.taxesHint")}
@@ -140,8 +142,8 @@ export function TaxesTab() {
         <FinanceEmptyState
           title={t("common.empty")}
           description={t("finance.emptyTaxesDesc")}
-          actionLabel={t("finance.addTax")}
-          onAction={openCreate}
+          actionLabel={readOnly ? undefined : t("finance.addTax")}
+          onAction={readOnly ? undefined : openCreate}
         />
       ) : (
         <FinanceList loading={expenses.isLoading}>
@@ -154,7 +156,10 @@ export function TaxesTab() {
                 .join(" • ")}
               amount={formatMoney(e.amount)}
               amountTone="expense"
-              onClick={() => {
+              onClick={
+                readOnly
+                  ? undefined
+                  : () => {
                 setEditId(e.id);
                 setForm({
                   carId: e.carId ?? "",

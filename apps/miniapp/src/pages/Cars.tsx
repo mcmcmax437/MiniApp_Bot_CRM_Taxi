@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useCars, useCarCoverPhotos, useDeleteCar, useReminders } from "../hooks";
+import { useReadOnly } from "../readOnly";
 import { carAttentionIds } from "../components/carAttention";
 import { AppHeader, Icon } from "../components/crm";
 import { CarCard, CarsEmptyState } from "../components/CarCard";
@@ -10,6 +11,7 @@ import { SwipeToDelete } from "../components/SwipeToDelete";
 
 export function CarsPage() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const navigate = useNavigate();
   const cars = useCars();
   const covers = useCarCoverPhotos();
@@ -54,10 +56,12 @@ export function CarsPage() {
           <h2 className="crm-page-head__title">{t("cars.pageTitle")}</h2>
           <p className="crm-page-head__subtitle">{t("cars.pageSubtitle")}</p>
         </div>
-        <button type="button" className="crm-btn-primary" onClick={() => setCreateOpen(true)}>
-          <Icon name="add-01" size={18} color="#fff" />
-          <span>{t("cars.addCar")}</span>
-        </button>
+        {!readOnly ? (
+          <button type="button" className="crm-btn-primary" onClick={() => setCreateOpen(true)}>
+            <Icon name="add-01" size={18} color="#fff" />
+            <span>{t("cars.addCar")}</span>
+          </button>
+        ) : null}
       </div>
 
       {!cars.isLoading && (
@@ -81,7 +85,7 @@ export function CarsPage() {
         </div>
       )}
 
-      {!cars.isLoading && !hasCars && !search.trim() && (
+      {!cars.isLoading && !hasCars && !search.trim() && !readOnly && (
         <CarsEmptyState onAdd={() => setCreateOpen(true)} />
       )}
 
@@ -97,8 +101,9 @@ export function CarsPage() {
             <SwipeToDelete
               key={car.id}
               className="crm-swipe-row--car"
+              readOnly={readOnly}
               onPress={() => navigate(`/cars/${car.id}`)}
-              onEdit={() => setEditCarId(car.id)}
+              onEdit={readOnly ? undefined : () => setEditCarId(car.id)}
               onDelete={() => del.mutate(car.id)}
             >
               <CarCard

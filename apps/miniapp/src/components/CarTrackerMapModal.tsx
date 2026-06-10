@@ -24,18 +24,24 @@ function trackerErrorKey(error: unknown): string {
   }
 }
 
-export function CarTrackerMapModal(props: { open: boolean; carId: string; onClose: () => void }) {
+export function CarTrackerMapModal(props: {
+  open: boolean;
+  carId: string;
+  plate: string;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const query = useTrackerLocation(props.carId, props.open);
   const loc = query.data;
   const refreshLabel = query.isFetching
     ? t("cars.trackerMap.refreshing")
     : t("cars.trackerMap.refresh");
+  const title = t("cars.trackerMap.titleWithPlate", { plate: props.plate });
 
   return (
     <Modal
       open={props.open}
-      title={t("cars.trackerMap.title")}
+      title={title}
       headerAction={
         <IconActionButton
           icon="refresh-01"

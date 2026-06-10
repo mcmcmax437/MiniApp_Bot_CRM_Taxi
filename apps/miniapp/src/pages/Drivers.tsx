@@ -38,6 +38,7 @@ import { Documents } from "../components/Documents";
 import { AppHeader, Icon } from "../components/crm";
 import { DriverCard, DriversEmptyState } from "../components/DriverCard";
 import { SwipeToDelete } from "../components/SwipeToDelete";
+import { useReadOnly } from "../readOnly";
 import { confirmAction, showAlert } from "../telegram";
 
 const ph = (t: (k: string) => string, key: string) => t(`drivers.placeholder.${key}`);
@@ -117,6 +118,7 @@ function tripsThisMonthByDriver(shifts: { driverId: string; date: string }[] | u
 
 export function DriversPage() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const [searchParams, setSearchParams] = useSearchParams();
   const drivers = useDrivers();
   const cars = useCars();
@@ -308,10 +310,12 @@ export function DriversPage() {
           <h2 className="crm-page-head__title">{t("drivers.pageTitle")}</h2>
           <p className="crm-page-head__subtitle">{t("drivers.pageSubtitle")}</p>
         </div>
-        <button type="button" className="crm-btn-primary" onClick={openCreate}>
-          <Icon name="add-01" size={18} color="#fff" />
-          <span>{t("drivers.addDriver")}</span>
-        </button>
+        {!readOnly ? (
+          <button type="button" className="crm-btn-primary" onClick={openCreate}>
+            <Icon name="add-01" size={18} color="#fff" />
+            <span>{t("drivers.addDriver")}</span>
+          </button>
+        ) : null}
       </div>
 
       <div className="crm-search-row">
@@ -372,7 +376,7 @@ export function DriversPage() {
         </div>
       )}
 
-      {!drivers.isLoading && (drivers.data?.length ?? 0) === 0 && (
+      {!drivers.isLoading && (drivers.data?.length ?? 0) === 0 && !readOnly && (
         <DriversEmptyState onAdd={openCreate} />
       )}
 
@@ -390,8 +394,9 @@ export function DriversPage() {
               className="crm-swipe-row--driver"
               actionWidth={68}
               iconSize={18}
+              readOnly={readOnly}
               onPress={() => openView(d)}
-              onEdit={() => openEdit(d)}
+              onEdit={readOnly ? undefined : () => openEdit(d)}
               onDelete={() => {
                 del.mutate(d.id, {
                   onSuccess: () => {

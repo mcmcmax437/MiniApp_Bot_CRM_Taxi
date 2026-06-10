@@ -38,19 +38,16 @@ function pushDateReminders(
     });
     return;
   }
-  for (const d of daysBeforeList) {
-    if (left <= d) {
-      items.push({
-        kind,
-        refId,
-        carId,
-        label,
-        dueDate: dueDate.toISOString(),
-        daysUntil: left,
-        detail: `${left}d`,
-      });
-      break;
-    }
+  if (daysBeforeList.includes(left)) {
+    items.push({
+      kind,
+      refId,
+      carId,
+      label,
+      dueDate: dueDate.toISOString(),
+      daysUntil: left,
+      detail: `${left}d`,
+    });
   }
 }
 
@@ -98,7 +95,8 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
     }
     for (const c of cars) {
       if (c.currentMileage == null) continue;
-      const baseline = lastInspectionMileage.get(c.id) ?? 0;
+      const baseline = lastInspectionMileage.get(c.id);
+      if (baseline == null) continue;
       const nextDue = baseline + interval;
       const kmLeft = nextDue - c.currentMileage;
       if (kmLeft <= warnKm) {

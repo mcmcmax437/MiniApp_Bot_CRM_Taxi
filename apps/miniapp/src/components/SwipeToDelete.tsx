@@ -10,10 +10,30 @@ export function SwipeToDelete(props: {
   onPress?: () => void;
   onEdit?: () => void;
   onDelete: () => void;
+  readOnly?: boolean;
   className?: string;
   actionWidth?: number;
   iconSize?: number;
 }) {
+  if (props.readOnly) {
+    return (
+      <div
+        className={["crm-swipe-row", props.className].filter(Boolean).join(" ")}
+        role={props.onPress ? "button" : undefined}
+        tabIndex={props.onPress ? 0 : undefined}
+        onClick={props.onPress}
+        onKeyDown={(e) => {
+          if (props.onPress && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            props.onPress?.();
+          }
+        }}
+      >
+        {props.children}
+      </div>
+    );
+  }
+
   const actionWidth = props.actionWidth ?? DEFAULT_ACTION_WIDTH;
   const { t } = useTranslation();
   const [offset, setOffset] = useState(0);

@@ -18,6 +18,7 @@ import type {
   OwnerRow,
   Payment,
   TrackerLocation,
+  FleetMember,
 } from "./types";
 import { isCarGalleryPhoto } from "./components/documentUtils";
 import { setAppCurrency } from "./currency";
@@ -548,6 +549,53 @@ export function useImport() {
     onSuccess: () => {
       void qc.invalidateQueries();
     },
+  });
+}
+
+// --- Fleet members (investor / viewer) ------------------------------------
+export function useFleetMembers(enabled = true) {
+  return useQuery({
+    queryKey: ["fleet-members"],
+    queryFn: () => apiFetch<FleetMember[]>("/fleet-members"),
+    enabled,
+  });
+}
+
+export function useSaveFleetMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { telegramUserId: string; name?: string }) =>
+      apiFetch<FleetMember>("/fleet-members", { method: "POST", body }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["fleet-members"] }),
+  });
+}
+
+export function useUpdateFleetMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; status: FleetMember["status"] }) =>
+      apiFetch<FleetMember>(`/fleet-members/${input.id}`, {
+        method: "PATCH",
+        body: { status: input.status },
+      }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["fleet-members"] }),
+  });
+}
+
+export function useDeleteFleetMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/fleet-members/${id}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["fleet-members"] }),
+  });
+}
+
+export function useRequestFleetAccess() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ownerTelegramId: string) =>
+      apiFetch("/fleet-access/request", { method: "POST", body: { ownerTelegramId } }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["me"] }),
   });
 }
 

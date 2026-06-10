@@ -10,10 +10,11 @@ export function DocumentFileRow(props: {
   doc: DocumentItem;
   onOpen: () => void;
   onDownload?: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   const { t } = useTranslation();
+  const readOnly = !props.onEdit && !props.onDelete;
   const pdf = isPdfDocument(props.doc);
   const isImg = isImageDocument(props.doc);
   const title = documentDisplayName(props.doc);
@@ -24,9 +25,10 @@ export function DocumentFileRow(props: {
       className="crm-swipe-row--file"
       actionWidth={72}
       iconSize={16}
+      readOnly={readOnly}
       onPress={props.onOpen}
       onEdit={props.onEdit}
-      onDelete={props.onDelete}
+      onDelete={props.onDelete ?? (() => {})}
     >
       <div className="crm-doc-file">
         {isImg ? (

@@ -10,10 +10,13 @@ export function parseDaysBeforeList(raw: string): number[] {
     .sort((a, b) => b - a);
 }
 
+/** Calendar-day difference in UTC (matches YYYY-MM-DD display in the mini app). */
+function utcDayMs(d: Date): number {
+  return Date.parse(`${d.toISOString().slice(0, 10)}T00:00:00.000Z`);
+}
+
 function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+  return new Date(utcDayMs(d));
 }
 
 function addDays(d: Date, days: number): Date {
@@ -83,5 +86,5 @@ export function isMaintenanceDue(
 }
 
 export function daysUntil(date: Date, from = new Date()): number {
-  return Math.ceil((startOfDay(date).getTime() - startOfDay(from).getTime()) / DAY_MS);
+  return Math.round((utcDayMs(date) - utcDayMs(from)) / DAY_MS);
 }

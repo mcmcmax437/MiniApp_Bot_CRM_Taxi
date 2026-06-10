@@ -24,9 +24,11 @@ import {
   FinanceList,
 } from "./FinanceUi";
 import { CarDriverHistoryModal } from "./CarDriverHistoryModal";
+import { useReadOnly } from "../../readOnly";
 
 export function FleetTab() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const agreements = useAgreements();
   const cars = useCars();
   const drivers = useDrivers();
@@ -162,11 +164,13 @@ export function FleetTab() {
 
   return (
     <>
-      <FinanceAddButton
-        label={t("fleet.assignCar")}
-        onClick={() => openAssign()}
-        blockedReason={assignBlockedReason()}
-      />
+      {!readOnly ? (
+        <FinanceAddButton
+          label={t("fleet.assignCar")}
+          onClick={() => openAssign()}
+          blockedReason={assignBlockedReason()}
+        />
+      ) : null}
 
       <FinanceStatsRow>
         <FinanceStatCard
@@ -204,8 +208,8 @@ export function FleetTab() {
         <FinanceEmptyState
           title={t("common.empty")}
           description={t("fleet.emptyDesc")}
-          actionLabel={t("fleet.assignCar")}
-          onAction={() => handleAssign()}
+          actionLabel={readOnly ? undefined : t("fleet.assignCar")}
+          onAction={readOnly ? undefined : () => handleAssign()}
         />
       ) : (
         <FinanceList loading={cars.isLoading || agreements.isLoading} className="crm-fleet-list">
@@ -232,20 +236,22 @@ export function FleetTab() {
                     <Icon name="arrow-right-01" size={14} color="rgba(255,255,255,0.45)" />
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className="crm-btn-outline crm-fleet-card__action"
-                  disabled={end.isPending}
-                  onClick={() => {
-                    void confirmAction(t("fleet.endConfirm"), t("common.delete"), t("common.cancel")).then(
-                      (ok) => {
-                        if (ok) end.mutate(agreement.id);
-                      },
-                    );
-                  }}
-                >
-                  {t("fleet.returnCar")}
-                </button>
+                {!readOnly ? (
+                  <button
+                    type="button"
+                    className="crm-btn-outline crm-fleet-card__action"
+                    disabled={end.isPending}
+                    onClick={() => {
+                      void confirmAction(t("fleet.endConfirm"), t("common.delete"), t("common.cancel")).then(
+                        (ok) => {
+                          if (ok) end.mutate(agreement.id);
+                        },
+                      );
+                    }}
+                  >
+                    {t("fleet.returnCar")}
+                  </button>
+                ) : null}
               </div>
             ) : (
               <div key={car.id} className="crm-fleet-card">
@@ -266,13 +272,15 @@ export function FleetTab() {
                     <Icon name="arrow-right-01" size={14} color="rgba(255,255,255,0.45)" />
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className="crm-btn-primary crm-fleet-card__action"
-                  onClick={() => handleAssign(car.id)}
-                >
-                  {t("fleet.assignCar")}
-                </button>
+                {!readOnly ? (
+                  <button
+                    type="button"
+                    className="crm-btn-primary crm-fleet-card__action"
+                    onClick={() => handleAssign(car.id)}
+                  >
+                    {t("fleet.assignCar")}
+                  </button>
+                ) : null}
               </div>
             ),
           )}

@@ -7,6 +7,8 @@ import { setAppCurrency } from "./currency";
 import type { Currency } from "@taxi/shared";
 import { tg } from "./telegram";
 import { Layout } from "./components/Layout";
+import { AuthScreen } from "./components/AuthScreen";
+import { ReadOnlyProvider } from "./readOnly";
 import { Dashboard } from "./pages/Dashboard";
 import { CarsPage } from "./pages/Cars";
 import { CarDetailPage } from "./pages/CarDetail";
@@ -44,51 +46,45 @@ export function App() {
   }
 
   if (me.isError) {
-    const status = me.error instanceof Error ? me.error.message : "";
-    const noInitData = !tg?.initData;
     return (
-      <div className="center-screen">
-        <span style={{ fontSize: 56 }}>🚕</span>
-        <h2 style={{ margin: "16px 0 8px", fontSize: 20 }}>{t("pending.title")}</h2>
-        <p style={{ margin: 0, color: "var(--taxi-text-muted)", maxWidth: 320 }}>
-          {noInitData ? t("pending.notInTelegram") : status}
-        </p>
-      </div>
+      <AuthScreen
+        variant="login"
+        errorMessage={!tg?.initData ? t("pending.notInTelegram") : undefined}
+      />
     );
   }
 
-  const owner = me.data!;
+  const account = me.data!;
 
-  if (!owner.isSuperAdmin && owner.status !== "ACTIVE") {
-    const suspended = owner.status === "SUSPENDED";
+  if (!account.isSuperAdmin && account.status !== "ACTIVE") {
+    const suspended = account.status === "SUSPENDED";
     return (
-      <div className="center-screen">
-        <span style={{ fontSize: 56 }}>{suspended ? "⛔" : "⏳"}</span>
-        <h2 style={{ margin: "16px 0 8px", fontSize: 20 }}>{t("pending.title")}</h2>
-        <p style={{ margin: 0, color: "var(--taxi-text-muted)", maxWidth: 320 }}>
-          {suspended ? t("pending.suspended") : t("pending.text")}
-        </p>
-        <p style={{ marginTop: 16, color: "var(--taxi-text-muted)" }}>
-          {t("pending.yourId")}: <code>{owner.telegramUserId}</code>
-        </p>
-      </div>
+      <AuthScreen
+        variant={
+          suspended ? "suspended" : account.isViewer ? "viewerPending" : "ownerPending"
+        }
+        telegramUserId={account.telegramUserId}
+        fleetOwnerName={account.fleetOwnerName}
+      />
     );
   }
 
   return (
-    <Routes>
-      <Route element={<Layout isSuperAdmin={owner.isSuperAdmin} />}>
-        <Route index element={<Dashboard />} />
-        <Route path="reminders" element={<RemindersPage />} />
-        <Route path="cars" element={<CarsPage />} />
-        <Route path="cars/:id" element={<CarDetailPage />} />
-        <Route path="drivers" element={<DriversPage />} />
-        <Route path="documents" element={<DocumentsPage />} />
-        <Route path="finance" element={<FinancePage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        {owner.isSuperAdmin && <Route path="admin" element={<AdminPage />} />}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+    <ReadOnlyProvider readOnly={account.isViewer}>
+      <Routes>
+        <Route element={<Layout isSuperAdmin={account.isSuperAdmin} isViewer={account.isViewer} />}>
+          <Route index element={<Dashboard />} />
+          <Route path="reminders" element={<RemindersPage />} />
+          <Route path="cars" element={<CarsPage />} />
+          <Route path="cars/:id" element={<CarDetailPage />} />
+          <Route path="drivers" element={<DriversPage />} />
+          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="finance" element={<FinancePage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          {account.isSuperAdmin && <Route path="admin" element={<AdminPage />} />}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </ReadOnlyProvider>
   );
 }

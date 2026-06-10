@@ -49,6 +49,7 @@ import {
   paymentDisplaySubtitle,
   paymentDisplayTitle,
 } from "../components/finance/financeLabels";
+import { useReadOnly } from "../readOnly";
 
 export function FinancePage() {
   const { t } = useTranslation();
@@ -73,6 +74,7 @@ export function FinancePage() {
 
 function PaymentsTab() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const payments = usePayments();
   const balances = useBalances();
   const drivers = useDrivers();
@@ -179,7 +181,7 @@ function PaymentsTab() {
 
   return (
     <>
-      <FinanceAddButton label={t("finance.addPayment")} onClick={openCreate} />
+      {!readOnly ? <FinanceAddButton label={t("finance.addPayment")} onClick={openCreate} /> : null}
 
       <FinanceStatsRow>
         <FinanceStatCard
@@ -257,8 +259,8 @@ function PaymentsTab() {
         <FinanceEmptyState
           title={t("common.empty")}
           description={t("finance.emptyPaymentsDesc")}
-          actionLabel={t("finance.addPayment")}
-          onAction={openCreate}
+          actionLabel={readOnly ? undefined : t("finance.addPayment")}
+          onAction={readOnly ? undefined : openCreate}
         />
       ) : (
         <FinanceList loading={payments.isLoading}>
@@ -269,7 +271,7 @@ function PaymentsTab() {
               subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t)}
               amount={formatMoney(p.amount)}
               amountTone="income"
-              onClick={() => openEdit(p)}
+              onClick={readOnly ? undefined : () => openEdit(p)}
             />
           ))}
         </FinanceList>
@@ -301,6 +303,7 @@ function PaymentsTab() {
 
 function ExpensesTab() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const expenses = useExpenses();
   const cars = useCars();
   const save = useSaveExpense();
@@ -399,7 +402,7 @@ function ExpensesTab() {
 
   return (
     <>
-      <FinanceAddButton label={t("finance.addExpense")} onClick={openCreate} />
+      {!readOnly ? <FinanceAddButton label={t("finance.addExpense")} onClick={openCreate} /> : null}
 
       {partnerUnsettled.length > 0 ? (
         <div className="crm-partner-banner glass-card">
@@ -454,8 +457,8 @@ function ExpensesTab() {
         <FinanceEmptyState
           title={t("common.empty")}
           description={t("finance.emptyExpensesDesc")}
-          actionLabel={t("finance.addExpense")}
-          onAction={openCreate}
+          actionLabel={readOnly ? undefined : t("finance.addExpense")}
+          onAction={readOnly ? undefined : openCreate}
         />
       ) : (
         <FinanceList loading={expenses.isLoading}>
@@ -470,7 +473,10 @@ function ExpensesTab() {
                 partnerAlertLabel={t("finance.partnerUnsettledTitle")}
                 amount={formatMoney(e.amount)}
                 amountTone="expense"
-                onClick={() => {
+                onClick={
+                  readOnly
+                    ? undefined
+                    : () => {
                   setEditId(e.id);
                   setFieldErrors({});
                   setForm({

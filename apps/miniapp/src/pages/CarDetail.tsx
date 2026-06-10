@@ -17,6 +17,7 @@ import { CarFormModal } from "../components/CarFormModal";
 import { CarTiresModal } from "../components/CarTiresModal";
 import { CarTrackerModal } from "../components/CarTrackerModal";
 import { CarTrackerMapModal } from "../components/CarTrackerMapModal";
+import { useReadOnly } from "../readOnly";
 
 const statusClass: Record<CarStatus, string> = {
   [CarStatus.AVAILABLE]: "crm-car-status--available",
@@ -27,6 +28,7 @@ const statusClass: Record<CarStatus, string> = {
 
 export function CarDetailPage() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const carQuery = useCar(id);
@@ -119,11 +121,13 @@ export function CarDetailPage() {
             </span>
           </h1>
           <div className="crm-car-detail-head__actions">
-            <IconActionButton
-              icon="edit-02"
-              label={t("common.edit")}
-              onClick={() => setEditOpen(true)}
-            />
+            {!readOnly ? (
+              <IconActionButton
+                icon="edit-02"
+                label={t("common.edit")}
+                onClick={() => setEditOpen(true)}
+              />
+            ) : null}
           {assignedDriver ? (
             <button
               type="button"
@@ -146,12 +150,13 @@ export function CarDetailPage() {
         </div>
       </div>
 
-      <CarOverviewPanel car={car} onEditTires={() => setTiresOpen(true)} />
+      <CarOverviewPanel car={car} readOnly={readOnly} onEditTires={() => setTiresOpen(true)} />
 
-      <CarTrackingSections car={car} onUpdated={refresh} />
+      <CarTrackingSections car={car} readOnly={readOnly} onUpdated={refresh} />
 
       <CarTrackerSection
         car={car}
+        readOnly={readOnly}
         onEdit={() => setTrackerOpen(true)}
         onShowMap={() => setTrackerMapOpen(true)}
       />
@@ -188,6 +193,7 @@ export function CarDetailPage() {
       <CarTrackerMapModal
         open={trackerMapOpen}
         carId={car.id}
+        plate={car.plate}
         onClose={() => setTrackerMapOpen(false)}
       />
     </div>

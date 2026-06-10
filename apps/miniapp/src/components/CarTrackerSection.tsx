@@ -5,6 +5,7 @@ import type { Car } from "../types";
 
 export function CarTrackerSection(props: {
   car: Car;
+  readOnly?: boolean;
   onEdit: () => void;
   onShowMap?: () => void;
 }) {
@@ -32,11 +33,13 @@ export function CarTrackerSection(props: {
     <section className="glass-card crm-car-detail-section">
       <div className="crm-section-head">
         <h3 className="crm-car-detail-section__title">{t("cars.trackerTitle")}</h3>
-        <IconActionButton
-          icon={hasTracker ? "edit-02" : "add-01"}
-          label={hasTracker ? t("common.edit") : t("cars.addTracker")}
-          onClick={props.onEdit}
-        />
+        {!props.readOnly ? (
+          <IconActionButton
+            icon={hasTracker ? "edit-02" : "add-01"}
+            label={hasTracker ? t("common.edit") : t("cars.addTracker")}
+            onClick={props.onEdit}
+          />
+        ) : null}
       </div>
       {hasTracker ? (
         <dl className="crm-car-detail-dl">

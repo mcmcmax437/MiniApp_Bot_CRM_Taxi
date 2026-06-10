@@ -11,6 +11,7 @@ import { isCarGalleryPhoto } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
 import { useDocumentImageViewer } from "./useDocumentImageViewer";
 import { confirmAction } from "../telegram";
+import { useReadOnly } from "../readOnly";
 
 export function CarPhotosSection(props: {
   carId: string;
@@ -18,6 +19,7 @@ export function CarPhotosSection(props: {
   embedded?: boolean;
 }) {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const docs = useDocuments("CAR", props.carId);
   const upload = useUploadDocument();
   const del = useDeleteDocument();
@@ -93,13 +95,14 @@ export function CarPhotosSection(props: {
       ) : null}
       {images.length > 0 ? (
         <>
-          <p className="crm-form-hint">{t("cars.pickCoverHint")}</p>
+          {!readOnly ? <p className="crm-form-hint">{t("cars.pickCoverHint")}</p> : null}
           <div className="crm-car-photo-grid">
             {images.map((doc, index) => (
               <CarImageTile
                 key={doc.id}
                 doc={doc}
                 isCover={props.coverDocumentId === doc.id}
+                readOnly={readOnly}
                 onPreview={() => openPhoto(index)}
                 onSetCover={() => setCover(doc.id)}
                 onDelete={async () => {
@@ -121,6 +124,8 @@ export function CarPhotosSection(props: {
         </p>
       )}
 
+      {!readOnly ? (
+        <>
       <label className="crm-car-cover-upload-opt">
         <input
           type="checkbox"
@@ -171,6 +176,8 @@ export function CarPhotosSection(props: {
       />
 
       {viewer}
+        </>
+      ) : viewer}
     </div>
   );
 }
@@ -178,6 +185,7 @@ export function CarPhotosSection(props: {
 function CarImageTile(props: {
   doc: DocumentItem;
   isCover: boolean;
+  readOnly?: boolean;
   onPreview: () => void;
   onSetCover: () => void;
   onDelete: () => void;
@@ -195,29 +203,33 @@ function CarImageTile(props: {
           className="crm-car-photo-tile__img"
         />
       </button>
-      <button
-        type="button"
-        className={`crm-car-photo-tile__cover-btn${props.isCover ? " crm-car-photo-tile__cover-btn--active" : ""}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          props.onSetCover();
-        }}
-      >
-        {t("cars.coverPhoto")}
-      </button>
-      <button
-        type="button"
-        className="crm-car-photo-tile__remove"
-        disabled={props.deleting}
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          void props.onDelete();
-        }}
-        aria-label={t("common.delete")}
-      >
-        ✕
-      </button>
+      {!props.readOnly ? (
+        <>
+          <button
+            type="button"
+            className={`crm-car-photo-tile__cover-btn${props.isCover ? " crm-car-photo-tile__cover-btn--active" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onSetCover();
+            }}
+          >
+            {t("cars.coverPhoto")}
+          </button>
+          <button
+            type="button"
+            className="crm-car-photo-tile__remove"
+            disabled={props.deleting}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              void props.onDelete();
+            }}
+            aria-label={t("common.delete")}
+          >
+            ✕
+          </button>
+        </>
+      ) : null}
     </div>
   );
 }

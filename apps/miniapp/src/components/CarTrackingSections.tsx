@@ -51,9 +51,11 @@ function ruleDueLabel(rule: MaintenanceRule, currentMileage: number | null | und
 
 export function CarTrackingSections(props: {
   car: Car;
+  readOnly?: boolean;
   onUpdated?: () => void;
 }) {
   const { t } = useTranslation();
+  const readOnly = props.readOnly;
   const carId = props.car.id;
   const rules = useMaintenanceRules(carId);
   const records = useMaintenanceRecords(carId);
@@ -72,9 +74,11 @@ export function CarTrackingSections(props: {
       <section className="glass-card crm-car-detail-section">
         <div className="crm-section-head">
           <h3 className="crm-car-detail-section__title">{t("tracking.mileageTitle")}</h3>
-          <button type="button" className="crm-link-btn" onClick={() => setMileageOpen(true)}>
-            {t("tracking.logMileage")}
-          </button>
+          {!readOnly ? (
+            <button type="button" className="crm-link-btn" onClick={() => setMileageOpen(true)}>
+              {t("tracking.logMileage")}
+            </button>
+          ) : null}
         </div>
         <dl className="crm-car-detail-dl">
           <div className="crm-car-detail-dl__row">
@@ -101,25 +105,27 @@ export function CarTrackingSections(props: {
                     {formatDate(log.recordedAt)} · {t(`tracking.source.${log.source}`)}
                   </span>
                 </span>
-                <button
-                  type="button"
-                  className="crm-icon-btn crm-icon-btn--sm crm-tracking-history__delete"
-                  disabled={deleteMileage.isPending && deleteMileage.variables === log.id}
-                  aria-label={t("common.delete")}
-                  onClick={() => {
-                    void confirmAction(
-                      t("tracking.deleteMileageConfirm"),
-                      t("common.delete"),
-                      t("common.cancel"),
-                    ).then((ok) => {
-                      if (ok) {
-                        deleteMileage.mutate(log.id, { onSuccess: () => props.onUpdated?.() });
-                      }
-                    });
-                  }}
-                >
-                  ×
-                </button>
+                {!readOnly ? (
+                  <button
+                    type="button"
+                    className="crm-icon-btn crm-icon-btn--sm crm-tracking-history__delete"
+                    disabled={deleteMileage.isPending && deleteMileage.variables === log.id}
+                    aria-label={t("common.delete")}
+                    onClick={() => {
+                      void confirmAction(
+                        t("tracking.deleteMileageConfirm"),
+                        t("common.delete"),
+                        t("common.cancel"),
+                      ).then((ok) => {
+                        if (ok) {
+                          deleteMileage.mutate(log.id, { onSuccess: () => props.onUpdated?.() });
+                        }
+                      });
+                    }}
+                  >
+                    ×
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -131,16 +137,20 @@ export function CarTrackingSections(props: {
       <section className="glass-card crm-car-detail-section">
         <div className="crm-section-head">
           <h3 className="crm-car-detail-section__title">{t("tracking.maintenanceRules")}</h3>
-          <IconActionButton
-            icon="add-01"
-            label={t("tracking.addRule")}
-            onClick={() => setRuleOpen(true)}
-          />
+          {!readOnly ? (
+            <IconActionButton
+              icon="add-01"
+              label={t("tracking.addRule")}
+              onClick={() => setRuleOpen(true)}
+            />
+          ) : null}
         </div>
-        <div className="crm-tracking-presets">
-          <span className="crm-form-hint">{t("tracking.presetsHint")}</span>
-          <PresetButtons carId={carId} existing={rules.data ?? []} onAdded={props.onUpdated} />
-        </div>
+        {!readOnly ? (
+          <div className="crm-tracking-presets">
+            <span className="crm-form-hint">{t("tracking.presetsHint")}</span>
+            <PresetButtons carId={carId} existing={rules.data ?? []} onAdded={props.onUpdated} />
+          </div>
+        ) : null}
         {rules.isLoading ? (
           <p className="crm-form-hint">{t("common.loading")}</p>
         ) : rules.data && rules.data.length > 0 ? (
@@ -162,16 +172,18 @@ export function CarTrackingSections(props: {
                     })}
                   </div>
                 </div>
-                <RuleDeleteButton ruleId={rule.id} onDeleted={props.onUpdated} />
+                {!readOnly ? <RuleDeleteButton ruleId={rule.id} onDeleted={props.onUpdated} /> : null}
               </li>
             ))}
           </ul>
         ) : (
           <p className="crm-form-hint">{t("tracking.noRules")}</p>
         )}
-        <button type="button" className="crm-btn-outline crm-tracking-complete-btn" onClick={() => setCompleteOpen(true)}>
-          {t("tracking.completeService")}
-        </button>
+        {!readOnly ? (
+          <button type="button" className="crm-btn-outline crm-tracking-complete-btn" onClick={() => setCompleteOpen(true)}>
+            {t("tracking.completeService")}
+          </button>
+        ) : null}
       </section>
 
       <section className="glass-card crm-car-detail-section">

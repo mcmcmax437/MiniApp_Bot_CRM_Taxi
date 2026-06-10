@@ -116,6 +116,23 @@ model Owner {
   maintenanceRules    MaintenanceRule[]
   maintenanceRecords  MaintenanceRecord[]
   mileageLogs         MileageLog[]
+  fleetMembers        FleetMember[] @relation("FleetMembers")
+}
+
+model FleetMember {
+  id             String      @id @default(cuid())
+  fleetOwnerId   String
+  fleet          Owner       @relation("FleetMembers", fields: [fleetOwnerId], references: [id], onDelete: Cascade)
+  telegramUserId BigInt
+  name           String?
+  username       String?
+  status         OwnerStatus @default(PENDING)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([fleetOwnerId, telegramUserId])
+  @@index([fleetOwnerId])
+  @@index([telegramUserId])
 }
 
 model Car {

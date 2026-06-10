@@ -58,6 +58,7 @@ function nextServiceLabel(
 
 export function CarOverviewPanel(props: {
   car: Car;
+  readOnly?: boolean;
   onEditTires: () => void;
 }) {
   const { t } = useTranslation();
@@ -73,6 +74,7 @@ export function CarOverviewPanel(props: {
     car.trackerSimNumber ||
     car.trackerNotes,
   );
+  const trackerDisplay = car.trackerLogin?.trim() || (hasTracker ? "—" : t("common.none"));
   const subtitle = [car.make, car.model, car.year].filter(Boolean).join(" ");
 
   return (
@@ -105,27 +107,30 @@ export function CarOverviewPanel(props: {
         ) : null}
         <OverviewCell
           label={t("cars.trackerTitle")}
-          value={hasTracker ? t("cars.trackerConfigured") : t("cars.noTracker")}
+          copyValue={car.trackerLogin?.trim() || undefined}
+          value={trackerDisplay}
         />
       </div>
 
       <div className="crm-car-overview__tires">
         <div className="crm-car-overview__tires-head">
           <span className="crm-car-overview__tires-label">{t("cars.tiresTitle")}</span>
-          <IconActionButton
-            icon={frontTire || rearTire ? "edit-02" : "add-01"}
-            label={frontTire || rearTire ? t("common.edit") : t("cars.addTires")}
-            onClick={props.onEditTires}
-          />
+          {!props.readOnly ? (
+            <IconActionButton
+              icon={frontTire || rearTire ? "edit-02" : "add-01"}
+              label={frontTire || rearTire ? t("common.edit") : t("cars.addTires")}
+              onClick={props.onEditTires}
+            />
+          ) : null}
         </div>
         <div className="crm-car-overview__tire-rows">
           <div className="crm-car-overview__tire-row">
             <span className="crm-car-overview__tire-axle">{t("cars.tireFrontTitle")}</span>
-            <span className="crm-car-overview__tire-value">{frontTire ?? t("cars.tireAxleEmpty")}</span>
+            <span className="crm-car-overview__tire-value">{frontTire ?? t("common.none")}</span>
           </div>
           <div className="crm-car-overview__tire-row">
             <span className="crm-car-overview__tire-axle">{t("cars.tireRearTitle")}</span>
-            <span className="crm-car-overview__tire-value">{rearTire ?? t("cars.tireAxleEmpty")}</span>
+            <span className="crm-car-overview__tire-value">{rearTire ?? t("common.none")}</span>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { authenticate, requireActive } from "../auth/plugin.js";
+import { authenticate, requireActive, requireWriteAccess } from "../auth/plugin.js";
 import { meRoutes } from "./me.js";
+import { fleetAccessRoutes } from "./fleet-access.js";
 import { adminRoutes } from "./admin.js";
 import { carsRoutes } from "./cars.js";
 import { driversRoutes } from "./drivers.js";
@@ -16,17 +17,24 @@ import { maintenanceRoutes } from "./maintenance.js";
 import { mileageRoutes } from "./mileage.js";
 import { carDocumentsRoutes } from "./car-documents.js";
 import { reminderSettingsRoutes } from "./reminder-settings.js";
+import { fleetMembersRoutes } from "./fleet-members.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(
     async (api) => {
       await api.register(meRoutes);
+      await api.register(fleetAccessRoutes);
       await api.register(adminRoutes);
 
       // Tenant data routes: require an authenticated, ACTIVE owner.
       await api.register(async (scoped) => {
         scoped.addHook("preHandler", authenticate);
         scoped.addHook("preHandler", requireActive);
+        scoped.addHook("preHandler", async (req, reply) => {
+          if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+            if (await requireWriteAccess(req, reply)) return;
+          }
+        });
         await scoped.register(carsRoutes);
         await scoped.register(driversRoutes);
         await scoped.register(agreementsRoutes);
@@ -41,6 +49,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         await scoped.register(mileageRoutes);
         await scoped.register(carDocumentsRoutes);
         await scoped.register(reminderSettingsRoutes);
+        await scoped.register(fleetMembersRoutes);
       });
     },
     { prefix: "/api" },

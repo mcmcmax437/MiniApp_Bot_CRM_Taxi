@@ -21,7 +21,10 @@ export function toDates<T extends Record<string, unknown>>(obj: T, keys: (keyof 
   for (const key of keys) {
     const value = out[key as string];
     if (typeof value === "string") {
-      out[key as string] = new Date(value);
+      // Date-only fields from the mini app (YYYY-MM-DD) — store as UTC noon to avoid TZ drift.
+      out[key as string] = /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? new Date(`${value}T12:00:00.000Z`)
+        : new Date(value);
     }
   }
   return out as T;

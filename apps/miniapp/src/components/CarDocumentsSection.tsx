@@ -7,9 +7,11 @@ import { DocumentFileRow } from "./DocumentFileRow";
 import { DocumentMetaModal } from "./DocumentMetaModal";
 import { useDocumentImageViewer } from "./useDocumentImageViewer";
 import { confirmAction } from "../telegram";
+import { useReadOnly } from "../readOnly";
 
 export function CarDocumentsSection(props: { carId: string; embedded?: boolean }) {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const docs = useDocuments("CAR", props.carId);
   const upload = useUploadDocument();
   const del = useDeleteDocument();
@@ -53,6 +55,8 @@ export function CarDocumentsSection(props: { carId: string; embedded?: boolean }
 
   const content = (
     <>
+      {!readOnly ? (
+        <>
       <div
         className={`crm-dropzone${dragOver ? " crm-dropzone--active" : ""}`}
         onDragEnter={(e) => {
@@ -90,6 +94,8 @@ export function CarDocumentsSection(props: { carId: string; embedded?: boolean }
           if (e.target.files) uploadFiles(e.target.files);
         }}
       />
+        </>
+      ) : null}
 
       {docs.isLoading ? (
         <p className="crm-form-hint">{t("common.loading")}</p>
@@ -101,8 +107,8 @@ export function CarDocumentsSection(props: { carId: string; embedded?: boolean }
               doc={doc}
               onOpen={() => openDocument(doc)}
               onDownload={() => void downloadDocumentFile(doc.id, doc.fileName)}
-              onEdit={() => setEditDoc(doc)}
-              onDelete={() => void handleDelete(doc)}
+              onEdit={readOnly ? undefined : () => setEditDoc(doc)}
+              onDelete={readOnly ? undefined : () => void handleDelete(doc)}
             />
           ))}
         </div>

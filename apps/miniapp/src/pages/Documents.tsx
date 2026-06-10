@@ -24,6 +24,7 @@ import {
 } from "../components/documentUtils";
 import { useDocumentImageViewer } from "../components/useDocumentImageViewer";
 import { confirmAction } from "../telegram";
+import { useReadOnly } from "../readOnly";
 
 type Category = "ALL" | DocumentRelatedType;
 
@@ -38,6 +39,7 @@ interface EntityRow {
 
 export function DocumentsPage() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const docs = useAllDocuments();
   const cars = useCars();
   const drivers = useDrivers();
@@ -255,6 +257,7 @@ export function DocumentsPage() {
                 title={t("documents.photos")}
                 docs={imageDocs}
                 del={del}
+                readOnly={readOnly}
                 onPreview={(docs, index) =>
                   openDocuments(
                     docs.map((d) => ({
@@ -275,6 +278,7 @@ export function DocumentsPage() {
                 title={t("documents.documentImages")}
                 docs={documentImageDocs}
                 del={del}
+                readOnly={readOnly}
                 onPreview={(docs, index) =>
                   openDocuments(
                     docs.map((d) => ({
@@ -300,8 +304,8 @@ export function DocumentsPage() {
                       doc={doc}
                       onOpen={() => openDocument(doc)}
                       onDownload={() => void downloadDocumentFile(doc.id, doc.fileName)}
-                      onEdit={() => setEditDoc(doc)}
-                      onDelete={() => void handleDelete(doc)}
+                      onEdit={readOnly ? undefined : () => setEditDoc(doc)}
+                      onDelete={readOnly ? undefined : () => void handleDelete(doc)}
                     />
                   ))}
                 </div>
@@ -310,28 +314,34 @@ export function DocumentsPage() {
           </>
         )}
 
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*,application/pdf"
-          hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleUpload(file);
-          }}
-        />
+        {!readOnly ? (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,application/pdf"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUpload(file);
+              }}
+            />
 
-        <button
-          type="button"
-          className="crm-btn-primary crm-doc-upload-btn"
-          disabled={upload.isPending}
-          onClick={() => fileRef.current?.click()}
-        >
-          <Icon name="add-01" size={18} color="#fff" />
-          <span>{t("documents.upload")}</span>
-        </button>
+            <button
+              type="button"
+              className="crm-btn-primary crm-doc-upload-btn"
+              disabled={upload.isPending}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Icon name="add-01" size={18} color="#fff" />
+              <span>{t("documents.upload")}</span>
+            </button>
+          </>
+        ) : null}
 
-        <DocumentMetaModal doc={editDoc} open={editDoc != null} onClose={() => setEditDoc(null)} />
+        {!readOnly ? (
+          <DocumentMetaModal doc={editDoc} open={editDoc != null} onClose={() => setEditDoc(null)} />
+        ) : null}
         {viewer}
       </div>
     );
@@ -434,6 +444,7 @@ function DocImageGridSection(props: {
   title: string;
   docs: DocumentItem[];
   del: { isPending: boolean; variables?: string };
+  readOnly?: boolean;
   onPreview: (docs: DocumentItem[], index: number) => void;
   onDelete: (doc: DocumentItem) => Promise<void>;
   t: (key: string, opts?: Record<string, unknown>) => string;
@@ -467,23 +478,25 @@ function DocImageGridSection(props: {
             >
               <Icon name="download-01" size={16} color="#fff" />
             </button>
-            <button
-              type="button"
-              className="crm-car-photo-tile__remove"
-              disabled={props.del.isPending && props.del.variables === doc.id}
-              onClick={async (e) => {
-                e.stopPropagation();
-                const ok = await confirmAction(
-                  props.t("common.confirmDelete"),
-                  props.t("common.delete"),
-                  props.t("common.cancel"),
-                );
-                if (ok) await props.onDelete(doc);
-              }}
-              aria-label={props.t("common.delete")}
-            >
-              ✕
-            </button>
+            {!props.readOnly ? (
+              <button
+                type="button"
+                className="crm-car-photo-tile__remove"
+                disabled={props.del.isPending && props.del.variables === doc.id}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const ok = await confirmAction(
+                    props.t("common.confirmDelete"),
+                    props.t("common.delete"),
+                    props.t("common.cancel"),
+                  );
+                  if (ok) await props.onDelete(doc);
+                }}
+                aria-label={props.t("common.delete")}
+              >
+                ✕
+              </button>
+            ) : null}
           </div>
         ))}
       </div>

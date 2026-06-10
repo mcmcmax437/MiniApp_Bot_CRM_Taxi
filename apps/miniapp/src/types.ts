@@ -232,3 +232,14 @@ export interface OwnerRow {
   cars: number;
   drivers: number;
 }
+
+export interface FleetMember {
+  id: string;
+  fleetOwnerId: string;
+  telegramUserId: string;
+  name: string | null;
+  username: string | null;
+  status: OwnerStatus;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -7,6 +7,8 @@ import type { Currency } from "@taxi/shared";
 import { formatMoney } from "../components/ui";
 import { ImportSection } from "../components/ImportSection";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
+import { FleetMembersCard } from "../components/FleetMembersCard";
+import { useReadOnly } from "../readOnly";
 import { ReminderList } from "../components/ReminderList";
 import { RecentActivitySection } from "../components/RecentActivitySection";
 import {
@@ -48,6 +50,7 @@ function loadStatsPeriod(): DashboardStatsPeriod {
 
 export function Dashboard() {
   const { t } = useTranslation();
+  const readOnly = useReadOnly();
   const navigate = useNavigate();
   const [statsPeriod, setStatsPeriod] = useState<DashboardStatsPeriod>(loadStatsPeriod);
   const reportRange = useMemo(() => reportDateRange(statsPeriod), [statsPeriod]);
@@ -202,10 +205,14 @@ export function Dashboard() {
         )}
       </SectionCard>
 
-      <ReminderSettingsCard />
+      {!readOnly ? <FleetMembersCard /> : null}
 
-      <ImportSection />
+      {!readOnly ? <ReminderSettingsCard /> : null}
 
+      {!readOnly ? <ImportSection /> : null}
+
+      {!readOnly ? (
+        <>
       <SectionCard
         storageKey="currency"
         defaultOpen={false}
@@ -261,6 +268,8 @@ export function Dashboard() {
           <Icon name="arrow-down-01" size={20} color="var(--taxi-text-muted)" />
         </label>
       </SectionCard>
+        </>
+      ) : null}
     </div>
   );
 }
