@@ -155,17 +155,19 @@ function OverviewCell(props: {
   return (
     <div className="crm-car-overview__cell">
       <div className="crm-car-overview__cell-label">{props.label}</div>
-      {props.children ? (
-        props.children
-      ) : props.copyValue ? (
-        <CopyOnDoubleTap value={props.copyValue} className="crm-car-overview__cell-value">
-          {display}
-        </CopyOnDoubleTap>
-      ) : (
-        <div className="crm-car-overview__cell-value" title={display}>
-          {display}
-        </div>
-      )}
+      <div className="crm-car-overview__cell-body">
+        {props.children ? (
+          props.children
+        ) : props.copyValue ? (
+          <CopyOnDoubleTap value={props.copyValue} className="crm-car-overview__cell-value">
+            {display}
+          </CopyOnDoubleTap>
+        ) : (
+          <div className="crm-car-overview__cell-value" title={display}>
+            {display}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

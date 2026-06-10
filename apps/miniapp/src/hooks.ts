@@ -169,6 +169,19 @@ export function useCreateAgreement() {
     },
   });
 }
+export function useUpdateAgreement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; body: Record<string, unknown> }) =>
+      apiFetch(`/agreements/${input.id}`, { method: "PATCH", body: input.body }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["agreements"] });
+      void qc.invalidateQueries({ queryKey: ["drivers"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
+      void qc.invalidateQueries({ queryKey: ["balances"] });
+    },
+  });
+}
 export function useEndAgreement() {
   const qc = useQueryClient();
   return useMutation({

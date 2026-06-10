@@ -1,0 +1,109 @@
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AgreementStatus, RentPeriod } from "@taxi/shared";
+import { useDrivers, useUpdateAgreement } from "../../hooks";
+import { showAlert } from "../../telegram";
+import type { Agreement } from "../../types";
+import {
+  Modal,
+  Field,
+  DateInput,
+  SelectInput,
+  FormActions,
+  MoneyNumberInput,
+  formatDate,
+} from "../ui";
+
+export function AgreementEditModal(props: {
+  agreement: Agreement | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const drivers = useDrivers();
+  const update = useUpdateAgreement();
+
+  const [driverId, setDriverId] = useState("");
+  const [rentAmount, setRentAmount] = useState<number | "">("");
+  const [depositAmount, setDepositAmount] = useState<number | "">("");
+  const [period, setPeriod] = useState<RentPeriod>(RentPeriod.DAILY);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  useEffect(() => {
+    const a = props.agreement;
+    if (!a) return;
+    setDriverId(a.driverId);
+    setRentAmount(a.rentAmount);
+    setDepositAmount(a.depositAmount);
+    setPeriod(a.period);
+    setStartDate(formatDate(a.startDate));
+    setEndDate(a.endDate ? formatDate(a.endDate) : "");
+  }, [props.agreement]);
+
+  function submit() {
+    if (!props.agreement || rentAmount === "" || !driverId || !startDate) return;
+    const end = endDate.trim();
+    if (end && end < startDate) {
+      showAlert(t("fleet.endBeforeStart"));
+      return;
+    }
+
+    const body: Record<string, unknown> = {
+      driverId,
+      rentAmount,
+      depositAmount: depositAmount === "" ? 0 : depositAmount,
+      period,
+      startDate,
+      endDate: end || null,
+    };
+
+    if (props.agreement.status === AgreementStatus.ACTIVE && end) {
+      body.status = AgreementStatus.ENDED;
+    }
+
+    update.mutate(
+      { id: props.agreement.id, body },
+      { onSuccess: () => props.onClose() },
+    );
+  }
+
+  return (
+    <Modal
+      open={props.open}
+      title={t("fleet.editRentalTitle")}
+      onClose={props.onClose}
+      footer={
+        <FormActions onCancel={props.onClose} onSave={submit} saving={update.isPending} />
+      }
+    >
+      <Field label={t("finance.driver")}>
+        <SelectInput
+          value={driverId}
+          onChange={setDriverId}
+          options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
+        />
+      </Field>
+      <Field label={t("drivers.startDate")}>
+        <DateInput value={startDate} onChange={setStartDate} />
+      </Field>
+      <Field label={t("drivers.endDate")}>
+        <DateInput value={endDate} clearable onChange={setEndDate} />
+      </Field>
+      <p className="crm-form-hint">{t("fleet.endDateHint")}</p>
+      <Field label={t("drivers.rentAmount")}>
+        <MoneyNumberInput value={rentAmount} onChange={setRentAmount} />
+      </Field>
+      <Field label={t("drivers.deposit")}>
+        <MoneyNumberInput value={depositAmount} onChange={setDepositAmount} />
+      </Field>
+      <Field label={t("drivers.period")}>
+        <SelectInput
+          value={period}
+          onChange={setPeriod}
+          options={Object.values(RentPeriod).map((p) => ({ value: p, label: t(`drivers.${p}`) }))}
+        />
+      </Field>
+    </Modal>
+  );
+}

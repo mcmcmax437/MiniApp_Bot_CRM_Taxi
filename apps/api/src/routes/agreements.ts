@@ -80,8 +80,32 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
       where: { id, ownerId: ownerId(req) },
     });
     if (!existing) return reply.code(404).send({ error: "not_found" });
+
     const data = toDates(body, ["startDate", "endDate"]);
-    return prisma.rentalAgreement.update({ where: { id }, data });
+    const start = data.startDate ?? existing.startDate;
+    const end = data.endDate !== undefined ? data.endDate : existing.endDate;
+    if (end && end < start) {
+      return reply.code(400).send({ error: "end_before_start" });
+    }
+
+    const nextStatus = data.status ?? existing.status;
+    const ending = existing.status === "ACTIVE" && nextStatus === "ENDED";
+
+    return prisma.$transaction(async (tx) => {
+      const agreement = await tx.rentalAgreement.update({
+        where: { id },
+        data,
+      });
+      if (ending) {
+        const otherActiveOnCar = await tx.rentalAgreement.count({
+          where: { carId: existing.carId, status: "ACTIVE", id: { not: id } },
+        });
+        if (otherActiveOnCar === 0) {
+          await tx.car.update({ where: { id: existing.carId }, data: { status: "AVAILABLE" } });
+        }
+      }
+      return agreement;
+    });
   });
 
   app.post("/agreements/:id/end", async (req, reply) => {

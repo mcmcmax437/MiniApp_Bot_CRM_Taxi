@@ -26,6 +26,10 @@ export function periodsElapsed(start: Date, asOf: Date, period: RentPeriod): num
         (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
       return Math.max(0, months) + 1;
     }
+    case "YEARLY": {
+      const years = to.getFullYear() - from.getFullYear();
+      return Math.max(0, years) + 1;
+    }
     default:
       return 0;
   }

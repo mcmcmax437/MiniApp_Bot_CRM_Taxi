@@ -33,6 +33,7 @@ enum RentPeriod {
   DAILY
   WEEKLY
   MONTHLY
+  YEARLY
 }
 
 enum AgreementStatus {

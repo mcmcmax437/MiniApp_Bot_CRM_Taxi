@@ -29,6 +29,7 @@ export const RentPeriod = {
   DAILY: "DAILY",
   WEEKLY: "WEEKLY",
   MONTHLY: "MONTHLY",
+  YEARLY: "YEARLY",
 } as const;
 export type RentPeriod = (typeof RentPeriod)[keyof typeof RentPeriod];
 

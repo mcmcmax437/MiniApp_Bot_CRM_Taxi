@@ -292,6 +292,7 @@ export function FleetTab() {
         carPlate={historyCar?.plate ?? ""}
         carSubtitle={historyCar ? carSubtitle(historyCar) : undefined}
         history={historyCar ? (historyByCarId.get(historyCar.id) ?? []) : []}
+        readOnly={readOnly}
         onClose={() => setHistoryCar(null)}
         onAddPast={
           historyCar

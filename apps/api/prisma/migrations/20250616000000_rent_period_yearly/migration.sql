@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `RentalAgreement` MODIFY `period` ENUM('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY') NOT NULL DEFAULT 'DAILY';
