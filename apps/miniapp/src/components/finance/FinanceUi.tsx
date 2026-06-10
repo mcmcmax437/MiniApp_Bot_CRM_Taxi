@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
 import { Icon } from "../crm";
@@ -336,4 +336,77 @@ export function financeInPeriod(dateStr: string, period: FinancePeriod): boolean
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   }
   return d.getFullYear() === now.getFullYear();
+}
+
+export function getFinanceMonthKey(dateStr: string): string {
+  return dateStr.slice(0, 7);
+}
+
+export function formatFinanceMonthLabel(monthKey: string, locale: string): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  if (!year || !month) return monthKey;
+  return new Date(year, month - 1, 1).toLocaleDateString(locale, { month: "long", year: "numeric" });
+}
+
+function groupFinanceByMonth<T>(items: T[], getDate: (item: T) => string) {
+  const groups: { monthKey: string; items: T[] }[] = [];
+  for (const item of items) {
+    const monthKey = getFinanceMonthKey(getDate(item));
+    const last = groups[groups.length - 1];
+    if (last?.monthKey === monthKey) {
+      last.items.push(item);
+    } else {
+      groups.push({ monthKey, items: [item] });
+    }
+  }
+  return groups;
+}
+
+export function FinanceMonthDivider(props: { label: string; isFirst?: boolean }) {
+  return (
+    <div
+      className={`crm-finance-month-divider${props.isFirst ? " crm-finance-month-divider--first" : ""}`}
+      role="separator"
+      aria-label={props.label}
+    >
+      <span className="crm-finance-month-divider__line" aria-hidden />
+      <span className="crm-finance-month-divider__label">{props.label}</span>
+    </div>
+  );
+}
+
+export function FinanceDateGroupedList<T>(props: {
+  items: T[];
+  getDate: (item: T) => string;
+  getKey: (item: T) => string;
+  renderItem: (item: T) => ReactNode;
+}) {
+  const { i18n } = useTranslation();
+  const locale =
+    i18n.language === "uk" ? "uk-UA" : i18n.language === "ru" ? "ru-RU" : "en-US";
+  const groups = useMemo(
+    () => groupFinanceByMonth(props.items, props.getDate),
+    [props.items, props.getDate],
+  );
+
+  return (
+    <>
+      {groups.map((group, index) => (
+        <div
+          key={group.monthKey}
+          className={`crm-finance-month-group${index % 2 === 1 ? " crm-finance-month-group--alt" : ""}`}
+        >
+          <FinanceMonthDivider
+            label={formatFinanceMonthLabel(group.monthKey, locale)}
+            isFirst={index === 0}
+          />
+          {group.items.map((item) => (
+            <div key={props.getKey(item)} className="crm-finance-month-group__item">
+              {props.renderItem(item)}
+            </div>
+          ))}
+        </div>
+      ))}
+    </>
+  );
 }

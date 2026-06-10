@@ -38,6 +38,7 @@ import {
   FinanceEmptyState,
   FinanceList,
   FinanceListItem,
+  FinanceDateGroupedList,
   PartnerAlertMark,
   financeInPeriod,
   sortFinanceByDate,
@@ -273,16 +274,20 @@ function PaymentsTab() {
         />
       ) : (
         <FinanceList loading={payments.isLoading}>
-          {filtered.map((p) => (
-            <FinanceListItem
-              key={p.id}
-              title={paymentDisplayTitle(p, t, t("common.none"))}
-              subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t)}
-              amount={formatMoney(p.amount)}
-              amountTone="income"
-              onClick={readOnly ? undefined : () => openEdit(p)}
-            />
-          ))}
+          <FinanceDateGroupedList
+            items={filtered}
+            getDate={(p) => p.date}
+            getKey={(p) => p.id}
+            renderItem={(p) => (
+              <FinanceListItem
+                title={paymentDisplayTitle(p, t, t("common.none"))}
+                subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t)}
+                amount={formatMoney(p.amount)}
+                amountTone="income"
+                onClick={readOnly ? undefined : () => openEdit(p)}
+              />
+            )}
+          />
         </FinanceList>
       )}
 
@@ -478,38 +483,43 @@ function ExpensesTab() {
         />
       ) : (
         <FinanceList loading={expenses.isLoading}>
-          {filtered.map((e) => {
-            const partnerOpen = e.paidByPartner && !e.partnerSettled;
-            return (
-              <FinanceListItem
-                key={e.id}
-                title={expenseDisplayTitle(e, t)}
-                subtitle={expenseDisplaySubtitle(e, formatDate(e.date), t, t("common.none"))}
-                partnerAlert={partnerOpen}
-                partnerAlertLabel={t("finance.partnerUnsettledTitle")}
-                amount={formatMoney(e.amount)}
-                amountTone="expense"
-                onClick={
-                  readOnly
-                    ? undefined
-                    : () => {
-                  setEditId(e.id);
-                  setFieldErrors({});
-                  setForm({
-                    carId: e.carId ?? "",
-                    category: e.category,
-                    amount: e.amount,
-                    date: e.date.slice(0, 10),
-                    note: e.note ?? "",
-                    tag: e.tag ?? "",
-                    paidByPartner: e.paidByPartner,
-                    partnerSettled: e.partnerSettled,
-                  });
-                  setOpen(true);
-                }}
-              />
-            );
-          })}
+          <FinanceDateGroupedList
+            items={filtered}
+            getDate={(e) => e.date}
+            getKey={(e) => e.id}
+            renderItem={(e) => {
+              const partnerOpen = e.paidByPartner && !e.partnerSettled;
+              return (
+                <FinanceListItem
+                  title={expenseDisplayTitle(e, t)}
+                  subtitle={expenseDisplaySubtitle(e, formatDate(e.date), t, t("common.none"))}
+                  partnerAlert={partnerOpen}
+                  partnerAlertLabel={t("finance.partnerUnsettledTitle")}
+                  amount={formatMoney(e.amount)}
+                  amountTone="expense"
+                  onClick={
+                    readOnly
+                      ? undefined
+                      : () => {
+                          setEditId(e.id);
+                          setFieldErrors({});
+                          setForm({
+                            carId: e.carId ?? "",
+                            category: e.category,
+                            amount: e.amount,
+                            date: e.date.slice(0, 10),
+                            note: e.note ?? "",
+                            tag: e.tag ?? "",
+                            paidByPartner: e.paidByPartner,
+                            partnerSettled: e.partnerSettled,
+                          });
+                          setOpen(true);
+                        }
+                  }
+                />
+              );
+            }}
+          />
         </FinanceList>
       )}
 

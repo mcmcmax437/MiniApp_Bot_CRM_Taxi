@@ -23,6 +23,7 @@ import {
   FinanceEmptyState,
   FinanceList,
   FinanceListItem,
+  FinanceDateGroupedList,
   financeInPeriod,
   sortFinanceByDate,
   type FinancePeriod,
@@ -156,30 +157,35 @@ export function TaxesTab() {
         />
       ) : (
         <FinanceList loading={expenses.isLoading}>
-          {filtered.map((e) => (
-            <FinanceListItem
-              key={e.id}
-              title={e.note?.trim() || t("finance.TAX")}
-              subtitle={[formatDate(e.date), e.car?.plate ?? t("finance.allCars"), t("finance.TAX")]
-                .filter(Boolean)
-                .join(" • ")}
-              amount={formatMoney(e.amount)}
-              amountTone="expense"
-              onClick={
-                readOnly
-                  ? undefined
-                  : () => {
-                setEditId(e.id);
-                setForm({
-                  carId: e.carId ?? "",
-                  amount: e.amount,
-                  date: e.date.slice(0, 10),
-                  note: e.note ?? "",
-                });
-                setOpen(true);
-              }}
-            />
-          ))}
+          <FinanceDateGroupedList
+            items={filtered}
+            getDate={(e) => e.date}
+            getKey={(e) => e.id}
+            renderItem={(e) => (
+              <FinanceListItem
+                title={e.note?.trim() || t("finance.TAX")}
+                subtitle={[formatDate(e.date), e.car?.plate ?? t("finance.allCars"), t("finance.TAX")]
+                  .filter(Boolean)
+                  .join(" • ")}
+                amount={formatMoney(e.amount)}
+                amountTone="expense"
+                onClick={
+                  readOnly
+                    ? undefined
+                    : () => {
+                        setEditId(e.id);
+                        setForm({
+                          carId: e.carId ?? "",
+                          amount: e.amount,
+                          date: e.date.slice(0, 10),
+                          note: e.note ?? "",
+                        });
+                        setOpen(true);
+                      }
+                }
+              />
+            )}
+          />
         </FinanceList>
       )}
 
