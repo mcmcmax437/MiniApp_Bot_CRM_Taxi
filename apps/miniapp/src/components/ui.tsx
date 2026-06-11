@@ -9,6 +9,11 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { getCurrencySymbol, useAppCurrency } from "../currency";
+import { formatDate, isoDateOnly, todayInput } from "../dates";
+
+export { formatMoney, getCurrencySymbol } from "../currency";
+export { formatDate, isoDateOnly, todayInput };
 
 const MODAL_CLOSE_MS = 300;
 
@@ -310,10 +315,6 @@ export function FormActions(props: { onCancel: () => void; onSave: () => void; s
   );
 }
 
-import { getCurrencySymbol, useAppCurrency } from "../currency";
-
-export { formatMoney, getCurrencySymbol } from "../currency";
-
 export function MoneyNumberInput(props: {
   value: number | "";
   onChange: (v: number | "") => void;
@@ -331,13 +332,4 @@ export function MoneyNumberInput(props: {
       </span>
     </div>
   );
-}
-
-export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toISOString().slice(0, 10);
-}
-
-export function todayInput(): string {
-  return new Date().toISOString().slice(0, 10);
 }

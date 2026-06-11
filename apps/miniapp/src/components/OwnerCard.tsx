@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { OwnerStatus } from "@taxi/shared";
 import type { OwnerRow } from "../types";
 import { Icon } from "./crm";
+import { formatDate } from "./ui";
 
 function initials(name: string): string {
   return name
@@ -21,11 +22,7 @@ function avatarColor(name: string): string {
 }
 
 function formatJoined(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDate(iso);
 }
 
 const STATUS_CLASS: Record<OwnerStatus, string> = {

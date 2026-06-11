@@ -15,6 +15,7 @@ import {
   useSaveDriver,
   useDeleteDriver,
   useDriver,
+  useAgreements,
   useCreateAgreement,
   useEndAgreement,
   useShifts,
@@ -40,6 +41,8 @@ import { DriverCard, DriversEmptyState } from "../components/DriverCard";
 import { SwipeToDelete } from "../components/SwipeToDelete";
 import { useReadOnly } from "../readOnly";
 import { confirmAction, showAlert } from "../telegram";
+import { findAgreementDateConflict } from "../agreementOverlap";
+import { ApiError } from "../api";
 
 const ph = (t: (k: string) => string, key: string) => t(`drivers.placeholder.${key}`);
 
@@ -702,6 +705,7 @@ function AgreementSection(props: {
   carOptions: { value: string; label: string }[];
 }) {
   const { t } = useTranslation();
+  const allAgreements = useAgreements();
   const create = useCreateAgreement();
   const end = useEndAgreement();
   const [carId, setCarId] = useState("");
@@ -712,6 +716,26 @@ function AgreementSection(props: {
   const [endDate, setEndDate] = useState("");
 
   const active = props.agreements.filter((a) => a.status === AgreementStatus.ACTIVE);
+  const activeCarIds = useMemo(
+    () =>
+      new Set(
+        (allAgreements.data ?? [])
+          .filter((a) => a.status === AgreementStatus.ACTIVE)
+          .map((a) => a.carId),
+      ),
+    [allAgreements.data],
+  );
+  const isHistorical = Boolean(endDate.trim());
+  const selectableCarOptions = useMemo(() => {
+    const list = isHistorical
+      ? props.carOptions
+      : props.carOptions.filter((o) => !activeCarIds.has(o.value));
+    if (carId && !list.some((o) => o.value === carId)) {
+      const selected = props.carOptions.find((o) => o.value === carId);
+      if (selected) return [...list, selected];
+    }
+    return list;
+  }, [isHistorical, props.carOptions, activeCarIds, carId]);
 
   return (
     <div className="crm-agreement-section">
@@ -749,7 +773,7 @@ function AgreementSection(props: {
         <SelectInput
           value={carId}
           onChange={setCarId}
-          options={[{ value: "", label: t("common.none") }, ...props.carOptions]}
+          options={[{ value: "", label: t("common.none") }, ...selectableCarOptions]}
         />
       </Field>
       <Field label={t("drivers.rentAmount")}>
@@ -790,6 +814,24 @@ function AgreementSection(props: {
             showAlert(t("fleet.endBeforeStart"));
             return;
           }
+          if (!end && activeCarIds.has(carId)) {
+            showAlert(t("fleet.noAvailableCars"));
+            return;
+          }
+          const status = end ? AgreementStatus.ENDED : AgreementStatus.ACTIVE;
+          const conflict = findAgreementDateConflict(
+            {
+              carId,
+              startDate,
+              endDate: end || null,
+              status,
+            },
+            allAgreements.data ?? [],
+          );
+          if (conflict) {
+            showAlert(t("fleet.rentalOverlap"));
+            return;
+          }
           create.mutate(
             {
               driverId: props.driverId,
@@ -807,6 +849,11 @@ function AgreementSection(props: {
                 setDepositAmount("");
                 setStartDate(todayInput());
                 setEndDate("");
+              },
+              onError: (err) => {
+                if (err instanceof ApiError && err.code === "rental_overlap") {
+                  showAlert(t("fleet.rentalOverlap"));
+                }
               },
             },
           );

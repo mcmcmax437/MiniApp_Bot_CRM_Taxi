@@ -566,3 +566,9 @@ export interface ReminderSettings {
   weeklyMileageEnabled: boolean;
   weeklyMileageWeekday: number;
 }
+
+export {
+  findRentalPeriodConflict,
+  rentalPeriodsConflict,
+  type RentalPeriodLike,
+} from "./agreement-overlap.js";

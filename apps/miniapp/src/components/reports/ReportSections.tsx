@@ -1,14 +1,7 @@
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../crm";
-import { DateInput, formatMoney } from "../ui";
-
-function formatDateDisplay(iso: string): string {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}.${m}.${y}`;
-}
+import { DateInput, formatDate, formatMoney } from "../ui";
 
 export function ReportFiltersCard(props: {
   from: string;
@@ -33,7 +26,7 @@ export function ReportFiltersCard(props: {
           <div className="crm-report-date-field__value">
             <Icon name="calendar-01" size={22} color="rgba(255,255,255,0.7)" />
             <DateInput value={props.from} onChange={props.onFromChange} />
-            <span className="crm-report-date-field__display">{formatDateDisplay(props.from)}</span>
+            <span className="crm-report-date-field__display">{formatDate(props.from)}</span>
           </div>
         </label>
 
@@ -42,7 +35,7 @@ export function ReportFiltersCard(props: {
           <div className="crm-report-date-field__value">
             <Icon name="calendar-01" size={22} color="rgba(255,255,255,0.7)" />
             <DateInput value={props.to} onChange={props.onToChange} />
-            <span className="crm-report-date-field__display">{formatDateDisplay(props.to)}</span>
+            <span className="crm-report-date-field__display">{formatDate(props.to)}</span>
           </div>
         </label>
       </div>

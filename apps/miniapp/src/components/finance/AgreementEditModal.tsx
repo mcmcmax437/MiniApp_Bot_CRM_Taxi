@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgreementStatus, RentPeriod } from "@taxi/shared";
-import { useDrivers, useUpdateAgreement } from "../../hooks";
+import { useAgreements, useDrivers, useUpdateAgreement } from "../../hooks";
+import { findAgreementDateConflict } from "../../agreementOverlap";
+import { ApiError } from "../../api";
 import { showAlert } from "../../telegram";
 import type { Agreement } from "../../types";
 import {
@@ -11,7 +13,7 @@ import {
   SelectInput,
   FormActions,
   MoneyNumberInput,
-  formatDate,
+  isoDateOnly,
 } from "../ui";
 
 export function AgreementEditModal(props: {
@@ -21,6 +23,7 @@ export function AgreementEditModal(props: {
 }) {
   const { t } = useTranslation();
   const drivers = useDrivers();
+  const agreements = useAgreements();
   const update = useUpdateAgreement();
 
   const [driverId, setDriverId] = useState("");
@@ -37,8 +40,8 @@ export function AgreementEditModal(props: {
     setRentAmount(a.rentAmount);
     setDepositAmount(a.depositAmount);
     setPeriod(a.period);
-    setStartDate(formatDate(a.startDate));
-    setEndDate(a.endDate ? formatDate(a.endDate) : "");
+    setStartDate(isoDateOnly(a.startDate));
+    setEndDate(a.endDate ? isoDateOnly(a.endDate) : "");
   }, [props.agreement]);
 
   function submit() {
@@ -62,9 +65,33 @@ export function AgreementEditModal(props: {
       body.status = AgreementStatus.ENDED;
     }
 
+    const nextStatus =
+      (body.status as AgreementStatus | undefined) ?? props.agreement.status;
+    const conflict = findAgreementDateConflict(
+      {
+        id: props.agreement.id,
+        carId: props.agreement.carId,
+        startDate,
+        endDate: end || null,
+        status: nextStatus,
+      },
+      agreements.data ?? [],
+    );
+    if (conflict) {
+      showAlert(t("fleet.rentalOverlap"));
+      return;
+    }
+
     update.mutate(
       { id: props.agreement.id, body },
-      { onSuccess: () => props.onClose() },
+      {
+        onSuccess: () => props.onClose(),
+        onError: (err) => {
+          if (err instanceof ApiError && err.code === "rental_overlap") {
+            showAlert(t("fleet.rentalOverlap"));
+          }
+        },
+      },
     );
   }
 

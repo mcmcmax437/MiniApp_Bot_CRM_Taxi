@@ -25,6 +25,8 @@ import {
 } from "./FinanceUi";
 import { CarDriverHistoryModal } from "./CarDriverHistoryModal";
 import { useReadOnly } from "../../readOnly";
+import { findAgreementDateConflict } from "../../agreementOverlap";
+import { ApiError } from "../../api";
 
 export function FleetTab() {
   const { t } = useTranslation();
@@ -37,6 +39,7 @@ export function FleetTab() {
 
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [lockedCarId, setLockedCarId] = useState<string | null>(null);
   const [historyCar, setHistoryCar] = useState<Car | null>(null);
   const [form, setForm] = useState({
     driverId: "",
@@ -72,11 +75,17 @@ export function FleetTab() {
     () => (cars.data ?? []).filter((c) => !activeByCarId.has(c.id)),
     [cars.data, activeByCarId],
   );
-  const isHistoricalAssign = Boolean(form.endDate.trim());
+  const isHistoricalAssign = Boolean(form.endDate.trim()) || lockedCarId != null;
   const assignCarOptions = useMemo(() => {
-    const list = isHistoricalAssign ? (cars.data ?? []) : availableCars;
+    const base = isHistoricalAssign ? (cars.data ?? []) : availableCars;
+    const selected = form.carId ? base.find((c) => c.id === form.carId) : undefined;
+    const list =
+      selected || !form.carId
+        ? base
+        : [...base, ...(cars.data ?? []).filter((c) => c.id === form.carId)];
     return list.map((c) => ({ value: c.id, label: c.plate }));
-  }, [isHistoricalAssign, cars.data, availableCars]);
+  }, [isHistoricalAssign, cars.data, availableCars, form.carId]);
+  const lockedCar = lockedCarId ? cars.data?.find((c) => c.id === lockedCarId) : undefined;
 
   const fleetRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -103,7 +112,9 @@ export function FleetTab() {
       });
   }, [cars.data, activeByCarId, search]);
 
-  function openAssign(carId = "") {
+  function openAssign(carId = "", options?: { historical?: boolean }) {
+    const historical = Boolean(options?.historical && carId);
+    setLockedCarId(historical ? carId : null);
     setForm({
       driverId: drivers.data?.[0]?.id ?? "",
       carId: carId || (availableCars[0]?.id ?? cars.data?.[0]?.id ?? ""),
@@ -114,6 +125,11 @@ export function FleetTab() {
       period: RentPeriod.DAILY,
     });
     setOpen(true);
+  }
+
+  function closeAssign() {
+    setOpen(false);
+    setLockedCarId(null);
   }
 
   function submit() {
@@ -127,6 +143,22 @@ export function FleetTab() {
       showAlert(t("fleet.noAvailableCars"));
       return;
     }
+
+    const status = endDate ? AgreementStatus.ENDED : AgreementStatus.ACTIVE;
+    const conflict = findAgreementDateConflict(
+      {
+        carId: form.carId,
+        startDate: form.startDate,
+        endDate: endDate || null,
+        status,
+      },
+      agreements.data ?? [],
+    );
+    if (conflict) {
+      showAlert(t("fleet.rentalOverlap"));
+      return;
+    }
+
     create.mutate(
       {
         driverId: form.driverId,
@@ -137,7 +169,14 @@ export function FleetTab() {
         startDate: form.startDate,
         ...(endDate ? { endDate, status: AgreementStatus.ENDED } : {}),
       },
-      { onSuccess: () => setOpen(false) },
+      {
+        onSuccess: () => closeAssign(),
+        onError: (err) => {
+          if (err instanceof ApiError && err.code === "rental_overlap") {
+            showAlert(t("fleet.rentalOverlap"));
+          }
+        },
+      },
     );
   }
 
@@ -299,7 +338,7 @@ export function FleetTab() {
             ? () => {
                 const carId = historyCar.id;
                 setHistoryCar(null);
-                openAssign(carId);
+                openAssign(carId, { historical: true });
               }
             : undefined
         }
@@ -307,9 +346,9 @@ export function FleetTab() {
 
       <Modal
         open={open}
-        title={t("fleet.assignCar")}
-        onClose={() => setOpen(false)}
-        footer={<FormActions onCancel={() => setOpen(false)} onSave={submit} saving={create.isPending} />}
+        title={lockedCarId ? t("fleet.addPastRental") : t("fleet.assignCar")}
+        onClose={closeAssign}
+        footer={<FormActions onCancel={closeAssign} onSave={submit} saving={create.isPending} />}
       >
         <Field label={t("finance.driver")}>
           <SelectInput
@@ -318,13 +357,19 @@ export function FleetTab() {
             options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
           />
         </Field>
-        <Field label={t("finance.car")}>
-          <SelectInput
-            value={form.carId}
-            onChange={(v) => setForm({ ...form, carId: v })}
-            options={assignCarOptions}
-          />
-        </Field>
+        {lockedCar ? (
+          <Field label={t("finance.car")}>
+            <div className="crm-form-readonly">{lockedCar.plate}</div>
+          </Field>
+        ) : (
+          <Field label={t("finance.car")}>
+            <SelectInput
+              value={form.carId}
+              onChange={(v) => setForm({ ...form, carId: v })}
+              options={assignCarOptions}
+            />
+          </Field>
+        )}
         <Field label={t("drivers.startDate")}>
           <DateInput value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} />
         </Field>
