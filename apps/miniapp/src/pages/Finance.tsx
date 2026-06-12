@@ -7,11 +7,14 @@ import {
   useBalances,
   useDrivers,
   useCars,
+  useAgreements,
   useSavePayment,
   useDeletePayment,
   useSaveExpense,
   useDeleteExpense,
 } from "../hooks";
+import { agreementHintForCar, rankCarsForDriver } from "../driverCarSuggestions";
+import type { Agreement } from "../types";
 import { FleetTab } from "../components/finance/FleetTab";
 import { TaxesTab } from "../components/finance/TaxesTab";
 import { ExpenseTagInput } from "../components/finance/ExpenseTagInput";
@@ -22,6 +25,7 @@ import {
   NumberInput,
   DateInput,
   SelectInput,
+  SearchableSelect,
   FormActions,
   formatMoney,
   formatDate,
@@ -82,6 +86,7 @@ function PaymentsTab() {
   const balances = useBalances();
   const drivers = useDrivers();
   const cars = useCars();
+  const agreements = useAgreements();
   const save = useSavePayment();
   const del = useDeletePayment();
   const [open, setOpen] = useState(false);
@@ -181,7 +186,15 @@ function PaymentsTab() {
           note: form.note || null,
         },
       },
-      { onSuccess: () => setOpen(false) },
+      {
+        onSuccess: () => {
+          if (editId) {
+            setOpen(false);
+            return;
+          }
+          setForm((f) => ({ ...f, amount: "", note: "" }));
+        },
+      },
     );
   }
 
@@ -302,6 +315,7 @@ function PaymentsTab() {
         fieldErrors={fieldErrors}
         drivers={drivers.data ?? []}
         cars={cars.data ?? []}
+        agreements={agreements.data ?? []}
         saving={save.isPending}
         onClose={() => setOpen(false)}
         onSave={submit}
@@ -700,6 +714,7 @@ function PaymentModal(props: {
   fieldErrors: { amount?: boolean; date?: boolean; method?: boolean };
   drivers: { id: string; fullName: string }[];
   cars: { id: string; plate: string }[];
+  agreements: Agreement[];
   saving: boolean;
   onClose: () => void;
   onSave: () => void;
@@ -708,6 +723,58 @@ function PaymentModal(props: {
 }) {
   const { t } = useTranslation();
   const { form, setForm, fieldErrors } = props;
+
+  const driverOptions = useMemo(
+    () => [
+      { value: "", label: t("common.none") },
+      ...props.drivers.map((d) => ({ value: d.id, label: d.fullName })),
+    ],
+    [props.drivers, t],
+  );
+
+  const carOptions = useMemo(() => {
+    const carById = new Map(props.cars.map((c) => [c.id, c]));
+    const { orderedCarIds } = rankCarsForDriver(
+      form.driverId,
+      props.agreements,
+      props.cars.map((c) => c.id),
+    );
+    const ordered = orderedCarIds
+      .map((id) => carById.get(id))
+      .filter((c): c is { id: string; plate: string } => Boolean(c));
+    for (const car of props.cars) {
+      if (!ordered.some((c) => c.id === car.id)) ordered.push(car);
+    }
+    return [
+      { value: "", label: t("common.none") },
+      ...ordered.map((c) => {
+        const hintKind = agreementHintForCar(form.driverId, c.id, props.agreements);
+        return {
+          value: c.id,
+          label: c.plate,
+          hint:
+            hintKind === "active"
+              ? t("finance.carHintActive")
+              : hintKind === "past"
+                ? t("finance.carHintPast")
+                : undefined,
+        };
+      }),
+    ];
+  }, [form.driverId, props.agreements, props.cars, t]);
+
+  function onDriverChange(driverId: string) {
+    const { suggestedCarId } = rankCarsForDriver(
+      driverId,
+      props.agreements,
+      props.cars.map((c) => c.id),
+    );
+    setForm({
+      ...form,
+      driverId,
+      carId: suggestedCarId ?? "",
+    });
+  }
 
   return (
     <Modal
@@ -726,24 +793,14 @@ function PaymentModal(props: {
       }
     >
       <Field label={t("finance.driver")}>
-        <SelectInput
+        <SearchableSelect
           value={form.driverId}
-          onChange={(v) => setForm({ ...form, driverId: v })}
-          options={[
-            { value: "", label: t("common.none") },
-            ...props.drivers.map((d) => ({ value: d.id, label: d.fullName })),
-          ]}
+          onChange={onDriverChange}
+          options={driverOptions}
         />
       </Field>
       <Field label={t("finance.car")}>
-        <SelectInput
-          value={form.carId}
-          onChange={(v) => setForm({ ...form, carId: v })}
-          options={[
-            { value: "", label: t("common.none") },
-            ...props.cars.map((c) => ({ value: c.id, label: c.plate })),
-          ]}
-        />
+        <SearchableSelect value={form.carId} onChange={(v) => setForm({ ...form, carId: v })} options={carOptions} />
       </Field>
       <Field
         label={t("finance.amount")}

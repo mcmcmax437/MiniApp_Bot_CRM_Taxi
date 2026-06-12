@@ -1255,6 +1255,79 @@ body {
   font-weight: 600;
 }
 
+.crm-searchable-select {
+  position: relative;
+}
+
+.crm-searchable-select--open .crm-input {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.crm-searchable-select__list {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  background: rgba(12, 22, 36, 0.98);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.crm-searchable-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crm-searchable-select__option:hover,
+.crm-searchable-select__option--active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.crm-searchable-select__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-searchable-select__hint {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--taxi-accent, #ffc107);
+}
+
+.crm-searchable-select__empty {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  background: rgba(12, 22, 36, 0.98);
+  color: var(--taxi-text-muted);
+  font-size: 13px;
+}
+
 .crm-car-photo-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

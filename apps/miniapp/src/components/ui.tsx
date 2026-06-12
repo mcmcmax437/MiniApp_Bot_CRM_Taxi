@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -250,6 +251,111 @@ export function SelectInput<T extends string>(props: {
         </option>
       ))}
     </select>
+  );
+}
+
+export function SearchableSelect<T extends string>(props: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string; hint?: string }[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  invalid?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selected = props.options.find((o) => o.value === props.value);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return props.options;
+    return props.options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) || (o.hint ? o.hint.toLowerCase().includes(q) : false),
+    );
+  }, [props.options, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  function pick(value: T) {
+    props.onChange(value);
+    setOpen(false);
+    setQuery("");
+    inputRef.current?.blur();
+  }
+
+  const displayValue = open ? query : (selected?.label ?? "");
+  const searchPh = props.searchPlaceholder ?? t("common.searchToFilter");
+
+  return (
+    <div className={`crm-searchable-select${open ? " crm-searchable-select--open" : ""}`} ref={rootRef}>
+      <input
+        ref={inputRef}
+        className={inputClass(props.invalid)}
+        value={displayValue}
+        placeholder={open ? searchPh : (props.placeholder ?? searchPh)}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        onFocus={() => {
+          setOpen(true);
+          setQuery("");
+        }}
+        onChange={(e) => {
+          setOpen(true);
+          setQuery(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setOpen(false);
+            setQuery("");
+            inputRef.current?.blur();
+          }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const first = filtered[0];
+            if (first) pick(first.value);
+          }
+        }}
+      />
+      {open ? (
+        filtered.length > 0 ? (
+          <ul className="crm-searchable-select__list" role="listbox">
+            {filtered.map((o) => (
+              <li key={o.value || "__none"}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={o.value === props.value}
+                  className={`crm-searchable-select__option${o.value === props.value ? " crm-searchable-select__option--active" : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => pick(o.value)}
+                >
+                  <span className="crm-searchable-select__label">{o.label}</span>
+                  {o.hint ? <span className="crm-searchable-select__hint">{o.hint}</span> : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="crm-searchable-select__empty">{t("common.empty")}</div>
+        )
+      ) : null}
+    </div>
   );
 }
 
