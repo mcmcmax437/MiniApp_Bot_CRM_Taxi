@@ -159,6 +159,7 @@ export function TaxesTab() {
         <FinanceList loading={expenses.isLoading}>
           <FinanceDateGroupedList
             items={filtered}
+            collapseStorageKey="finance-taxes-months"
             getDate={(e) => e.date}
             getKey={(e) => e.id}
             getAmount={(e) => e.amount}

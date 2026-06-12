@@ -3132,6 +3132,43 @@ body {
   border-top: 2px solid rgba(255, 193, 7, 0.4);
 }
 
+.crm-finance-month-divider--interactive {
+  width: 100%;
+  margin: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.crm-finance-month-divider--interactive:hover {
+  background: rgba(255, 193, 7, 0.08);
+}
+
+.crm-finance-month-divider--interactive:focus-visible {
+  outline: 2px solid rgba(255, 193, 7, 0.45);
+  outline-offset: -2px;
+}
+
+.crm-finance-month-divider__chevron {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.crm-finance-month-divider--collapsed .crm-finance-month-divider__chevron {
+  transform: rotate(-90deg);
+}
+
+.crm-finance-month-group--collapsed {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .crm-finance-month-divider--first {
   border-top: none;
   padding-top: 8px;

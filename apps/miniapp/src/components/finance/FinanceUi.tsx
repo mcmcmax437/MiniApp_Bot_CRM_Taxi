@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
 import { formatMoney } from "../../currency";
@@ -369,13 +369,22 @@ export function FinanceMonthDivider(props: {
   total?: number;
   countLabel?: string;
   summaryTone?: "income" | "expense";
+  collapsed?: boolean;
+  onToggle?: () => void;
 }) {
-  return (
-    <div
-      className={`crm-finance-month-divider${props.isFirst ? " crm-finance-month-divider--first" : ""}`}
-      role="separator"
-      aria-label={props.label}
-    >
+  const { t } = useTranslation();
+  const interactive = Boolean(props.onToggle);
+  const className = [
+    "crm-finance-month-divider",
+    props.isFirst ? "crm-finance-month-divider--first" : "",
+    interactive ? "crm-finance-month-divider--interactive" : "",
+    props.collapsed ? "crm-finance-month-divider--collapsed" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const content = (
+    <>
       <span className="crm-finance-month-divider__line" aria-hidden />
       <div className="crm-finance-month-divider__content">
         <span className="crm-finance-month-divider__label">{props.label}</span>
@@ -392,8 +401,53 @@ export function FinanceMonthDivider(props: {
           </div>
         ) : null}
       </div>
+      {interactive ? (
+        <span className="crm-finance-month-divider__chevron" aria-hidden>
+          <Icon name="arrow-down-01" size={18} color="rgba(255, 193, 7, 0.75)" />
+        </span>
+      ) : null}
+    </>
+  );
+
+  if (interactive) {
+    return (
+      <button
+        type="button"
+        className={className}
+        aria-expanded={!props.collapsed}
+        aria-label={
+          props.collapsed
+            ? t("finance.expandMonth", { month: props.label })
+            : t("finance.collapseMonth", { month: props.label })
+        }
+        onClick={props.onToggle}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={className} role="separator" aria-label={props.label}>
+      {content}
     </div>
   );
+}
+
+function loadCollapsedMonths(storageKey: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((v): v is string => typeof v === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsedMonths(storageKey: string, collapsed: Set<string>) {
+  localStorage.setItem(storageKey, JSON.stringify([...collapsed]));
 }
 
 export function FinanceDateGroupedList<T>(props: {
@@ -403,38 +457,58 @@ export function FinanceDateGroupedList<T>(props: {
   getAmount: (item: T) => number;
   formatCount?: (count: number) => string;
   summaryTone?: "income" | "expense";
+  collapseStorageKey?: string;
   renderItem: (item: T) => ReactNode;
 }) {
   const { i18n } = useTranslation();
   const locale =
     i18n.language === "uk" ? "uk-UA" : i18n.language === "ru" ? "ru-RU" : "en-US";
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(() =>
+    props.collapseStorageKey ? loadCollapsedMonths(props.collapseStorageKey) : new Set(),
+  );
   const groups = useMemo(
     () => groupFinanceByMonth(props.items, props.getDate),
     [props.items, props.getDate],
   );
+
+  function toggleMonth(monthKey: string) {
+    setCollapsedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(monthKey)) next.delete(monthKey);
+      else next.add(monthKey);
+      if (props.collapseStorageKey) saveCollapsedMonths(props.collapseStorageKey, next);
+      return next;
+    });
+  }
 
   return (
     <>
       {groups.map((group, index) => {
         const total = group.items.reduce((sum, item) => sum + props.getAmount(item), 0);
         const countLabel = props.formatCount?.(group.items.length);
+        const collapsed = collapsedMonths.has(group.monthKey);
+        const label = formatFinanceMonthLabel(group.monthKey, locale);
         return (
           <div
             key={group.monthKey}
-            className={`crm-finance-month-group${index % 2 === 1 ? " crm-finance-month-group--alt" : ""}`}
+            className={`crm-finance-month-group${index % 2 === 1 ? " crm-finance-month-group--alt" : ""}${collapsed ? " crm-finance-month-group--collapsed" : ""}`}
           >
             <FinanceMonthDivider
-              label={formatFinanceMonthLabel(group.monthKey, locale)}
+              label={label}
               isFirst={index === 0}
               total={total}
               countLabel={countLabel}
               summaryTone={props.summaryTone}
+              collapsed={collapsed}
+              onToggle={() => toggleMonth(group.monthKey)}
             />
-            {group.items.map((item) => (
-              <div key={props.getKey(item)} className="crm-finance-month-group__item">
-                {props.renderItem(item)}
-              </div>
-            ))}
+            {!collapsed
+              ? group.items.map((item) => (
+                  <div key={props.getKey(item)} className="crm-finance-month-group__item">
+                    {props.renderItem(item)}
+                  </div>
+                ))
+              : null}
           </div>
         );
       })}

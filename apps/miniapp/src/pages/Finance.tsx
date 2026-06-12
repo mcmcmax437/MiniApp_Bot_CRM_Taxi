@@ -283,6 +283,7 @@ function PaymentsTab() {
         <FinanceList loading={payments.isLoading}>
           <FinanceDateGroupedList
             items={filtered}
+            collapseStorageKey="finance-payments-months"
             getDate={(p) => p.date}
             getKey={(p) => p.id}
             getAmount={(p) => p.amount}
@@ -496,6 +497,7 @@ function ExpensesTab() {
         <FinanceList loading={expenses.isLoading}>
           <FinanceDateGroupedList
             items={filtered}
+            collapseStorageKey="finance-expenses-months"
             getDate={(e) => e.date}
             getKey={(e) => e.id}
             getAmount={(e) => e.amount}
