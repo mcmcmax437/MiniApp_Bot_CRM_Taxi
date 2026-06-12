@@ -187,13 +187,7 @@ function PaymentsTab() {
         },
       },
       {
-        onSuccess: () => {
-          if (editId) {
-            setOpen(false);
-            return;
-          }
-          setForm((f) => ({ ...f, amount: "", note: "" }));
-        },
+        onSuccess: () => setOpen(false),
       },
     );
   }
