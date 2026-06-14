@@ -74,7 +74,7 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const endDate = isHistorical ? ((data.endDate as Date | undefined) ?? null) : null;
-    if (!(await assertNoRentalOverlap(oid, body.carId, data.startDate as Date, endDate))) {
+    if (!(await assertNoRentalOverlap(oid, body.carId, data.startDate as unknown as Date, endDate as Date | null))) {
       return reply.code(400).send({ error: "rental_overlap" });
     }
 

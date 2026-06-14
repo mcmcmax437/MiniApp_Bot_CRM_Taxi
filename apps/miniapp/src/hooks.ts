@@ -557,8 +557,11 @@ export interface ImportResult {
 export function useImport() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { kind: "cars" | "drivers" | "payments"; csv: string }) =>
-      apiFetch<ImportResult>(`/import/${input.kind}`, { method: "POST", body: { csv: input.csv } }),
+    mutationFn: (input: { kind: "cars" | "drivers" | "payments"; text: string }) =>
+      apiFetch<ImportResult>(`/import/${input.kind}`, {
+        method: "POST",
+        body: { text: input.text },
+      }),
     onSuccess: () => {
       void qc.invalidateQueries();
     },

@@ -3,59 +3,15 @@ import { prisma } from "../prisma.js";
 import { ownerId } from "./helpers.js";
 import { CarStatus, PaymentMethod, PaymentType } from "@taxi/shared";
 
-/** Minimal CSV parser supporting quoted fields and commas/newlines inside quotes. */
-function parseCsv(input: string): Record<string, string>[] {
-  const rows: string[][] = [];
-  let field = "";
-  let row: string[] = [];
-  let inQuotes = false;
-  const text = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+const MAX_NOTE_LENGTH = 2000;
+const NAME_TWO_WORD = /^[\p{L}’'\-]+\s+[\p{L}’'\-]+$/u;
+const ZERO_WIDTH_RE = /[​-‍﻿]/g;
 
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += ch;
-      }
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ",") {
-      row.push(field);
-      field = "";
-    } else if (ch === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-    } else {
-      field += ch;
-    }
+function getPayload(body: unknown): string | null {
+  if (body && typeof body === "object" && "text" in body) {
+    const text = (body as { text?: unknown }).text;
+    if (typeof text === "string") return text;
   }
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-
-  const nonEmpty = rows.filter((r) => r.some((c) => c.trim() !== ""));
-  if (nonEmpty.length === 0) return [];
-  const headers = nonEmpty[0].map((h) => h.trim());
-  return nonEmpty.slice(1).map((r) => {
-    const obj: Record<string, string> = {};
-    headers.forEach((h, idx) => {
-      obj[h] = (r[idx] ?? "").trim();
-    });
-    return obj;
-  });
-}
-
-function getCsv(body: unknown): string | null {
   if (body && typeof body === "object" && "csv" in body) {
     const csv = (body as { csv?: unknown }).csv;
     if (typeof csv === "string") return csv;
@@ -64,155 +20,218 @@ function getCsv(body: unknown): string | null {
   return null;
 }
 
-function pick(row: Record<string, string>, keys: string[]): string | undefined {
-  for (const k of keys) {
-    const found = Object.keys(row).find((h) => h.toLowerCase() === k.toLowerCase());
-    if (found && row[found] !== "") return row[found];
-  }
-  return undefined;
+function splitPasteLines(input: string): string[] {
+  return input
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(ZERO_WIDTH_RE, "").trim())
+    .filter((line) => line.length > 0);
 }
 
-function parseDate(value?: string): Date | null {
+function splitPasteColumns(line: string): string[] {
+  if (line.includes("\t")) {
+    return line.split("\t").map((c) => c.trim());
+  }
+  if (line.includes("  ")) {
+    return line.split(/\s{2,}/).map((c) => c.trim()).filter((c) => c.length > 0);
+  }
+  return line.trim().split(/\s+/);
+}
+
+function parsePasteDate(value: string | undefined): Date | null {
   if (!value) return null;
-  const d = new Date(value);
+  const trimmed = value.trim();
+  const dotted = trimmed.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})$/);
+  if (dotted) {
+    const [, d, m, rawY] = dotted;
+    const yearNum = Number(rawY);
+    const year = yearNum < 100 ? 2000 + yearNum : yearNum;
+    const date = new Date(Date.UTC(year, Number(m) - 1, Number(d), 12));
+    return isNaN(date.getTime()) ? null : date;
+  }
+  const d = new Date(trimmed);
   return isNaN(d.getTime()) ? null : d;
 }
 
-function parseNum(value?: string): number | null {
+function parsePasteNumber(value: string | undefined): number | null {
   if (!value) return null;
-  const n = Number(value.replace(/[, ]/g, ""));
+  const cleaned = value.replace(/[, ]/g, "").replace(/[^\d.\-]/g, "");
+  if (!cleaned) return null;
+  const n = Number(cleaned);
   return isNaN(n) ? null : n;
+}
+
+function splitNameAndNote(raw: string): { name: string; note: string } {
+  const cleaned = raw.replace(/\s+/g, " ").trim();
+  if (!cleaned) return { name: "", note: "" };
+  const tokens = cleaned.split(" ");
+  if (tokens.length === 0) return { name: "", note: "" };
+  if (tokens.length === 1) {
+    return { name: tokens[0], note: "" };
+  }
+  const firstTwo = `${tokens[0]} ${tokens[1]}`;
+  if (NAME_TWO_WORD.test(firstTwo) || tokens.length === 2) {
+    return {
+      name: tokens.slice(0, 2).join(" "),
+      note: tokens.slice(2).join(" ").trim(),
+    };
+  }
+  return { name: tokens[0], note: tokens.slice(1).join(" ").trim() };
+}
+
+function findDriverByName(drivers: { id: string; fullName: string }[], name: string): string | null {
+  const needle = name.trim().toLowerCase();
+  if (!needle) return null;
+  const exact = drivers.find((d) => d.fullName.trim().toLowerCase() === needle);
+  if (exact) return exact.id;
+  const first = drivers.find(
+    (d) => d.fullName.trim().toLowerCase().split(/\s+/)[0] === needle,
+  );
+  return first?.id ?? null;
+}
+
+function findCarByPlate(cars: { id: string; plate: string }[], plate: string): string | null {
+  const needle = plate.trim().toLowerCase();
+  if (!needle) return null;
+  const exact = cars.find((c) => c.plate.trim().toLowerCase() === needle);
+  if (exact) return exact.id;
+  return cars.find((c) => c.plate.trim().toLowerCase().includes(needle))?.id ?? null;
+}
+
+function truncateNote(value: string): string {
+  if (value.length <= MAX_NOTE_LENGTH) return value;
+  return value.slice(0, MAX_NOTE_LENGTH);
 }
 
 export async function importRoutes(app: FastifyInstance): Promise<void> {
   app.post("/import/cars", async (req, reply) => {
-    const csv = getCsv(req.body);
-    if (!csv) return reply.code(400).send({ error: "missing_csv" });
-    const rows = parseCsv(csv);
+    const text = getPayload(req.body);
+    if (!text) return reply.code(400).send({ error: "missing_text" });
+    const lines = splitPasteLines(text);
     const oid = ownerId(req);
     let created = 0;
     const errors: string[] = [];
-    for (const [i, row] of rows.entries()) {
-      const plate = pick(row, ["plate", "number", "номер", "номер авто"]);
+    for (const [i, line] of lines.entries()) {
+      const cols = splitPasteColumns(line);
+      const plate = (cols[0] ?? "").trim();
       if (!plate) {
-        errors.push(`Row ${i + 2}: missing plate`);
+        errors.push(`Line ${i + 1}: missing plate`);
         continue;
       }
-      const statusRaw = (pick(row, ["status", "статус"]) ?? "").toUpperCase();
-      const status = (Object.values(CarStatus) as string[]).includes(statusRaw)
-        ? (statusRaw as CarStatus)
-        : CarStatus.AVAILABLE;
+      const make = (cols[1] ?? "").trim() || null;
+      const model = (cols[2] ?? "").trim() || null;
+      const yearNum = parsePasteNumber(cols[3]);
+      const noteRaw = cols.slice(make ? 4 : 1).join(" ").trim();
+      const note = noteRaw ? truncateNote(noteRaw) : null;
       await prisma.car.create({
         data: {
           ownerId: oid,
           plate,
-          make: pick(row, ["make", "марка"]) ?? null,
-          model: pick(row, ["model", "модель"]) ?? null,
-          year: parseNum(pick(row, ["year", "рік", "год"])) ?? null,
-          status,
-          insuranceExpiry: parseDate(pick(row, ["insuranceExpiry", "insurance", "страховка"])),
-          inspectionExpiry: parseDate(pick(row, ["inspectionExpiry", "inspection", "техогляд"])),
-          notes: pick(row, ["notes", "нотатки", "заметки"]) ?? null,
+          make,
+          model,
+          year: yearNum,
+          status: CarStatus.AVAILABLE,
+          notes: note,
         },
       });
       created++;
     }
-    return { created, total: rows.length, errors };
+    return { created, total: lines.length, errors };
   });
 
   app.post("/import/drivers", async (req, reply) => {
-    const csv = getCsv(req.body);
-    if (!csv) return reply.code(400).send({ error: "missing_csv" });
-    const rows = parseCsv(csv);
+    const text = getPayload(req.body);
+    if (!text) return reply.code(400).send({ error: "missing_text" });
+    const lines = splitPasteLines(text);
     const oid = ownerId(req);
     let created = 0;
     const errors: string[] = [];
-    for (const [i, row] of rows.entries()) {
-      const fullName = pick(row, ["fullName", "name", "ім'я", "имя", "водій", "водитель"]);
-      const firstName =
-        pick(row, ["firstName", "first_name", "ім'я", "имя"]) ??
-        fullName?.split(/\s+/)[0];
-      const lastName =
-        pick(row, ["lastName", "last_name", "прізвище", "фамилия"]) ??
-        fullName?.split(/\s+/).slice(1).join(" ") ??
-        firstName;
-      if (!firstName) {
-        errors.push(`Row ${i + 2}: missing name`);
+    for (const [i, line] of lines.entries()) {
+      const cols = splitPasteColumns(line);
+      const nameCol = (cols[0] ?? "").trim();
+      if (!nameCol) {
+        errors.push(`Line ${i + 1}: missing name`);
         continue;
       }
-      const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
+      const { name, note } = splitNameAndNote(nameCol);
+      const [firstName, ...rest] = name.split(" ");
+      const lastName = rest.join(" ");
+      const phone = (cols[1] ?? "").trim() || null;
+      const noteFallback = note || cols.slice(2).join(" ").trim();
       await prisma.driver.create({
         data: {
           ownerId: oid,
-          firstName,
-          lastName: lastName || firstName,
-          fullName: displayName,
-          phone: pick(row, ["phone", "телефон"]) ?? null,
-          telegramUsername: pick(row, ["telegram", "username"]) ?? null,
-          pesel: pick(row, ["pesel", "PESEL", "песель"]) ?? null,
-          passportNumber: pick(row, ["passport", "passportNumber", "паспорт"]) ?? null,
-          addressCity: pick(row, ["city", "addressCity", "місто", "город"]) ?? null,
-          addressPostalCode:
-            pick(row, ["postalCode", "addressPostalCode", "zip", "postcode", "індекс", "индекс", "поштовий"]) ??
-            null,
-          addressStreet: pick(row, ["street", "addressStreet", "вулиця", "улица"]) ?? null,
-          addressHouse: pick(row, ["house", "addressHouse", "будинок", "дом"]) ?? null,
-          addressFlat: pick(row, ["flat", "addressFlat", "квартира"]) ?? null,
-          fatherName: pick(row, ["fatherName", "father", "батько", "отец"]) ?? null,
-          motherName: pick(row, ["motherName", "mother", "мати", "мать"]) ?? null,
-          notes: pick(row, ["notes", "нотатки", "заметки"]) ?? null,
+          firstName: firstName || name,
+          lastName: lastName || firstName || name,
+          fullName: name,
+          phone,
+          notes: noteFallback ? truncateNote(noteFallback) : null,
         },
       });
       created++;
     }
-    return { created, total: rows.length, errors };
+    return { created, total: lines.length, errors };
   });
 
   app.post("/import/payments", async (req, reply) => {
-    const csv = getCsv(req.body);
-    if (!csv) return reply.code(400).send({ error: "missing_csv" });
-    const rows = parseCsv(csv);
+    const text = getPayload(req.body);
+    if (!text) return reply.code(400).send({ error: "missing_text" });
+    const lines = splitPasteLines(text);
     const oid = ownerId(req);
-    const drivers = await prisma.driver.findMany({ where: { ownerId: oid } });
-    const byName = new Map(drivers.map((d) => [d.fullName.trim().toLowerCase(), d.id] as const));
+    const [drivers, cars] = await Promise.all([
+      prisma.driver.findMany({
+        where: { ownerId: oid },
+        select: { id: true, fullName: true },
+      }),
+      prisma.car.findMany({
+        where: { ownerId: oid },
+        select: { id: true, plate: true },
+      }),
+    ]);
 
     let created = 0;
     const errors: string[] = [];
-    for (const [i, row] of rows.entries()) {
-      const driverName = pick(row, ["driver", "водій", "водитель", "name"]);
-      const amount = parseNum(pick(row, ["amount", "сума", "сумма"]));
-      const date = parseDate(pick(row, ["date", "дата"])) ?? new Date();
-      if (!driverName || amount == null) {
-        errors.push(`Row ${i + 2}: missing driver or amount`);
+    for (const [i, line] of lines.entries()) {
+      const cols = splitPasteColumns(line);
+      const date = parsePasteDate(cols[0]) ?? new Date();
+      const plate = (cols[1] ?? "").trim();
+      const amount = parsePasteNumber(cols[2]);
+      const driverCol = (cols[3] ?? "").trim();
+      if (amount == null) {
+        errors.push(`Line ${i + 1}: missing amount`);
         continue;
       }
-      const driverId = byName.get(driverName.trim().toLowerCase());
-      if (!driverId) {
-        errors.push(`Row ${i + 2}: driver "${driverName}" not found`);
+      if (!driverCol && !plate) {
+        errors.push(`Line ${i + 1}: missing driver or plate`);
         continue;
       }
-      const methodRaw = (pick(row, ["method", "спосіб", "способ"]) ?? "").toUpperCase();
-      const typeRaw = (pick(row, ["type", "тип"]) ?? "").toUpperCase();
+      const { name, note } = splitNameAndNote(driverCol);
+      const driverId = name ? findDriverByName(drivers, name) : null;
+      const carId = plate ? findCarByPlate(cars, plate) : null;
+      if (driverCol && !driverId) {
+        errors.push(`Line ${i + 1}: driver "${name}" not found`);
+        continue;
+      }
+      if (plate && !carId) {
+        errors.push(`Line ${i + 1}: car "${plate}" not found`);
+        continue;
+      }
+      const noteText = note || driverCol || plate;
       await prisma.payment.create({
         data: {
           ownerId: oid,
           driverId,
+          carId,
           amount,
           date,
-          method:
-            methodRaw === PaymentMethod.CASH
-              ? PaymentMethod.CASH
-              : methodRaw === PaymentMethod.BANK || methodRaw === "CARD" || methodRaw === "OTHER"
-                ? PaymentMethod.BANK
-                : PaymentMethod.CASH,
-          type: (Object.values(PaymentType) as string[]).includes(typeRaw)
-            ? (typeRaw as PaymentType)
-            : PaymentType.RENT,
-          note: pick(row, ["note", "notes", "нотатка", "заметка"]) ?? null,
+          method: PaymentMethod.CASH,
+          type: PaymentType.RENT,
+          note: noteText ? truncateNote(noteText) : null,
         },
       });
       created++;
     }
-    return { created, total: rows.length, errors };
+    return { created, total: lines.length, errors };
   });
 }
