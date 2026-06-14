@@ -826,7 +826,7 @@ function PaymentModal(props: {
           }}
         />
       </Field>
-      <Field label={t("finance.type")}>
+      <Field label={t("finance.paymentType")}>
         <SelectInput
           value={form.type}
           onChange={(v) => setForm({ ...form, type: v })}

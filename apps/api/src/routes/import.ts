@@ -66,14 +66,13 @@ function splitNameAndNote(raw: string): { name: string; note: string } {
   const cleaned = raw.replace(/\s+/g, " ").trim();
   if (!cleaned) return { name: "", note: "" };
   const tokens = cleaned.split(" ");
-  if (tokens.length === 0) return { name: "", note: "" };
-  if (tokens.length === 1) {
-    return { name: tokens[0], note: "" };
+  if (tokens.length <= 2) {
+    return { name: cleaned, note: "" };
   }
   const firstTwo = `${tokens[0]} ${tokens[1]}`;
-  if (NAME_TWO_WORD.test(firstTwo) || tokens.length === 2) {
+  if (NAME_TWO_WORD.test(firstTwo)) {
     return {
-      name: tokens.slice(0, 2).join(" "),
+      name: firstTwo,
       note: tokens.slice(2).join(" ").trim(),
     };
   }
@@ -217,7 +216,7 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
         errors.push(`Line ${i + 1}: car "${plate}" not found`);
         continue;
       }
-      const noteText = note || driverCol || plate;
+      const noteText = driverId ? note : driverCol || plate;
       await prisma.payment.create({
         data: {
           ownerId: oid,
