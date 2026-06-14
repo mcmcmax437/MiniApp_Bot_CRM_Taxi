@@ -57,14 +57,18 @@ export function paymentDisplaySubtitle(
     note?: string | null;
     type: PaymentType;
     driver?: { fullName: string } | null;
+    car?: { plate: string } | null;
     method: string;
   },
   dateLabel: string,
   t: Translate,
+  noneLabel: string = "—",
 ): string {
   const hasNote = Boolean(payment.note?.trim());
+  const plate = payment.car?.plate ?? noneLabel;
   return [
     dateLabel,
+    plate,
     hasNote && payment.driver?.fullName ? payment.driver.fullName : null,
     t(`finance.${payment.type}`),
     t(`finance.${payment.method}`),

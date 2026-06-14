@@ -73,10 +73,12 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, r
   return createPortal(
     <div
       className={`crm-modal-overlay taxi-crm-theme${active ? " crm-modal-overlay--active" : ""}`}
-      onClick={dismiss}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) dismiss();
+      }}
       aria-hidden={!active}
     >
-      <div className="crm-modal-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="crm-modal-sheet" role="dialog" aria-modal="true">
         <div className="crm-modal-head">
           {props.backLabel ? (
             <button type="button" className="crm-modal-back" onClick={dismiss}>

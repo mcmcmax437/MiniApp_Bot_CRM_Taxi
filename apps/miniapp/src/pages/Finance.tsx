@@ -292,7 +292,7 @@ function PaymentsTab() {
             renderItem={(p) => (
               <FinanceListItem
                 title={paymentDisplayTitle(p, t, t("common.none"))}
-                subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t)}
+                subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t, t("common.none"))}
                 amount={formatMoney(p.amount)}
                 amountTone="income"
                 onClick={readOnly ? undefined : () => openEdit(p)}

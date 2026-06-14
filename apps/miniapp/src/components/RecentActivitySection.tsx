@@ -51,7 +51,7 @@ export function RecentActivitySection() {
         id: `payment-${p.id}`,
         kind: outflow ? "expense" : "income",
         title: paymentDisplayTitle(p, t, t("common.none")),
-        subtitle: paymentDisplaySubtitle(p, formatDate(p.date), t),
+        subtitle: paymentDisplaySubtitle(p, formatDate(p.date), t, t("common.none")),
         amount: p.amount,
         sortAt: paymentSortTime(p),
       });
