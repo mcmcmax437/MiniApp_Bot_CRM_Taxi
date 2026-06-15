@@ -40,6 +40,7 @@ import { Documents } from "../components/Documents";
 import { AppHeader, Icon } from "../components/crm";
 import { DriverCard, DriversEmptyState } from "../components/DriverCard";
 import { DriverBalanceBreakdownModal } from "../components/DriverBalanceBreakdownModal";
+import { GiveDiscountModal } from "../components/GiveDiscountModal";
 import { SwipeToDelete } from "../components/SwipeToDelete";
 import { useReadOnly } from "../readOnly";
 import { confirmAction, showAlert } from "../telegram";
@@ -129,6 +130,7 @@ export function DriversPage() {
   const cars = useCars();
   const balances = useBalances();
   const shifts = useShifts();
+  const allAgreements = useAgreements();
   const save = useSaveDriver();
   const del = useDeleteDriver();
 
@@ -142,6 +144,7 @@ export function DriversPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Set<DriverFormField>>(new Set());
   const [balanceModal, setBalanceModal] = useState<{ driverId: string; driverName: string } | null>(null);
+  const [discountModal, setDiscountModal] = useState<{ driverId: string; driverName: string } | null>(null);
   const modalRef = useRef<ModalHandle>(null);
 
   const detail = useDriver(open && editId ? editId : undefined);
@@ -641,6 +644,27 @@ export function DriversPage() {
         driverId={balanceModal?.driverId ?? null}
         driverName={balanceModal?.driverName ?? ""}
         onClose={() => setBalanceModal(null)}
+        onGiveDiscount={
+          !readOnly && balanceModal
+            ? () => {
+                setDiscountModal(balanceModal);
+                setBalanceModal(null);
+              }
+            : undefined
+        }
+      />
+
+      <GiveDiscountModal
+        open={discountModal != null}
+        driverId={discountModal?.driverId ?? ""}
+        driverName={discountModal?.driverName ?? ""}
+        cars={cars.data ?? []}
+        agreements={allAgreements.data ?? []}
+        readOnly={readOnly}
+        onClose={() => setDiscountModal(null)}
+        onSaved={() => {
+          // The mutation's onSuccess already invalidates payments/balances.
+        }}
       />
     </div>
   );

@@ -3206,6 +3206,24 @@ button.crm-driver-stat:hover {
   background: rgba(255, 255, 255, 0.025);
 }
 
+/* Subtle zebra-striping within each month group so individual rows
+   stay readable when the list sits on the dark glass background. */
+.crm-finance-month-group .crm-finance-month-group__item:nth-child(even) .crm-finance-item {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.crm-finance-month-group--alt .crm-finance-month-group__item:nth-child(even) .crm-finance-item {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.crm-finance-item--interactive:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.crm-finance-month-group--alt .crm-finance-item--interactive:hover {
+  background: rgba(255, 255, 255, 0.085);
+}
+
 .crm-finance-month-divider {
   display: flex;
   align-items: stretch;
@@ -4835,6 +4853,42 @@ select.crm-input option {
   margin-top: -2px;
 }
 
+.crm-modal-close {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+}
+
+.crm-modal-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.crm-modal-close:active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.taxi-crm-theme .crm-modal-close {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--taxi-text, #fff);
+}
+
+.taxi-crm-theme .crm-modal-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .crm-modal-body {
   display: flex;
   flex-direction: column;
@@ -4846,6 +4900,75 @@ select.crm-input option {
 
 .crm-modal-footer {
   margin-top: 16px;
+}
+
+.crm-discount-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  margin-bottom: 14px;
+}
+
+.crm-discount-hero__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--taxi-text, #fff);
+}
+
+.crm-discount-hero__subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.crm-discount-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(105, 240, 174, 0.08);
+  border: 1px solid rgba(105, 240, 174, 0.25);
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.crm-discount-preview strong {
+  color: #69f0ae;
+  font-variant-numeric: tabular-nums;
+}
+
+.crm-discount-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  background: rgba(255, 193, 7, 0.06);
+  color: var(--taxi-text, #fff);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+}
+
+.crm-discount-cta:hover {
+  background: rgba(255, 193, 7, 0.12);
+}
+
+.crm-discount-cta:active {
+  background: rgba(255, 193, 7, 0.2);
 }
 
 .taxi-crm-theme .crm-modal-sheet {

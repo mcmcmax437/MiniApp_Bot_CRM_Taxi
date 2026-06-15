@@ -121,7 +121,12 @@ function PaymentsTab() {
     partnerSettled: false,
   });
 
-  const all = payments.data ?? [];
+  // Discounts are tracked as Payment rows with type=DISCOUNT so the balance
+  // calculation picks them up, but they are NOT income and shouldn't be
+  // mixed into the payments list. Use `all` for the list and `allIncludingDiscounts`
+  // only when the caller explicitly needs the raw data.
+  const allIncludingDiscounts = payments.data ?? [];
+  const all = allIncludingDiscounts.filter((p) => p.type !== PaymentType.DISCOUNT);
   const totalPaid = all.reduce((s, p) => s + p.amount, 0);
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
   const monthItems = all.filter((p) => financeInPeriod(p.date, "month"));
@@ -281,19 +286,21 @@ function PaymentsTab() {
               >
                 {t("common.all")}
               </button>
-              {Object.values(PaymentType).map((pt) => (
-                <button
-                  key={pt}
-                  type="button"
-                  className={`crm-filter-menu__item${typeFilter === pt ? " crm-filter-menu__item--active" : ""}`}
-                  onClick={() => {
-                    setTypeFilter(pt);
-                    setFilterOpen(false);
-                  }}
-                >
-                  {t(`finance.${pt}`)}
-                </button>
-              ))}
+              {Object.values(PaymentType)
+                .filter((pt) => pt !== PaymentType.DISCOUNT)
+                .map((pt) => (
+                  <button
+                    key={pt}
+                    type="button"
+                    className={`crm-filter-menu__item${typeFilter === pt ? " crm-filter-menu__item--active" : ""}`}
+                    onClick={() => {
+                      setTypeFilter(pt);
+                      setFilterOpen(false);
+                    }}
+                  >
+                    {t(`finance.${pt}`)}
+                  </button>
+                ))}
             </div>
           ) : null
         }

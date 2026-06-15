@@ -91,6 +91,15 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, r
           <div className="crm-modal-head__row">
             <h3 className="crm-modal-head__title">{props.title}</h3>
             {props.headerAction ?? null}
+            <button
+              type="button"
+              className="crm-modal-close"
+              onClick={dismiss}
+              aria-label={t("common.close")}
+              data-stop-press="true"
+            >
+              ×
+            </button>
           </div>
         </div>
         <div className="crm-modal-body">{props.children}</div>

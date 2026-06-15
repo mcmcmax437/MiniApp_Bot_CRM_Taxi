@@ -57,6 +57,7 @@ export function DriverBalanceBreakdownModal(props: {
   driverId: string | null;
   driverName: string;
   onClose: () => void;
+  onGiveDiscount?: () => void;
 }) {
   const { t } = useTranslation();
   const agreements = useAgreements();
@@ -122,6 +123,18 @@ export function DriverBalanceBreakdownModal(props: {
               </div>
             </div>
           </div>
+
+          {props.onGiveDiscount ? (
+            <button
+              type="button"
+              className="crm-btn-outline crm-discount-cta"
+              onClick={props.onGiveDiscount}
+              data-stop-press="true"
+            >
+              <Icon name="receipt-dollar" size={16} color="#ffc107" />
+              <span>{t("discount.giveDiscount")}</span>
+            </button>
+          ) : null}
 
           <SectionCard
             title={t("balanceBreakdown.rentAccrued")}
