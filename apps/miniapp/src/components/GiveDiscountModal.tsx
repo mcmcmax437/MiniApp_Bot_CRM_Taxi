@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useSavePayment } from "../hooks";
 import { Modal, formatMoney, DateInput, Field, MoneyNumberInput, SearchableSelect, TextInput } from "./ui";
 import { Icon } from "./crm";
-import type { Agreement, PaymentType } from "@taxi/shared";
+import { PaymentType } from "@taxi/shared";
+import type { Agreement } from "../types";
 import { todayInput } from "../dates";
 
 /**

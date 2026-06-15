@@ -33,6 +33,7 @@ export type ModalProps = {
 };
 
 export const Modal = forwardRef<ModalHandle, ModalProps>(function Modal(props, ref) {
+  const { t } = useTranslation();
   const [render, setRender] = useState(props.open);
   const [active, setActive] = useState(false);
   const exitingRef = useRef(false);
