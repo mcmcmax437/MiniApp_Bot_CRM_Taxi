@@ -39,6 +39,7 @@ import {
 import { Documents } from "../components/Documents";
 import { AppHeader, Icon } from "../components/crm";
 import { DriverCard, DriversEmptyState } from "../components/DriverCard";
+import { DriverBalanceBreakdownModal } from "../components/DriverBalanceBreakdownModal";
 import { SwipeToDelete } from "../components/SwipeToDelete";
 import { useReadOnly } from "../readOnly";
 import { confirmAction, showAlert } from "../telegram";
@@ -140,6 +141,7 @@ export function DriversPage() {
   const [nameSort, setNameSort] = useState<NameSort>("AZ");
   const [filterOpen, setFilterOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Set<DriverFormField>>(new Set());
+  const [balanceModal, setBalanceModal] = useState<{ driverId: string; driverName: string } | null>(null);
   const modalRef = useRef<ModalHandle>(null);
 
   const detail = useDriver(open && editId ? editId : undefined);
@@ -413,6 +415,7 @@ export function DriversPage() {
                 driver={d}
                 balance={balanceById.get(d.id)}
                 tripsThisMonth={tripsByDriver.get(d.id) ?? 0}
+                onBalanceClick={() => setBalanceModal({ driverId: d.id, driverName: d.fullName })}
               />
             </SwipeToDelete>
           ))}
@@ -629,6 +632,13 @@ export function DriversPage() {
           </>
         )}
       </Modal>
+
+      <DriverBalanceBreakdownModal
+        open={balanceModal != null}
+        driverId={balanceModal?.driverId ?? null}
+        driverName={balanceModal?.driverName ?? ""}
+        onClose={() => setBalanceModal(null)}
+      />
     </div>
   );
 }

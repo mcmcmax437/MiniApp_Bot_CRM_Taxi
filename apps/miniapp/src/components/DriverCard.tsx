@@ -26,6 +26,7 @@ export function DriverCard(props: {
   driver: Driver;
   balance?: DriverBalance;
   tripsThisMonth: number;
+  onBalanceClick?: () => void;
 }) {
   const { t } = useTranslation();
   const { driver } = props;
@@ -84,6 +85,8 @@ export function DriverCard(props: {
           label={t("drivers.balance")}
           value={formatMoney(props.balance?.balance ?? 0)}
           icon={<Icon name="dollar-01" size={16} color="rgba(255,255,255,0.54)" />}
+          onClick={props.onBalanceClick}
+          clickable={Boolean(props.onBalanceClick)}
         />
       </div>
     </div>
@@ -96,17 +99,29 @@ function StatColumn(props: {
   icon: ReactNode;
   tone: "joined" | "trips" | "balance";
   state?: "owing" | "settled";
+  clickable?: boolean;
+  onClick?: () => void;
 }) {
   const stateClass = props.state ? ` crm-driver-stat--${props.state}` : "";
-  return (
-    <div className={`crm-driver-stat crm-driver-stat--${props.tone}${stateClass}`}>
+  const clickableClass = props.clickable ? " crm-driver-stat--clickable" : "";
+  const className = `crm-driver-stat crm-driver-stat--${props.tone}${stateClass}${clickableClass}`;
+  const inner = (
+    <>
       <div className="crm-driver-stat__icon">{props.icon}</div>
       <div className="crm-driver-stat__text">
         <div className="crm-driver-stat__label">{props.label}</div>
         <div className="crm-driver-stat__value">{props.value}</div>
       </div>
-    </div>
+    </>
   );
+  if (props.clickable) {
+    return (
+      <button type="button" className={className} onClick={props.onClick}>
+        {inner}
+      </button>
+    );
+  }
+  return <div className={className}>{inner}</div>;
 }
 
 export function DriversEmptyState(props: { onAdd: () => void }) {
