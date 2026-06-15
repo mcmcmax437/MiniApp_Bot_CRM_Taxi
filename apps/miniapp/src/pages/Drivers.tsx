@@ -415,7 +415,10 @@ export function DriversPage() {
                 driver={d}
                 balance={balanceById.get(d.id)}
                 tripsThisMonth={tripsByDriver.get(d.id) ?? 0}
-                onBalanceClick={() => setBalanceModal({ driverId: d.id, driverName: d.fullName })}
+                onBalanceClick={(e) => {
+                  e.stopPropagation();
+                  setBalanceModal({ driverId: d.id, driverName: d.fullName });
+                }}
               />
             </SwipeToDelete>
           ))}

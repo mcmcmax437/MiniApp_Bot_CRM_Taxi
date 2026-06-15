@@ -557,7 +557,7 @@ export interface ImportResult {
 export function useImport() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { kind: "cars" | "drivers" | "payments"; text: string }) =>
+    mutationFn: (input: { kind: "cars" | "drivers" | "payments" | "expenses"; text: string }) =>
       apiFetch<ImportResult>(`/import/${input.kind}`, {
         method: "POST",
         body: { text: input.text },

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { DriverBalance } from "@taxi/shared";
 import type { Driver } from "../types";
@@ -26,7 +26,7 @@ export function DriverCard(props: {
   driver: Driver;
   balance?: DriverBalance;
   tripsThisMonth: number;
-  onBalanceClick?: () => void;
+  onBalanceClick?: (e: MouseEvent<HTMLButtonElement>) => void;
 }) {
   const { t } = useTranslation();
   const { driver } = props;
@@ -100,7 +100,7 @@ function StatColumn(props: {
   tone: "joined" | "trips" | "balance";
   state?: "owing" | "settled";
   clickable?: boolean;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   const stateClass = props.state ? ` crm-driver-stat--${props.state}` : "";
   const clickableClass = props.clickable ? " crm-driver-stat--clickable" : "";
@@ -116,7 +116,14 @@ function StatColumn(props: {
   );
   if (props.clickable) {
     return (
-      <button type="button" className={className} onClick={props.onClick}>
+      <button
+        type="button"
+        className={className}
+        onClick={props.onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+        }}
+      >
         {inner}
       </button>
     );

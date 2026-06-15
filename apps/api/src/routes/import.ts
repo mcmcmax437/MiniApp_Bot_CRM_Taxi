@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import { ownerId } from "./helpers.js";
-import { CarStatus, PaymentMethod, PaymentType } from "@taxi/shared";
+import { CarStatus, ExpenseCategory, PaymentMethod, PaymentType } from "@taxi/shared";
 
 const MAX_NOTE_LENGTH = 2000;
 const NAME_TWO_WORD = /^[\p{L}’'\-]+\s+[\p{L}’'\-]+$/u;
@@ -227,6 +227,81 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
           method: PaymentMethod.CASH,
           type: PaymentType.RENT,
           note: noteText ? truncateNote(noteText) : null,
+        },
+      });
+      created++;
+    }
+    return { created, total: lines.length, errors };
+  });
+
+  const EXPENSE_CATEGORY_ALIASES: Record<string, ExpenseCategory> = {
+    FUEL: ExpenseCategory.FUEL,
+    GAS: ExpenseCategory.FUEL,
+    PALNE: ExpenseCategory.FUEL,
+    PALIVO: ExpenseCategory.FUEL,
+    MAINTENANCE: ExpenseCategory.MAINTENANCE,
+    SERVICE: ExpenseCategory.MAINTENANCE,
+    SERVIS: ExpenseCategory.MAINTENANCE,
+    ТО: ExpenseCategory.MAINTENANCE,
+    REPAIR: ExpenseCategory.REPAIR,
+    REPAIRS: ExpenseCategory.REPAIR,
+    REMONT: ExpenseCategory.REPAIR,
+    INSURANCE: ExpenseCategory.INSURANCE,
+    STRAHOVKA: ExpenseCategory.INSURANCE,
+    TAX: ExpenseCategory.TAX,
+    PODATOK: ExpenseCategory.TAX,
+    NALOG: ExpenseCategory.TAX,
+    OTHER: ExpenseCategory.OTHER,
+    INSHI: ExpenseCategory.OTHER,
+  };
+
+  function parseExpenseCategory(value: string | undefined): ExpenseCategory {
+    if (!value) return ExpenseCategory.OTHER;
+    const key = value.trim().toUpperCase();
+    if (EXPENSE_CATEGORY_ALIASES[key]) return EXPENSE_CATEGORY_ALIASES[key];
+    const direct = Object.values(ExpenseCategory).find((c) => c === key);
+    if (direct) return direct;
+    return ExpenseCategory.OTHER;
+  }
+
+  app.post("/import/expenses", async (req, reply) => {
+    const text = getPayload(req.body);
+    if (!text) return reply.code(400).send({ error: "missing_text" });
+    const lines = splitPasteLines(text);
+    const oid = ownerId(req);
+    const cars = await prisma.car.findMany({
+      where: { ownerId: oid },
+      select: { id: true, plate: true },
+    });
+
+    let created = 0;
+    const errors: string[] = [];
+    for (const [i, line] of lines.entries()) {
+      const cols = splitPasteColumns(line);
+      const date = parsePasteDate(cols[0]) ?? new Date();
+      const plate = (cols[1] ?? "").trim();
+      const amount = parsePasteNumber(cols[2]);
+      if (amount == null) {
+        errors.push(`Line ${i + 1}: missing amount`);
+        continue;
+      }
+      const category = parseExpenseCategory(cols[3]);
+      const tag = (cols[4] ?? "").trim() || null;
+      const noteRaw = cols.slice(5).join(" ").trim();
+      const carId = plate ? findCarByPlate(cars, plate) : null;
+      if (plate && !carId) {
+        errors.push(`Line ${i + 1}: car "${plate}" not found`);
+        continue;
+      }
+      await prisma.expense.create({
+        data: {
+          ownerId: oid,
+          carId: carId ?? null,
+          amount,
+          date,
+          category,
+          tag,
+          note: noteRaw ? truncateNote(noteRaw) : null,
         },
       });
       created++;

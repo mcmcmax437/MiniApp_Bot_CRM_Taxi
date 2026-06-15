@@ -4,7 +4,7 @@ import { Field, TextInput } from "./ui";
 import { GlassButton, Icon, SectionCard } from "./crm";
 import { useImport } from "../hooks";
 
-type Kind = "cars" | "drivers" | "payments";
+type Kind = "cars" | "drivers" | "payments" | "expenses";
 
 function countLines(text: string): number {
   return text
@@ -18,10 +18,11 @@ function countLines(text: string): number {
 export function ImportSection() {
   const { t } = useTranslation();
   const imp = useImport();
-  const [text, setText] = useState<{ cars: string; drivers: string; payments: string }>({
+  const [text, setText] = useState<{ cars: string; drivers: string; payments: string; expenses: string }>({
     cars: "",
     drivers: "",
     payments: "",
+    expenses: "",
   });
   const [activeKind, setActiveKind] = useState<Kind | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export function ImportSection() {
   }
 
   function clearAll() {
-    setText({ cars: "", drivers: "", payments: "" });
+    setText({ cars: "", drivers: "", payments: "", expenses: "" });
     setActiveKind(null);
     setMessage(null);
   }
@@ -79,6 +80,12 @@ export function ImportSection() {
       title: t("importData.payments"),
       subtitle: t("importData.paymentsHint"),
       icon: <Icon name="dollar-01" size={24} color="var(--taxi-text-muted)" />,
+    },
+    {
+      kind: "expenses",
+      title: t("importData.expenses"),
+      subtitle: t("importData.expensesHint"),
+      icon: <Icon name="fire" size={24} color="var(--taxi-text-muted)" />,
     },
     {
       kind: "cars",
