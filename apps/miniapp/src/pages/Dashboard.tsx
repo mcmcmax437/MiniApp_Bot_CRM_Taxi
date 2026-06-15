@@ -202,6 +202,39 @@ export function Dashboard() {
       </div>
       {report.data ? <p className="crm-stat-grid-hint">{roiHint}</p> : null}
 
+      {report.data &&
+      (report.data.partnerUnsettled.paymentsUnsettled > 0 ||
+        report.data.partnerUnsettled.expensesUnsettled > 0) ? (
+        <div
+          className="crm-partner-banner glass-card"
+          onClick={() => navigate("/finance")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/finance");
+            }
+          }}
+        >
+          <Icon name="wallet-01" size={24} color="var(--taxi-warning, #ffb300)" />
+          <div>
+            <div className="crm-partner-banner__title">{t("dashboard.partnerStatus")}</div>
+            <div className="crm-partner-banner__subtitle">
+              {report.data.partnerUnsettled.paymentsUnsettled > 0
+                ? t("dashboard.partnerOwesYou", {
+                    amount: formatMoney(report.data.partnerUnsettled.paymentsUnsettled),
+                    count: report.data.partnerUnsettled.paymentsUnsettledCount,
+                  })
+                : t("dashboard.partnerReimburse", {
+                    amount: formatMoney(report.data.partnerUnsettled.expensesUnsettled),
+                    count: report.data.partnerUnsettled.expensesUnsettledCount,
+                  })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <RecentActivitySection />
 
       <SectionCard

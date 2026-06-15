@@ -122,6 +122,8 @@ function PaymentsTab() {
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
   const monthItems = all.filter((p) => financeInPeriod(p.date, "month"));
   const monthSum = monthItems.reduce((s, p) => s + p.amount, 0);
+  const partnerUnsettled = all.filter((p) => p.receivedByPartner && !p.partnerSettled);
+  const partnerUnsettledSum = partnerUnsettled.reduce((s, p) => s + p.amount, 0);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -146,6 +148,8 @@ function PaymentsTab() {
       method: PaymentMethod.BANK,
       type: PaymentType.RENT,
       note: "",
+      receivedByPartner: false,
+      partnerSettled: false,
     });
     setOpen(true);
   }
@@ -161,6 +165,8 @@ function PaymentsTab() {
       method: p.method === PaymentMethod.CASH ? PaymentMethod.CASH : PaymentMethod.BANK,
       type: p.type,
       note: p.note ?? "",
+      receivedByPartner: p.receivedByPartner,
+      partnerSettled: p.partnerSettled,
     });
     setOpen(true);
   }
@@ -184,6 +190,8 @@ function PaymentsTab() {
           method: form.method,
           type: form.type,
           note: form.note || null,
+          receivedByPartner: form.receivedByPartner,
+          partnerSettled: form.receivedByPartner ? form.partnerSettled : false,
         },
       },
       {
@@ -195,6 +203,21 @@ function PaymentsTab() {
   return (
     <>
       {!readOnly ? <FinanceAddButton label={t("finance.addPayment")} onClick={openCreate} /> : null}
+
+      {partnerUnsettled.length > 0 ? (
+        <div className="crm-partner-banner glass-card">
+          <PartnerAlertMark label={t("finance.receivedByPartner")} />
+          <div>
+            <div className="crm-partner-banner__title">{t("finance.receivedByPartnerTitle")}</div>
+            <div className="crm-partner-banner__subtitle">
+              {t("finance.receivedByPartnerSummary", {
+                count: partnerUnsettled.length,
+                amount: formatMoney(partnerUnsettledSum),
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <FinanceStatsRow>
         <FinanceStatCard
@@ -295,6 +318,8 @@ function PaymentsTab() {
                 subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t, t("common.none"))}
                 amount={formatMoney(p.amount)}
                 amountTone="income"
+                partnerAlert={p.receivedByPartner && !p.partnerSettled}
+                partnerAlertLabel={t("finance.receivedByPartner")}
                 onClick={readOnly ? undefined : () => openEdit(p)}
               />
             )}
@@ -705,6 +730,8 @@ function PaymentModal(props: {
     method: PaymentMethod;
     type: PaymentType;
     note: string;
+    receivedByPartner: boolean;
+    partnerSettled: boolean;
   };
   setForm: (f: typeof props.form) => void;
   fieldErrors: { amount?: boolean; date?: boolean; method?: boolean };
@@ -851,6 +878,30 @@ function PaymentModal(props: {
       <Field label={t("finance.note")}>
         <TextInput value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
       </Field>
+      <label className="crm-checkbox-field">
+        <input
+          type="checkbox"
+          checked={form.receivedByPartner}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              receivedByPartner: e.target.checked,
+              partnerSettled: e.target.checked ? form.partnerSettled : false,
+            })
+          }
+        />
+        <span>{t("finance.receivedByPartner")}</span>
+      </label>
+      {form.receivedByPartner ? (
+        <label className="crm-checkbox-field">
+          <input
+            type="checkbox"
+            checked={form.partnerSettled}
+            onChange={(e) => setForm({ ...form, partnerSettled: e.target.checked })}
+          />
+          <span>{t("finance.partnerSettled")}</span>
+        </label>
+      ) : null}
     </Modal>
   );
 }

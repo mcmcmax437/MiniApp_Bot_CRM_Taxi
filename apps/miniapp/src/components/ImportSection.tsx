@@ -143,6 +143,9 @@ export function ImportSection() {
           <p className="crm-form-hint crm-import-paste__columns">
             {t(`importData.${activeKind}Columns`)}
           </p>
+          {activeKind === "expenses" ? (
+            <p className="crm-form-hint crm-import-paste__tip">{t("importData.expensesNegativeHint")}</p>
+          ) : null}
           <p className="crm-form-hint">
             {text[activeKind].trim()
               ? t("importData.pasteDetected", { count: lineCount })

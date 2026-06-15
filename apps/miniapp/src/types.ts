@@ -163,6 +163,8 @@ export interface Payment {
   method: PaymentMethod;
   type: PaymentType;
   note: string | null;
+  receivedByPartner: boolean;
+  partnerSettled: boolean;
   createdAt?: string;
   driver?: { id: string; fullName: string };
   car?: { id: string; plate: string } | null;

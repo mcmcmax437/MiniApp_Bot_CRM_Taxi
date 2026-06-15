@@ -58,8 +58,7 @@ function parsePasteNumber(value: string | undefined): number | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const sign = trimmed.startsWith("-") ? -1 : trimmed.startsWith("+") ? 1 : 1;
-  const body = trimmed.replace(/^[+\-]/, "").replace(/[^\d.,]/g, "");
+  const body = trimmed.replace(/[+\-]/g, "").replace(/[^\d.,]/g, "");
   if (!body) return null;
   const lastDot = body.lastIndexOf(".");
   const lastComma = body.lastIndexOf(",");
@@ -80,7 +79,7 @@ function parsePasteNumber(value: string | undefined): number | null {
   } else {
     normalized = body;
   }
-  const n = Number(normalized) * sign;
+  const n = Number(normalized);
   return isNaN(n) ? null : n;
 }
 

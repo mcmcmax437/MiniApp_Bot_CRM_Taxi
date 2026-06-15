@@ -365,6 +365,8 @@ export const paymentCreateSchema = z.object({
   method: z.nativeEnum(PaymentMethod).default(PaymentMethod.BANK),
   type: z.nativeEnum(PaymentType).default(PaymentType.RENT),
   note: z.string().trim().max(2000).optional().nullable(),
+  receivedByPartner: z.boolean().default(false),
+  partnerSettled: z.boolean().default(false),
 });
 export const paymentUpdateSchema = paymentCreateSchema.partial();
 export type PaymentCreateInput = z.infer<typeof paymentCreateSchema>;
@@ -539,6 +541,19 @@ export interface ReportSummary {
   roiPercent: number | null;
   byCar: Array<{ carId: string; label: string; income: number; expenses: number; profit: number }>;
   byDriver: Array<{ driverId: string; label: string; income: number }>;
+  /**
+   * Snapshot of partner-unsettled amounts as of the report's "to" date.
+   * These are not filtered by `from`/`to` because the owner wants to know
+   * the running total that the partner still owes them regardless of period.
+   */
+  partnerUnsettled: {
+    /** Payments the partner collected but has not yet settled back to the owner. */
+    paymentsUnsettled: number;
+    paymentsUnsettledCount: number;
+    /** Expenses the owner has not yet reimbursed the partner for. */
+    expensesUnsettled: number;
+    expensesUnsettledCount: number;
+  };
 }
 
 export interface ReminderItem {

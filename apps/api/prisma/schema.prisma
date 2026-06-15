@@ -344,23 +344,26 @@ model RentalAgreement {
 }
 
 model Payment {
-  id        String        @id @default(cuid())
-  ownerId   String
-  owner     Owner         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  driverId  String?
-  driver    Driver?       @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  carId     String?
-  car       Car?          @relation(fields: [carId], references: [id], onDelete: SetNull)
-  amount    Float
-  date      DateTime
-  method    PaymentMethod @default(CASH)
-  type      PaymentType   @default(RENT)
-  note      String?
-  createdAt DateTime      @default(now())
+  id             String        @id @default(cuid())
+  ownerId        String
+  owner          Owner         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  driverId       String?
+  driver         Driver?       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  carId          String?
+  car            Car?          @relation(fields: [carId], references: [id], onDelete: SetNull)
+  amount         Float
+  date           DateTime
+  method         PaymentMethod @default(CASH)
+  type           PaymentType   @default(RENT)
+  note           String?
+  receivedByPartner Boolean    @default(false)
+  partnerSettled Boolean       @default(false)
+  createdAt      DateTime      @default(now())
 
   @@index([ownerId])
   @@index([ownerId, date])
   @@index([driverId])
+  @@index([ownerId, receivedByPartner, partnerSettled])
 }
 
 model Expense {

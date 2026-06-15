@@ -10,13 +10,21 @@ export async function buildReportSummary(
   from: Date,
   to: Date,
 ): Promise<ReportSummary> {
-  const [payments, expenses, cars, drivers] = await Promise.all([
+  const [payments, expenses, cars, drivers, unsettledPayments, unsettledExpenses] = await Promise.all([
     prisma.payment.findMany({
       where: { ownerId, date: { gte: from, lte: to }, type: { in: ["RENT", "FINE"] } },
     }),
     prisma.expense.findMany({ where: { ownerId, date: { gte: from, lte: to } } }),
     prisma.car.findMany({ where: { ownerId } }),
     prisma.driver.findMany({ where: { ownerId } }),
+    prisma.payment.findMany({
+      where: { ownerId, receivedByPartner: true, partnerSettled: false },
+      select: { amount: true },
+    }),
+    prisma.expense.findMany({
+      where: { ownerId, paidByPartner: true, partnerSettled: false },
+      select: { amount: true },
+    }),
   ]);
 
   const carLabel = new Map<string, string>();
@@ -85,5 +93,11 @@ export async function buildReportSummary(
     roiPercent,
     byCar,
     byDriver,
+    partnerUnsettled: {
+      paymentsUnsettled: round2(unsettledPayments.reduce((s, p) => s + p.amount, 0)),
+      paymentsUnsettledCount: unsettledPayments.length,
+      expensesUnsettled: round2(unsettledExpenses.reduce((s, e) => s + e.amount, 0)),
+      expensesUnsettledCount: unsettledExpenses.length,
+    },
   };
 }
