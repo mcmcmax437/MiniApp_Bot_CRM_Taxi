@@ -283,14 +283,18 @@ export function SearchableSelect<T extends string>(props: {
 
   useEffect(() => {
     if (!open) return;
-    function onDoc(e: MouseEvent) {
+    function onDoc(e: MouseEvent | TouchEvent) {
       if (!rootRef.current?.contains(e.target as Node)) {
         setOpen(false);
         setQuery("");
       }
     }
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("touchstart", onDoc, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("touchstart", onDoc);
+    };
   }, [open]);
 
   function pick(value: T) {
@@ -337,21 +341,30 @@ export function SearchableSelect<T extends string>(props: {
       {open ? (
         filtered.length > 0 ? (
           <ul className="crm-searchable-select__list" role="listbox">
-            {filtered.map((o) => (
-              <li key={o.value || "__none"}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={o.value === props.value}
-                  className={`crm-searchable-select__option${o.value === props.value ? " crm-searchable-select__option--active" : ""}`}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => pick(o.value)}
-                >
-                  <span className="crm-searchable-select__label">{o.label}</span>
-                  {o.hint ? <span className="crm-searchable-select__hint">{o.hint}</span> : null}
-                </button>
-              </li>
-            ))}
+              {filtered.map((o) => (
+                <li key={o.value || "__none"}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={o.value === props.value}
+                    className={`crm-searchable-select__option${o.value === props.value ? " crm-searchable-select__option--active" : ""}`}
+                    onPointerDown={(e) => {
+                      // Capture the selection on pointerdown so it fires before
+                      // the input loses focus on iOS Safari (where calling
+                      // preventDefault on mousedown would suppress the click).
+                      e.preventDefault();
+                      pick(o.value);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      pick(o.value);
+                    }}
+                  >
+                    <span className="crm-searchable-select__label">{o.label}</span>
+                    {o.hint ? <span className="crm-searchable-select__hint">{o.hint}</span> : null}
+                  </button>
+                </li>
+              ))}
           </ul>
         ) : (
           <div className="crm-searchable-select__empty">{t("common.empty")}</div>
