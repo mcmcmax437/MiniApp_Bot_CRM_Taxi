@@ -2113,6 +2113,10 @@ body {
   color: #69f0ae;
 }
 
+.crm-driver-stat--balance.crm-driver-stat--owing .crm-driver-stat__value {
+  color: #ff5252;
+}
+
 .crm-driver-empty {
   display: flex;
   flex-direction: column;

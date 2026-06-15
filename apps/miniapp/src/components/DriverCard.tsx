@@ -80,6 +80,7 @@ export function DriverCard(props: {
         <div className="crm-driver-card__divider" />
         <StatColumn
           tone="balance"
+          state={(props.balance?.balance ?? 0) > 0 ? "owing" : "settled"}
           label={t("drivers.balance")}
           value={formatMoney(props.balance?.balance ?? 0)}
           icon={<Icon name="dollar-01" size={16} color="rgba(255,255,255,0.54)" />}
@@ -89,9 +90,16 @@ export function DriverCard(props: {
   );
 }
 
-function StatColumn(props: { label: string; value: string; icon: ReactNode; tone: "joined" | "trips" | "balance" }) {
+function StatColumn(props: {
+  label: string;
+  value: string;
+  icon: ReactNode;
+  tone: "joined" | "trips" | "balance";
+  state?: "owing" | "settled";
+}) {
+  const stateClass = props.state ? ` crm-driver-stat--${props.state}` : "";
   return (
-    <div className={`crm-driver-stat crm-driver-stat--${props.tone}`}>
+    <div className={`crm-driver-stat crm-driver-stat--${props.tone}${stateClass}`}>
       <div className="crm-driver-stat__icon">{props.icon}</div>
       <div className="crm-driver-stat__text">
         <div className="crm-driver-stat__label">{props.label}</div>
