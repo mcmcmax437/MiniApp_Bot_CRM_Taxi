@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode, type MouseEvent, type PointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./crm";
 import { confirmAction } from "../telegram";
@@ -21,9 +21,13 @@ export function SwipeToDelete(props: {
         className={["crm-swipe-row", props.className].filter(Boolean).join(" ")}
         role={props.onPress ? "button" : undefined}
         tabIndex={props.onPress ? 0 : undefined}
-        onClick={props.onPress}
+        onClick={(e) => {
+          if ((e.target as HTMLElement | null)?.closest("[data-stop-press]")) return;
+          props.onPress?.();
+        }}
         onKeyDown={(e) => {
           if (props.onPress && (e.key === "Enter" || e.key === " ")) {
+            if ((e.target as HTMLElement | null)?.closest("[data-stop-press]")) return;
             e.preventDefault();
             props.onPress?.();
           }
@@ -55,8 +59,12 @@ export function SwipeToDelete(props: {
     applyOffset(openRow ? -actionWidth : 0);
   }
 
-  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    if ((e.target as HTMLElement).closest(".crm-swipe-action-btn")) return;
+  function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest(".crm-swipe-action-btn")) return;
+    if (target?.closest("[data-stop-press]")) {
+      return;
+    }
     startX.current = e.clientX;
     startOffset.current = offsetRef.current;
     moved.current = false;
@@ -64,14 +72,14 @@ export function SwipeToDelete(props: {
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+  function onPointerMove(e: PointerEvent<HTMLDivElement>) {
     if (!dragging) return;
     const dx = e.clientX - startX.current;
     if (Math.abs(dx) > 8) moved.current = true;
     applyOffset(startOffset.current + dx);
   }
 
-  function finishDrag(e: React.PointerEvent<HTMLDivElement>) {
+  function finishDrag(e: PointerEvent<HTMLDivElement>) {
     if (!dragging) return;
     setDragging(false);
     try {
@@ -82,9 +90,12 @@ export function SwipeToDelete(props: {
     snap(offsetRef.current < -actionWidth / 2);
   }
 
-  function onContentClick() {
+  function onContentClick(e: MouseEvent<HTMLDivElement>) {
     if (moved.current) {
       moved.current = false;
+      return;
+    }
+    if ((e.target as HTMLElement | null)?.closest("[data-stop-press]")) {
       return;
     }
     if (open) {
@@ -94,7 +105,7 @@ export function SwipeToDelete(props: {
     props.onPress?.();
   }
 
-  async function handleDelete(e: React.PointerEvent<HTMLButtonElement>) {
+  async function handleDelete(e: PointerEvent<HTMLButtonElement>) {
     e.stopPropagation();
     e.preventDefault();
     const ok = await confirmAction(t("common.confirmDelete"), t("common.delete"), t("common.cancel"));
@@ -104,7 +115,7 @@ export function SwipeToDelete(props: {
     }
   }
 
-  function handleEdit(e: React.PointerEvent<HTMLButtonElement>) {
+  function handleEdit(e: PointerEvent<HTMLButtonElement>) {
     e.stopPropagation();
     e.preventDefault();
     snap(false);
@@ -154,7 +165,8 @@ export function SwipeToDelete(props: {
         onKeyDown={(e) => {
           if (props.onPress && (e.key === "Enter" || e.key === " ")) {
             e.preventDefault();
-            onContentClick();
+            if ((e.target as HTMLElement | null)?.closest("[data-stop-press]")) return;
+            onContentClick(e as unknown as MouseEvent<HTMLDivElement>);
           }
         }}
       >

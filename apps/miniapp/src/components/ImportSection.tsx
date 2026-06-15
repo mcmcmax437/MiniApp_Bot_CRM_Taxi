@@ -140,6 +140,9 @@ export function ImportSection() {
               placeholder={t("importData.placeholder")}
             />
           </Field>
+          <p className="crm-form-hint crm-import-paste__columns">
+            {t(`importData.${activeKind}Columns`)}
+          </p>
           <p className="crm-form-hint">
             {text[activeKind].trim()
               ? t("importData.pasteDetected", { count: lineCount })

@@ -56,9 +56,31 @@ function parsePasteDate(value: string | undefined): Date | null {
 
 function parsePasteNumber(value: string | undefined): number | null {
   if (!value) return null;
-  const cleaned = value.replace(/[, ]/g, "").replace(/[^\d.\-]/g, "");
-  if (!cleaned) return null;
-  const n = Number(cleaned);
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const sign = trimmed.startsWith("-") ? -1 : trimmed.startsWith("+") ? 1 : 1;
+  const body = trimmed.replace(/^[+\-]/, "").replace(/[^\d.,]/g, "");
+  if (!body) return null;
+  const lastDot = body.lastIndexOf(".");
+  const lastComma = body.lastIndexOf(",");
+  let normalized: string;
+  if (lastDot !== -1 && lastComma !== -1) {
+    if (lastDot > lastComma) {
+      normalized = body.replace(/,/g, "");
+    } else {
+      normalized = body.replace(/\./g, "").replace(",", ".");
+    }
+  } else if (lastComma !== -1) {
+    const after = body.length - lastComma - 1;
+    if (after === 3 && /^\d{1,3}$/.test(body.slice(0, lastComma))) {
+      normalized = body.replace(",", "");
+    } else {
+      normalized = body.replace(",", ".");
+    }
+  } else {
+    normalized = body;
+  }
+  const n = Number(normalized) * sign;
   return isNaN(n) ? null : n;
 }
 
@@ -264,6 +286,14 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
     return ExpenseCategory.OTHER;
   }
 
+  function isCategoryKey(value: string | undefined): boolean {
+    if (!value) return false;
+    const key = value.trim().toUpperCase();
+    if (!key) return false;
+    if (EXPENSE_CATEGORY_ALIASES[key]) return true;
+    return Object.values(ExpenseCategory).some((c) => c === key);
+  }
+
   app.post("/import/expenses", async (req, reply) => {
     const text = getPayload(req.body);
     if (!text) return reply.code(400).send({ error: "missing_text" });
@@ -285,9 +315,24 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
         errors.push(`Line ${i + 1}: missing amount`);
         continue;
       }
-      const category = parseExpenseCategory(cols[3]);
-      const tag = (cols[4] ?? "").trim() || null;
-      const noteRaw = cols.slice(5).join(" ").trim();
+
+      let category: ExpenseCategory = ExpenseCategory.OTHER;
+      let tag: string | null = null;
+      let noteRaw = "";
+      if (isCategoryKey(cols[3])) {
+        category = parseExpenseCategory(cols[3]);
+        const tagCol = (cols[4] ?? "").trim();
+        const rest = cols.slice(5).join(" ").trim();
+        if (tagCol && !/\s/.test(tagCol)) {
+          tag = tagCol;
+          noteRaw = rest;
+        } else if (tagCol) {
+          noteRaw = [tagCol, rest].filter(Boolean).join(" ").trim();
+        }
+      } else {
+        noteRaw = cols.slice(3).join(" ").trim();
+      }
+
       const carId = plate ? findCarByPlate(cars, plate) : null;
       if (plate && !carId) {
         errors.push(`Line ${i + 1}: car "${plate}" not found`);
