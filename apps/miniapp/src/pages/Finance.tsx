@@ -107,6 +107,8 @@ function PaymentsTab() {
     method: PaymentMethod;
     type: PaymentType;
     note: string;
+    receivedByPartner: boolean;
+    partnerSettled: boolean;
   }>({
     driverId: "",
     carId: "",
@@ -115,6 +117,8 @@ function PaymentsTab() {
     method: PaymentMethod.BANK,
     type: PaymentType.RENT,
     note: "",
+    receivedByPartner: false,
+    partnerSettled: false,
   });
 
   const all = payments.data ?? [];
