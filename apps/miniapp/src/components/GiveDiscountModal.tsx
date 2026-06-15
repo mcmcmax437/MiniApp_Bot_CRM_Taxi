@@ -46,8 +46,8 @@ export function GiveDiscountModal(props: {
       .map((a) => a.car?.plate)
       .filter(Boolean) as string[];
     const past = props.agreements
-      .filter((a) => a.status !== "ACTIVE" && a.driverId === props.driverId)
-      .sort((a, b) => (a.endDate < b.endDate ? 1 : -1))
+      .filter((a) => a.status !== "ACTIVE" && a.driverId === props.driverId && a.endDate != null)
+      .sort((a, b) => (a.endDate! < b.endDate! ? 1 : -1))
       .map((a) => a.car?.plate)
       .filter(Boolean) as string[];
     const ordered: string[] = [];
