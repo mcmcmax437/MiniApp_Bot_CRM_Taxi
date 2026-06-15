@@ -11,8 +11,8 @@ export function BottomNav(props: { isViewer: boolean }) {
     { id: "/", label: t("nav.dashboard"), icon: "home-01" },
     { id: "/cars", label: t("nav.cars"), icon: "car-01" },
     { id: "/drivers", label: t("nav.drivers"), icon: "user" },
-    { id: "/documents", label: t("nav.documents"), icon: "file-02" },
     { id: "/finance", label: t("nav.finance"), icon: "dollar-01" },
+    { id: "/documents", label: t("nav.documents"), icon: "file-02" },
     { id: "/reports", label: t("nav.reports"), icon: "clipboard" },
   ];
   if (!props.isViewer) tabs.push({ id: "/admin", label: t("nav.admin"), icon: "settings-01" });
