@@ -9,6 +9,7 @@ import {
   Field,
   DateInput,
   SelectInput,
+  SearchableSelect,
   FormActions,
   formatMoney,
   formatDate,
@@ -351,10 +352,11 @@ export function FleetTab() {
         footer={<FormActions onCancel={closeAssign} onSave={submit} saving={create.isPending} />}
       >
         <Field label={t("finance.driver")}>
-          <SelectInput
+          <SearchableSelect
             value={form.driverId}
             onChange={(v) => setForm({ ...form, driverId: v })}
             options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
+            placeholder={t("common.searchToFilter")}
           />
         </Field>
         {lockedCar ? (
@@ -363,10 +365,11 @@ export function FleetTab() {
           </Field>
         ) : (
           <Field label={t("finance.car")}>
-            <SelectInput
+            <SearchableSelect
               value={form.carId}
               onChange={(v) => setForm({ ...form, carId: v })}
               options={assignCarOptions}
+              placeholder={t("common.searchToFilter")}
             />
           </Field>
         )}

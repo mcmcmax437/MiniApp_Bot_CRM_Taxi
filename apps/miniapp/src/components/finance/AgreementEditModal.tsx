@@ -11,6 +11,7 @@ import {
   Field,
   DateInput,
   SelectInput,
+  SearchableSelect,
   FormActions,
   MoneyNumberInput,
   isoDateOnly,
@@ -105,10 +106,11 @@ export function AgreementEditModal(props: {
       }
     >
       <Field label={t("finance.driver")}>
-        <SelectInput
+        <SearchableSelect
           value={driverId}
           onChange={setDriverId}
           options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
+          placeholder={t("common.searchToFilter")}
         />
       </Field>
       <Field label={t("drivers.startDate")}>

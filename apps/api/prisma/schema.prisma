@@ -51,6 +51,7 @@ enum PaymentType {
   DEPOSIT
   REFUND
   FINE
+  DISCOUNT
 }
 
 enum ExpenseCategory {

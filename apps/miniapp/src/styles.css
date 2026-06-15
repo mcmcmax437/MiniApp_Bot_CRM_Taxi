@@ -2044,6 +2044,11 @@ body {
   flex-shrink: 0;
 }
 
+.crm-driver-card__badge-dot--active {
+  background: #69f0ae;
+  box-shadow: 0 0 0 3px rgba(105, 240, 174, 0.18);
+}
+
 .crm-driver-card__phone {
   display: flex;
   align-items: center;

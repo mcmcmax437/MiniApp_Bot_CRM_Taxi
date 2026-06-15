@@ -53,6 +53,7 @@ export const PaymentType = {
   DEPOSIT: "DEPOSIT",
   REFUND: "REFUND",
   FINE: "FINE",
+  DISCOUNT: "DISCOUNT",
 } as const;
 export type PaymentType = (typeof PaymentType)[keyof typeof PaymentType];
 

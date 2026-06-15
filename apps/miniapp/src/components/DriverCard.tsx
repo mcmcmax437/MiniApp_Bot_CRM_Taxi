@@ -46,7 +46,9 @@ export function DriverCard(props: {
         <div className="crm-driver-card__meta">
           <div className="crm-driver-card__name">{driver.fullName}</div>
           <div className="crm-driver-card__badge">
-            <span className="crm-driver-card__badge-dot" />
+            <span
+              className={`crm-driver-card__badge-dot${activeAgreements.length > 0 ? " crm-driver-card__badge-dot--active" : ""}`}
+            />
             {carLabel}
           </div>
         </div>

@@ -29,6 +29,7 @@ import {
   NumberInput,
   DateInput,
   SelectInput,
+  SearchableSelect,
   FormActions,
   formatMoney,
   formatDate,
@@ -770,10 +771,11 @@ function AgreementSection(props: {
       <p className="crm-agreement-section__hint">{t("drivers.addAgreementHint")}</p>
 
       <Field label={t("drivers.agreementCar")}>
-        <SelectInput
+        <SearchableSelect
           value={carId}
           onChange={setCarId}
           options={[{ value: "", label: t("common.none") }, ...selectableCarOptions]}
+          placeholder={t("common.searchToFilter")}
         />
       </Field>
       <Field label={t("drivers.rentAmount")}>

@@ -10,33 +10,53 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
+function periodLengthDays(period: RentPeriod): number {
+  switch (period) {
+    case "DAILY":
+      return 1;
+    case "WEEKLY":
+      return 7;
+    case "MONTHLY":
+      return 30;
+    case "YEARLY":
+      return 365;
+    default:
+      return 1;
+  }
+}
+
+/**
+ * Counts billable periods between `start` and `asOf`, prorating the first
+ * partial period so a mid-period start only charges for the days actually used.
+ *
+ * Examples (rent = 700, period = WEEKLY):
+ *   start Mon, asOf Sun         -> 1  (full 7 days)
+ *   start Wed, asOf Sun         -> 1  (5 days, prorated to 5/7 of a week)
+ *   start Wed, asOf next Wed    -> 2  (5 + 7)
+ *   start Wed, asOf 2 weeks out -> 3  (5 + 7 + 7)
+ *
+ * The return value is the number of "periods" billed (the first period can be
+ * fractional, e.g. 0.71 for 5/7 of a week).
+ */
 export function periodsElapsed(start: Date, asOf: Date, period: RentPeriod): number {
   const from = startOfDay(start);
   const to = startOfDay(asOf);
   if (to.getTime() < from.getTime()) return 0;
 
-  const days = Math.floor((to.getTime() - from.getTime()) / DAY_MS);
-  switch (period) {
-    case "DAILY":
-      return days + 1;
-    case "WEEKLY":
-      return Math.floor(days / 7) + 1;
-    case "MONTHLY": {
-      const months =
-        (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
-      return Math.max(0, months) + 1;
-    }
-    case "YEARLY": {
-      const years = to.getFullYear() - from.getFullYear();
-      return Math.max(0, years) + 1;
-    }
-    default:
-      return 0;
+  const totalDays = Math.floor((to.getTime() - from.getTime()) / DAY_MS);
+  const periodDays = periodLengthDays(period);
+  const firstPeriodDays = Math.min(totalDays + 1, periodDays);
+
+  if (totalDays + 1 <= periodDays) {
+    return firstPeriodDays / periodDays;
   }
+
+  const remainingDays = totalDays + 1 - periodDays;
+  return 1 + remainingDays / periodDays;
 }
 
 /**
- * balance = accrued rent - rent paid + unpaid fines  (positive => driver owes you)
+ * balance = accrued rent - rent paid - discounts + unpaid fines  (positive => driver owes you)
  * depositHeld = sum of deposits on active rental agreements
  */
 export async function computeDriverBalances(ownerId: string): Promise<DriverBalance[]> {
@@ -60,9 +80,13 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
   }
 
   const rentPaidByDriver = new Map<string, number>();
+  const discountByDriver = new Map<string, number>();
   for (const p of payments) {
-    if (p.type === "RENT" && p.driverId) {
+    if (!p.driverId) continue;
+    if (p.type === "RENT") {
       rentPaidByDriver.set(p.driverId, (rentPaidByDriver.get(p.driverId) ?? 0) + p.amount);
+    } else if (p.type === "DISCOUNT") {
+      discountByDriver.set(p.driverId, (discountByDriver.get(p.driverId) ?? 0) + p.amount);
     }
   }
 
@@ -76,6 +100,7 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
   return drivers.map((d) => {
     const rentDue = round2(rentDueByDriver.get(d.id) ?? 0);
     const rentPaid = round2(rentPaidByDriver.get(d.id) ?? 0);
+    const discounts = round2(discountByDriver.get(d.id) ?? 0);
     const unpaidFines = round2(finesByDriver.get(d.id) ?? 0);
     return {
       driverId: d.id,
@@ -83,7 +108,7 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
       rentDue,
       rentPaid,
       unpaidFines,
-      balance: round2(rentDue - rentPaid + unpaidFines),
+      balance: round2(rentDue - rentPaid - discounts + unpaidFines),
       depositHeld: round2(depositByDriver.get(d.id) ?? 0),
     };
   });
