@@ -27,6 +27,8 @@ const en = {
     retry: "Retry",
     searchToFilter: "Type to search…",
     close: "Close",
+    saveFailed: "Could not save. Please try again.",
+    noteTooLong: "Note is too long (max {{max}} characters).",
   },
   nav: {
     dashboard: "Home",
@@ -673,6 +675,8 @@ const uk: Resources = {
     retry: "Повторити",
     searchToFilter: "Введіть текст для пошуку…",
     close: "Закрити",
+    saveFailed: "Не вдалося зберегти. Спробуйте ще раз.",
+    noteTooLong: "Нотатка задовга (макс. {{max}} символів).",
   },
   nav: {
     dashboard: "Головна",
@@ -1317,6 +1321,8 @@ const ru: Resources = {
     retry: "Повторить",
     searchToFilter: "Введите текст для поиска…",
     close: "Закрыть",
+    saveFailed: "Не удалось сохранить. Попробуйте ещё раз.",
+    noteTooLong: "Заметка слишком длинная (макс. {{max}} символов).",
   },
   nav: {
     dashboard: "Главная",

@@ -30,6 +30,20 @@ import {
   type FinanceDateSort,
 } from "./FinanceUi";
 import { useReadOnly } from "../../readOnly";
+import { ApiError } from "../../api";
+import { showAlert } from "../../telegram";
+
+function notifySaveError(err: unknown, fallbackKey: string): void {
+  let message: string;
+  if (err instanceof ApiError) {
+    message = err.message || fallbackKey;
+  } else if (err instanceof Error) {
+    message = err.message || fallbackKey;
+  } else {
+    message = fallbackKey;
+  }
+  showAlert(message);
+}
 
 export function TaxesTab() {
   const { t } = useTranslation();
@@ -98,7 +112,10 @@ export function TaxesTab() {
           note: form.note || null,
         },
       },
-      { onSuccess: () => setOpen(false) },
+      {
+        onSuccess: () => setOpen(false),
+        onError: (err) => notifySaveError(err, t("common.saveFailed")),
+      },
     );
   }
 

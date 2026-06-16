@@ -62,6 +62,25 @@ import {
   paymentDisplayTitle,
 } from "../components/finance/financeLabels";
 import { useReadOnly } from "../readOnly";
+import { ApiError } from "../api";
+import { showAlert } from "../telegram";
+
+/** Surface server-side errors (validation, network, etc.) so the user can react. */
+function notifySaveError(err: unknown, fallbackKey: string): void {
+  let message: string;
+  if (err instanceof ApiError) {
+    if (err.code === "validation_error") {
+      message = `${err.message}: ${fallbackKey}`;
+    } else {
+      message = err.message || fallbackKey;
+    }
+  } else if (err instanceof Error) {
+    message = err.message || fallbackKey;
+  } else {
+    message = fallbackKey;
+  }
+  showAlert(message);
+}
 
 export function FinancePage() {
   const { t } = useTranslation();
@@ -210,6 +229,7 @@ function PaymentsTab() {
       },
       {
         onSuccess: () => setOpen(false),
+        onError: (err) => notifySaveError(err, t("common.saveFailed")),
       },
     );
   }
@@ -466,7 +486,10 @@ function ExpensesTab() {
           partnerSettled: form.paidByPartner ? form.partnerSettled : false,
         },
       },
-      { onSuccess: () => setOpen(false) },
+      {
+        onSuccess: () => setOpen(false),
+        onError: (err) => notifySaveError(err, t("common.saveFailed")),
+      },
     );
   }
 

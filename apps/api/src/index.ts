@@ -13,6 +13,7 @@ import { prisma } from "./prisma.js";
 
 async function main(): Promise<void> {
   const app = Fastify({
+    bodyLimit: 5 * 1024 * 1024,
     logger: {
       level: env.nodeEnv === "development" ? "info" : "warn",
       transport:

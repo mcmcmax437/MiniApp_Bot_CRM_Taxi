@@ -364,7 +364,7 @@ export const paymentCreateSchema = z.object({
   date: isoDate,
   method: z.nativeEnum(PaymentMethod).default(PaymentMethod.BANK),
   type: z.nativeEnum(PaymentType).default(PaymentType.RENT),
-  note: z.string().trim().max(2000).optional().nullable(),
+  note: z.string().trim().max(10000).optional().nullable(),
   receivedByPartner: z.boolean().default(false),
   partnerSettled: z.boolean().default(false),
 });
@@ -381,7 +381,7 @@ export const expenseCreateSchema = z.object({
   category: z.nativeEnum(ExpenseCategory).default(ExpenseCategory.OTHER),
   amount: money,
   date: isoDate,
-  note: z.string().trim().max(2000).optional().nullable(),
+  note: z.string().trim().max(10000).optional().nullable(),
   tag: z.string().trim().max(64).optional().nullable(),
   paidByPartner: z.boolean().default(false),
   partnerSettled: z.boolean().default(false),
