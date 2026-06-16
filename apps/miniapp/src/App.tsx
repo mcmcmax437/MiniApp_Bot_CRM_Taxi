@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { normalizeLocale } from "./locales";
@@ -23,6 +23,17 @@ import { RemindersPage } from "./pages/Reminders";
 export function App() {
   const { t } = useTranslation();
   const me = useMe();
+  const location = useLocation();
+
+  // Always start pages at the top. Without this, the browser can leave
+  // the scroll position at the bottom of the previous (often shorter)
+  // page, or — on iOS Safari/Telegram WebView — the focused bottom-nav
+  // button can pull the page down toward the fixed nav.
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (me.data?.locale) {
