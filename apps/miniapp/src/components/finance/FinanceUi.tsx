@@ -343,6 +343,27 @@ export function getFinanceMonthKey(dateStr: string): string {
   return dateStr.slice(0, 7);
 }
 
+/**
+ * ISO week key for a date string (YYYY-MM-DD). Weeks run Mon-Sun and are
+ * identified by their year + ISO week number, e.g. "2026-24". Used to
+ * stripe the finance list at week boundaries instead of row boundaries.
+ */
+export function getFinanceWeekKey(dateStr: string): string {
+  const d = new Date(dateStr.length === 10 ? `${dateStr}T00:00:00` : dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr.slice(0, 10);
+  // Copy to avoid mutating the original date.
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  // Shift to nearest Thursday: this is the ISO week definition.
+  const dayNr = (target.getDay() + 6) % 7; // Mon=0, ..., Sun=6
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const firstDayNr = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - firstDayNr + 3);
+  const week =
+    1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  return `${target.getFullYear()}-${String(week).padStart(2, "0")}`;
+}
+
 export function formatFinanceMonthLabel(monthKey: string, locale: string): string {
   const [year, month] = monthKey.split("-").map(Number);
   if (!year || !month) return monthKey;
@@ -488,10 +509,15 @@ export function FinanceDateGroupedList<T>(props: {
         const countLabel = props.formatCount?.(group.items.length);
         const collapsed = collapsedMonths.has(group.monthKey);
         const label = formatFinanceMonthLabel(group.monthKey, locale);
+        // Within a month, alternate row backgrounds by week (not by row).
+        // Each new ISO week (Mon-Sun) flips the alt state.
+        let prevWeekKey: string | null = null;
+        let weekAlt = false;
+        const monthAlt = index % 2 === 1;
         return (
           <div
             key={group.monthKey}
-            className={`crm-finance-month-group${index % 2 === 1 ? " crm-finance-month-group--alt" : ""}${collapsed ? " crm-finance-month-group--collapsed" : ""}`}
+            className={`crm-finance-month-group${monthAlt ? " crm-finance-month-group--alt" : ""}${collapsed ? " crm-finance-month-group--collapsed" : ""}`}
           >
             <FinanceMonthDivider
               label={label}
@@ -503,11 +529,22 @@ export function FinanceDateGroupedList<T>(props: {
               onToggle={() => toggleMonth(group.monthKey)}
             />
             {!collapsed
-              ? group.items.map((item) => (
-                  <div key={props.getKey(item)} className="crm-finance-month-group__item">
-                    {props.renderItem(item)}
-                  </div>
-                ))
+              ? group.items.map((item) => {
+                  const weekKey = getFinanceWeekKey(props.getDate(item));
+                  if (weekKey !== prevWeekKey) {
+                    weekAlt = !weekAlt;
+                    prevWeekKey = weekKey;
+                  }
+                  const weekClass = weekAlt ? " crm-finance-month-group__item--week-alt" : "";
+                  return (
+                    <div
+                      key={props.getKey(item)}
+                      className={`crm-finance-month-group__item${weekClass}`}
+                    >
+                      {props.renderItem(item)}
+                    </div>
+                  );
+                })
               : null}
           </div>
         );

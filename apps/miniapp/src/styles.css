@@ -3206,14 +3206,16 @@ button.crm-driver-stat:hover {
   background: rgba(255, 255, 255, 0.025);
 }
 
-/* Subtle zebra-striping within each month group so individual rows
-   stay readable when the list sits on the dark glass background. */
-.crm-finance-month-group .crm-finance-month-group__item:nth-child(even) .crm-finance-item {
-  background: rgba(255, 255, 255, 0.035);
+/* Subtle week-level zebra-striping: every other ISO week within a month
+   gets a slightly different background so transactions from different
+   billing weeks are visually grouped. The class is applied at the week
+   boundary (toggle of getFinanceWeekKey) rather than per-row. */
+.crm-finance-month-group .crm-finance-month-group__item--week-alt .crm-finance-item {
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.crm-finance-month-group--alt .crm-finance-month-group__item:nth-child(even) .crm-finance-item {
-  background: rgba(255, 255, 255, 0.06);
+.crm-finance-month-group--alt .crm-finance-month-group__item--week-alt .crm-finance-item {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .crm-finance-item--interactive:hover {
