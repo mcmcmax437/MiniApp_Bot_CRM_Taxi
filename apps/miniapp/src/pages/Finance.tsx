@@ -13,7 +13,12 @@ import {
   useSaveExpense,
   useDeleteExpense,
 } from "../hooks";
-import { agreementHintForCar, rankCarsForDriver } from "../driverCarSuggestions";
+import {
+  agreementHintForCar,
+  agreementHintForDriver,
+  rankCarsForDriver,
+  rankDriversForCar,
+} from "../driverCarSuggestions";
 import type { Agreement } from "../types";
 import { FleetTab } from "../components/finance/FleetTab";
 import { TaxesTab } from "../components/finance/TaxesTab";
@@ -758,13 +763,36 @@ function PaymentModal(props: {
   const { t } = useTranslation();
   const { form, setForm, fieldErrors } = props;
 
-  const driverOptions = useMemo(
-    () => [
+  const driverOptions = useMemo(() => {
+    const driverById = new Map(props.drivers.map((d) => [d.id, d]));
+    const { orderedDriverIds } = rankDriversForCar(
+      form.carId,
+      props.agreements,
+      props.drivers.map((d) => d.id),
+    );
+    const ordered = orderedDriverIds
+      .map((id) => driverById.get(id))
+      .filter((d): d is { id: string; fullName: string } => Boolean(d));
+    for (const d of props.drivers) {
+      if (!ordered.some((x) => x.id === d.id)) ordered.push(d);
+    }
+    return [
       { value: "", label: t("common.none") },
-      ...props.drivers.map((d) => ({ value: d.id, label: d.fullName })),
-    ],
-    [props.drivers, t],
-  );
+      ...ordered.map((d) => {
+        const hintKind = agreementHintForDriver(form.carId, d.id, props.agreements);
+        return {
+          value: d.id,
+          label: d.fullName,
+          hint:
+            hintKind === "active"
+              ? t("finance.carHintActive")
+              : hintKind === "past"
+                ? t("finance.carHintPast")
+                : undefined,
+        };
+      }),
+    ];
+  }, [form.carId, props.agreements, props.drivers, t]);
 
   const carOptions = useMemo(() => {
     const carById = new Map(props.cars.map((c) => [c.id, c]));
@@ -810,6 +838,21 @@ function PaymentModal(props: {
     });
   }
 
+  function onCarChange(carId: string) {
+    const { suggestedDriverId } = rankDriversForCar(
+      carId,
+      props.agreements,
+      props.drivers.map((d) => d.id),
+    );
+    setForm({
+      ...form,
+      carId,
+      // Only auto-fill the driver if the user hasn't already picked one.
+      // (Otherwise, picking a car would clobber an explicit driver choice.)
+      driverId: form.driverId || (suggestedDriverId ?? ""),
+    });
+  }
+
   return (
     <Modal
       open={props.open}
@@ -834,7 +877,7 @@ function PaymentModal(props: {
         />
       </Field>
       <Field label={t("finance.car")}>
-        <SearchableSelect value={form.carId} onChange={(v) => setForm({ ...form, carId: v })} options={carOptions} />
+        <SearchableSelect value={form.carId} onChange={onCarChange} options={carOptions} />
       </Field>
       <Field
         label={t("finance.amount")}
