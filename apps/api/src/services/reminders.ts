@@ -1,5 +1,5 @@
 import { prisma } from "../prisma.js";
-import type { ReminderItem } from "@taxi/shared";
+import { AgreementStatus, type ReminderItem } from "@taxi/shared";
 import { computeDriverBalances } from "./balance.js";
 import {
   daysUntil,
@@ -203,6 +203,43 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
     }
   }
 
+  // Rental agreements with an end date: nudge the owner 7 days before and
+  // again 1 day before the contract expires so they have time to arrange
+  // hand-off or a follow-up agreement. Skip ENDED/CANCELLED agreements and
+  // any whose end date is already in the past (the OVERDUE state would
+  // otherwise be redundant with the active-rental logic).
+  const rentalEndingDays = [7, 1];
+  const activeAgreements = await prisma.rentalAgreement.findMany({
+    where: {
+      ownerId,
+      status: AgreementStatus.ACTIVE,
+      endDate: { not: null },
+    },
+    include: {
+      car: { select: { id: true, plate: true, make: true, model: true } },
+      driver: { select: { id: true, fullName: true } },
+    },
+  });
+  for (const a of activeAgreements) {
+    if (!a.endDate) continue;
+    const left = daysUntil(a.endDate);
+    if (left < 0) continue;
+    if (!rentalEndingDays.includes(left)) continue;
+    const carText = carLabel(a.car);
+    const driverText = a.driver?.fullName ?? "";
+    const label = driverText ? `${driverText} — ${carText}` : carText;
+    items.push({
+      kind: "RENTAL_ENDING",
+      refId: a.id,
+      carId: a.carId,
+      driverId: a.driverId,
+      label,
+      dueDate: a.endDate.toISOString(),
+      daysUntil: left,
+      detail: `${left}d`,
+    });
+  }
+
   items.sort((a, b) => {
     const da = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
     const db = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
@@ -229,6 +266,8 @@ function formatReminderLine(item: ReminderItem): string {
       return `📊 Mileage update needed: <b>${item.label}</b>`;
     case "OVERDUE_PAYMENT":
       return `💸 Outstanding balance: <b>${item.label}</b> — ${item.amount?.toFixed(2)}`;
+    case "RENTAL_ENDING":
+      return `🚗 Rental ending: <b>${item.label}</b> — ${date}${extra}`;
     default:
       return item.label;
   }

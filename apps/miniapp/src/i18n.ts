@@ -449,7 +449,8 @@ const en = {
     emptyDesc: "Add cars and drivers, then assign a car to start tracking rentals.",
     needDriverFirst: "Add at least one driver before assigning a car",
     noAvailableCars: "No free cars available to assign",
-    endDateHint: "Leave empty for an active rental. Set an end date to add a past rental to history.",
+    endDateHint:
+      "Leave empty for an open-ended rental. Pick a future date to schedule the hand-off — you'll get a reminder 7 days and 1 day before. Pick a past date to record a rental that's already finished.",
     endBeforeStart: "End date cannot be before start date.",
     rentalOverlap:
       "These dates overlap with another rental for this car. The next rental can start on the same day the previous one ended.",
@@ -478,6 +479,7 @@ const en = {
     MAINTENANCE: "Maintenance",
     OVERDUE_PAYMENT: "Overdue payment",
     MILEAGE_REPORT: "Mileage report",
+    RENTAL_ENDING: "Rental ending",
     daysOverdue: "{{count}} days overdue",
     daysUntil: "in {{count}} days",
     dueToday: "today",
@@ -1097,7 +1099,8 @@ const uk: Resources = {
     emptyDesc: "Додайте авто та водіїв, потім закріпіть авто, щоб почати вести облік оренди.",
     needDriverFirst: "Спочатку додайте хоча б одного водія",
     noAvailableCars: "Немає вільних авто для видачі",
-    endDateHint: "Залиште порожнім для активної оренди. Вкажіть дату закінчення, щоб додати минулу оренду в історію.",
+    endDateHint:
+      "Залиште порожнім для безстрокової оренди. Виберіть майбутню дату, щоб запланувати повернення — ви отримаєте нагадування за 7 днів і за 1 день. Виберіть минулу дату, щоб записати вже завершену оренду.",
     endBeforeStart: "Дата закінчення не може бути раніше дати початку.",
     rentalOverlap:
       "Ці дати перетинаються з іншою орендою цього авто. Наступна оренда може початися в той самий день, коли попередня закінчилась.",
@@ -1126,6 +1129,7 @@ const uk: Resources = {
     MAINTENANCE: "Обслуговування",
     OVERDUE_PAYMENT: "Прострочений платіж",
     MILEAGE_REPORT: "Звіт пробігу",
+    RENTAL_ENDING: "Завершення оренди",
     daysOverdue: "прострочено на {{count}} дн.",
     daysUntil: "через {{count}} дн.",
     dueToday: "сьогодні",
@@ -1743,7 +1747,8 @@ const ru: Resources = {
     emptyDesc: "Добавьте авто и водителей, затем закрепите авто, чтобы начать вести учёт аренды.",
     needDriverFirst: "Сначала добавьте хотя бы одного водителя",
     noAvailableCars: "Нет свободных авто для выдачи",
-    endDateHint: "Оставьте пустым для активной аренды. Укажите дату окончания, чтобы добавить прошлую аренду в историю.",
+    endDateHint:
+      "Оставьте пустым для бессрочной аренды. Выберите будущую дату, чтобы запланировать возврат — вы получите напоминание за 7 дней и за 1 день. Выберите прошедшую дату, чтобы записать уже завершённую аренду.",
     endBeforeStart: "Дата окончания не может быть раньше даты начала.",
     rentalOverlap:
       "Эти даты пересекаются с другой арендой этого авто. Следующая аренда может начаться в тот же день, когда предыдущая закончилась.",
@@ -1772,6 +1777,7 @@ const ru: Resources = {
     MAINTENANCE: "Обслуживание",
     OVERDUE_PAYMENT: "Просроченный платёж",
     MILEAGE_REPORT: "Отчёт пробега",
+    RENTAL_ENDING: "Окончание аренды",
     daysOverdue: "просрочено на {{count}} дн.",
     daysUntil: "через {{count}} дн.",
     dueToday: "сегодня",

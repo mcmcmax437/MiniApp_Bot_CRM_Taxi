@@ -9,6 +9,7 @@ export function reminderIcon(kind: string): string {
   if (kind === "DOCUMENT") return "📄";
   if (kind === "MAINTENANCE") return "🛠️";
   if (kind === "MILEAGE_REPORT") return "📊";
+  if (kind === "RENTAL_ENDING") return "🚗";
   return "💸";
 }
 
@@ -24,6 +25,10 @@ export function reminderPath(r: ReminderItem): string | null {
       return "/documents";
     case "MAINTENANCE":
       return "/cars";
+    case "RENTAL_ENDING":
+      // Rental agreements are managed under Finance → Fleet. The reminder is
+      // a heads-up for the owner to arrange hand-off or extend the contract.
+      return "/finance";
     default:
       return null;
   }

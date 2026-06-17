@@ -66,15 +66,27 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     if (!car || !driver) return reply.code(400).send({ error: "invalid_car_or_driver" });
 
     const data = toDates(body, ["startDate", "endDate"]);
-    const isHistorical = Boolean(data.endDate);
-    const status = isHistorical ? "ENDED" : (body.status ?? "ACTIVE");
+    // An agreement with no endDate is an ongoing rental (ACTIVE).
+    // An agreement with a future or current endDate is also ACTIVE — the end
+    // date is just when it stops. Only past endDates mark the agreement as
+    // historical (ENDED), which is how users record rentals that have
+    // already finished. This matches the user's mental model: "I assigned
+    // the car for two weeks, today is the start, in two weeks is the end."
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const endDate = data.endDate as Date | null | undefined;
+    const endIsPast =
+      endDate instanceof Date && endDate.getTime() < today.getTime();
+    const status =
+      endIsPast
+        ? (body.status ?? "ENDED")
+        : body.status ?? "ACTIVE";
 
-    if (isHistorical && data.endDate && data.startDate && data.endDate < data.startDate) {
+    if (endDate && data.startDate && endDate < (data.startDate as unknown as Date)) {
       return reply.code(400).send({ error: "end_before_start" });
     }
 
-    const endDate = isHistorical ? ((data.endDate as Date | undefined) ?? null) : null;
-    if (!(await assertNoRentalOverlap(oid, body.carId, data.startDate as unknown as Date, endDate as Date | null))) {
+    if (!(await assertNoRentalOverlap(oid, body.carId, data.startDate as unknown as Date, endDate instanceof Date ? endDate : null))) {
       return reply.code(400).send({ error: "rental_overlap" });
     }
 

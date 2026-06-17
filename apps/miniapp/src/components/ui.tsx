@@ -205,7 +205,20 @@ export function DateInput(props: {
           type="button"
           className="crm-date-field__clear"
           aria-label={t("common.clear")}
-          onClick={() => props.onChange("")}
+          data-stop-press="true"
+          onPointerDown={(e) => {
+            // On iOS Safari, tapping inside a <input type="date"> opens the
+            // native picker. We have to prevent that, then clear the value
+            // on click. preventDefault on mousedown is what stops the picker
+            // from opening; the click handler then commits the empty value.
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            props.onChange("");
+          }}
         >
           ×
         </button>

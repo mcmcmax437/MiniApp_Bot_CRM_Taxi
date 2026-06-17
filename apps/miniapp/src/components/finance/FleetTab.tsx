@@ -76,7 +76,9 @@ export function FleetTab() {
     () => (cars.data ?? []).filter((c) => !activeByCarId.has(c.id)),
     [cars.data, activeByCarId],
   );
-  const isHistoricalAssign = Boolean(form.endDate.trim()) || lockedCarId != null;
+  const isHistoricalAssign =
+    lockedCarId != null ||
+    (Boolean(form.endDate.trim()) && form.endDate.trim() < form.startDate);
   const assignCarOptions = useMemo(() => {
     const base = isHistoricalAssign ? (cars.data ?? []) : availableCars;
     const selected = form.carId ? base.find((c) => c.id === form.carId) : undefined;
@@ -145,7 +147,12 @@ export function FleetTab() {
       return;
     }
 
-    const status = endDate ? AgreementStatus.ENDED : AgreementStatus.ACTIVE;
+    // An agreement whose endDate is today or in the future is ACTIVE — the
+    // endDate is just when it stops. Only past endDates are historical
+    // (ENDED). The API also enforces this rule server-side.
+    const endIsFuture = !!endDate && endDate >= form.startDate;
+    const status =
+      endDate && !endIsFuture ? AgreementStatus.ENDED : AgreementStatus.ACTIVE;
     const conflict = findAgreementDateConflict(
       {
         carId: form.carId,
@@ -168,7 +175,7 @@ export function FleetTab() {
         depositAmount: form.depositAmount === "" ? 0 : form.depositAmount,
         period: form.period,
         startDate: form.startDate,
-        ...(endDate ? { endDate, status: AgreementStatus.ENDED } : {}),
+        ...(endDate ? { endDate, status } : {}),
       },
       {
         onSuccess: () => closeAssign(),

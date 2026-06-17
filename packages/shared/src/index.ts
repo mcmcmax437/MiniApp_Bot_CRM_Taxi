@@ -563,9 +563,12 @@ export interface ReminderItem {
     | "DOCUMENT"
     | "MAINTENANCE"
     | "OVERDUE_PAYMENT"
-    | "MILEAGE_REPORT";
+    | "MILEAGE_REPORT"
+    | "RENTAL_ENDING";
   refId: string;
   carId?: string;
+  /** Driver associated with the reminder, when applicable. */
+  driverId?: string;
   label: string;
   dueDate: string | null;
   amount?: number;

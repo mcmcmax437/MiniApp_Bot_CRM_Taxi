@@ -53,6 +53,14 @@ export function AgreementEditModal(props: {
       return;
     }
 
+    // A future or current endDate keeps the agreement ACTIVE; only a past
+    // endDate marks it ENDED. This matches the create-form logic so that
+    // scheduling a future hand-off doesn't accidentally end the rental.
+    const today = startDate.slice(0, 10);
+    const endIsPast = !!end && end < today;
+    const inferredStatus: AgreementStatus | undefined =
+      end && endIsPast ? AgreementStatus.ENDED : undefined;
+
     const body: Record<string, unknown> = {
       driverId,
       rentAmount,
@@ -62,8 +70,16 @@ export function AgreementEditModal(props: {
       endDate: end || null,
     };
 
-    if (props.agreement.status === AgreementStatus.ACTIVE && end) {
-      body.status = AgreementStatus.ENDED;
+    // Preserve ACTIVE when only an endDate in the future is being set;
+    // flip to ENDED only when the user explicitly picks a past endDate.
+    if (inferredStatus) {
+      body.status = inferredStatus;
+    } else if (
+      props.agreement.status === AgreementStatus.ACTIVE &&
+      end &&
+      !endIsPast
+    ) {
+      body.status = AgreementStatus.ACTIVE;
     }
 
     const nextStatus =
