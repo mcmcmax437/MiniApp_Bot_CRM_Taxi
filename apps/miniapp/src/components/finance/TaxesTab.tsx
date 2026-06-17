@@ -5,7 +5,7 @@ import { useExpenses, useCars, useSaveExpense, useDeleteExpense } from "../../ho
 import {
   Modal,
   Field,
-  TextInput,
+  TextArea,
   DateInput,
   SelectInput,
   FormActions,
@@ -248,7 +248,14 @@ export function TaxesTab() {
           <DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
         </Field>
         <Field label={t("finance.note")}>
-          <TextInput value={form.note} onChange={(v) => setForm({ ...form, note: v })} placeholder={t("finance.taxNotePlaceholder")} />
+          <TextArea
+            value={form.note}
+            maxLength={10000}
+            rows={3}
+            maxRows={10}
+            onChange={(v) => setForm({ ...form, note: v })}
+            placeholder={t("finance.taxNotePlaceholder")}
+          />
         </Field>
       </Modal>
     </>

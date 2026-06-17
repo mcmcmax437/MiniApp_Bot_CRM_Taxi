@@ -307,6 +307,12 @@ export function FinanceListItem(props: {
   amountTone?: "income" | "expense" | "neutral";
   className?: string;
   onClick?: () => void;
+  /** When true, renders an inline button that opens the full note viewer.
+   *  The button stops propagation so it doesn't trigger the row's onClick. */
+  noteExpandable?: boolean;
+  onShowNote?: () => void;
+  /** Label for the inline "view note" button. */
+  showNoteLabel?: string;
 }) {
   const tone = props.amountTone ?? "neutral";
   const Tag = props.onClick ? "button" : "div";
@@ -321,6 +327,22 @@ export function FinanceListItem(props: {
           {props.partnerAlert ? <PartnerAlertMark label={props.partnerAlertLabel ?? "!"} /> : null}
         </div>
         {props.subtitle ? <div className="crm-finance-item__subtitle">{props.subtitle}</div> : null}
+        {props.noteExpandable && props.onShowNote ? (
+          <button
+            type="button"
+            className="crm-finance-note-toggle"
+            data-stop-press="true"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              props.onShowNote?.();
+            }}
+            onPointerDown={(ev) => ev.stopPropagation()}
+            onMouseDown={(ev) => ev.stopPropagation()}
+            onTouchStart={(ev) => ev.stopPropagation()}
+          >
+            {props.showNoteLabel ?? "…"}
+          </button>
+        ) : null}
       </div>
       {props.amount ? (
         <div className={`crm-finance-item__amount crm-finance-item__amount--${tone}`}>{props.amount}</div>

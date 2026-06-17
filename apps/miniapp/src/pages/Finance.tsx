@@ -23,10 +23,11 @@ import type { Agreement } from "../types";
 import { FleetTab } from "../components/finance/FleetTab";
 import { TaxesTab } from "../components/finance/TaxesTab";
 import { ExpenseTagInput } from "../components/finance/ExpenseTagInput";
+import { NoteViewerModal, previewNote } from "../components/finance/NoteViewerModal";
 import {
   Modal,
   Field,
-  TextInput,
+  TextArea,
   NumberInput,
   DateInput,
   SelectInput,
@@ -123,6 +124,13 @@ function PaymentsTab() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<PaymentType | "ALL">("ALL");
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean }>({});
+  const [noteView, setNoteView] = useState<{
+    title: string;
+    subtitle?: string;
+    note: string;
+    date?: string;
+    amount?: string;
+  } | null>(null);
   const [form, setForm] = useState<{
     driverId: string;
     carId: string;
@@ -190,13 +198,20 @@ function PaymentsTab() {
   function openEdit(p: (typeof all)[number]) {
     setEditId(p.id);
     setFieldErrors({});
+    // Legacy payments may have types the form no longer offers (REFUND,
+    // FINE, DISCOUNT). Map them to RENT so the dropdown always has a valid
+    // initial selection — the owner can change it to DEPOSIT if needed.
+    const editableType =
+      p.type === PaymentType.RENT || p.type === PaymentType.DEPOSIT
+        ? p.type
+        : PaymentType.RENT;
     setForm({
       driverId: p.driverId ?? "",
       carId: p.carId ?? "",
       amount: p.amount,
       date: p.date.slice(0, 10),
       method: p.method === PaymentMethod.CASH ? PaymentMethod.CASH : PaymentMethod.BANK,
-      type: p.type,
+      type: editableType,
       note: p.note ?? "",
       receivedByPartner: p.receivedByPartner,
       partnerSettled: p.partnerSettled,
@@ -311,21 +326,21 @@ function PaymentsTab() {
               >
                 {t("common.all")}
               </button>
-              {Object.values(PaymentType)
-                .filter((pt) => pt !== PaymentType.DISCOUNT)
-                .map((pt) => (
-                  <button
-                    key={pt}
-                    type="button"
-                    className={`crm-filter-menu__item${typeFilter === pt ? " crm-filter-menu__item--active" : ""}`}
-                    onClick={() => {
-                      setTypeFilter(pt);
-                      setFilterOpen(false);
-                    }}
-                  >
-                    {t(`finance.${pt}`)}
-                  </button>
-                ))}
+              {/* Match the Payment Type dropdown in the modal: only show
+                  categories the user actually adds through that form. */}
+              {[PaymentType.RENT, PaymentType.DEPOSIT].map((pt) => (
+                <button
+                  key={pt}
+                  type="button"
+                  className={`crm-filter-menu__item${typeFilter === pt ? " crm-filter-menu__item--active" : ""}`}
+                  onClick={() => {
+                    setTypeFilter(pt);
+                    setFilterOpen(false);
+                  }}
+                >
+                  {t(`finance.${pt}`)}
+                </button>
+              ))}
             </div>
           ) : null
         }
@@ -350,12 +365,40 @@ function PaymentsTab() {
             summaryTone="income"
             renderItem={(p) => (
               <FinanceListItem
-                title={paymentDisplayTitle(p, t, t("common.none"))}
+                title={(() => {
+                  const rawNote = (p.note ?? "").trim();
+                  const driverName = p.driver?.fullName ?? "";
+                  // If the note is long AND is what we're showing as the title,
+                  // truncate it; otherwise fall back to driver or "none".
+                  if (rawNote) {
+                    return rawNote.length > 80 ? previewNote(rawNote, 80) : rawNote;
+                  }
+                  return driverName || t("common.none");
+                })()}
                 subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t, t("common.none"))}
                 amount={formatMoney(p.amount)}
                 amountTone="income"
                 partnerAlert={p.receivedByPartner && !p.partnerSettled}
                 partnerAlertLabel={t("finance.receivedByPartner")}
+                noteExpandable={Boolean((p.note ?? "").trim().length > 80)}
+                showNoteLabel={t("finance.viewFullNote")}
+                onShowNote={
+                  (p.note ?? "").trim().length > 80
+                    ? () =>
+                        setNoteView({
+                          title: paymentDisplayTitle(p, t, t("common.none")),
+                          subtitle: paymentDisplaySubtitle(
+                            p,
+                            formatDate(p.date),
+                            t,
+                            t("common.none"),
+                          ),
+                          note: (p.note ?? "").trim(),
+                          date: p.date,
+                          amount: formatMoney(p.amount),
+                        })
+                    : undefined
+                }
                 onClick={readOnly ? undefined : () => openEdit(p)}
               />
             )}
@@ -384,6 +427,11 @@ function PaymentsTab() {
             : undefined
         }
       />
+      <NoteViewerModal
+        open={Boolean(noteView)}
+        item={noteView}
+        onClose={() => setNoteView(null)}
+      />
     </>
   );
 }
@@ -403,6 +451,13 @@ function ExpensesTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
+  const [noteView, setNoteView] = useState<{
+    title: string;
+    subtitle?: string;
+    note: string;
+    date?: string;
+    amount?: string;
+  } | null>(null);
   const [form, setForm] = useState<{
     carId: string;
     category: ExpenseCategory;
@@ -569,14 +624,38 @@ function ExpensesTab() {
             summaryTone="expense"
             renderItem={(e) => {
               const partnerOpen = e.paidByPartner && !e.partnerSettled;
+              const rawNote = (e.note ?? "").trim();
+              const isLongNote = rawNote.length > 80;
+              const displayTitle = isLongNote
+                ? previewNote(rawNote, 80)
+                : expenseDisplayTitle(e, t);
               return (
                 <FinanceListItem
-                  title={expenseDisplayTitle(e, t)}
+                  title={displayTitle}
                   subtitle={expenseDisplaySubtitle(e, formatDate(e.date), t, t("common.none"))}
                   partnerAlert={partnerOpen}
                   partnerAlertLabel={t("finance.partnerUnsettledTitle")}
                   amount={formatMoney(e.amount)}
                   amountTone="expense"
+                  noteExpandable={isLongNote}
+                  showNoteLabel={t("finance.viewFullNote")}
+                  onShowNote={
+                    isLongNote
+                      ? () =>
+                          setNoteView({
+                            title: expenseDisplayTitle(e, t),
+                            subtitle: expenseDisplaySubtitle(
+                              e,
+                              formatDate(e.date),
+                              t,
+                              t("common.none"),
+                            ),
+                            note: rawNote,
+                            date: e.date,
+                            amount: formatMoney(e.amount),
+                          })
+                      : undefined
+                  }
                   onClick={
                     readOnly
                       ? undefined
@@ -679,7 +758,13 @@ function ExpensesTab() {
           />
         </Field>
         <Field label={t("finance.note")}>
-          <TextInput value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
+          <TextArea
+            value={form.note}
+            maxLength={10000}
+            rows={4}
+            maxRows={12}
+            onChange={(v) => setForm({ ...form, note: v })}
+          />
         </Field>
         <p className="crm-field-hint">{t("finance.noteHint")}</p>
         <label className="crm-checkbox-field">
@@ -707,6 +792,11 @@ function ExpensesTab() {
           </label>
         ) : null}
       </Modal>
+      <NoteViewerModal
+        open={Boolean(noteView)}
+        item={noteView}
+        onClose={() => setNoteView(null)}
+      />
     </>
   );
 }
@@ -934,7 +1024,16 @@ function PaymentModal(props: {
         <SelectInput
           value={form.type}
           onChange={(v) => setForm({ ...form, type: v })}
-          options={Object.values(PaymentType).map((x) => ({ value: x, label: t(`finance.${x}`) }))}
+          // The payment form only collects money that the owner actually
+          // receives from a driver (RENT) or holds on their behalf as a
+          // refundable deposit (DEPOSIT). Refunds are issued via the
+          // dashboard's deposit controls, fines live in the dedicated Fines
+          // module, and discounts are recorded through GiveDiscountModal —
+          // each has its own UI and shouldn't be selectable here.
+          options={[
+            { value: PaymentType.RENT, label: t(`finance.${PaymentType.RENT}`) },
+            { value: PaymentType.DEPOSIT, label: t(`finance.${PaymentType.DEPOSIT}`) },
+          ]}
         />
       </Field>
       <Field
@@ -953,7 +1052,13 @@ function PaymentModal(props: {
         />
       </Field>
       <Field label={t("finance.note")}>
-        <TextInput value={form.note} onChange={(v) => setForm({ ...form, note: v })} />
+        <TextArea
+          value={form.note}
+          maxLength={10000}
+          rows={3}
+          maxRows={10}
+          onChange={(v) => setForm({ ...form, note: v })}
+        />
       </Field>
       <label className="crm-checkbox-field">
         <input

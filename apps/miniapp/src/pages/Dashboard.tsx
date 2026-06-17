@@ -42,6 +42,30 @@ function formatRoi(percent: number | null | undefined): string {
   return `${sign}${percent.toFixed(1)}%`;
 }
 
+/**
+ * ROI = (Income / Expenses) × 100%
+ *
+ * Definition: how many zł of real income was earned for every 1 zł spent
+ * on operating expenses (over the selected period). When ROI > 100%, the
+ * fleet brought in more than it cost to run; below 100% it ran at a loss.
+ *
+ * "Income" here means money actually received from drivers — i.e. payments
+ * of type RENT or FINE only. Deposits and refunds that drivers leave when
+ * they take a car are NOT income (they're money held on the owner's behalf
+ * and returned), and DISCOUNT entries reduce what we owe back to drivers,
+ * not money we received.
+ *
+ * "Expenses" excludes TAX, matching the Finance page's Expenses tab and
+ * the existing monthly-expenses logic below.
+ *
+ * Returns null when expenses are zero so we can render "—" instead of a
+ * misleading "Infinity%".
+ */
+function calcRoi(income: number, expenses: number): number | null {
+  if (!(expenses > 0)) return null;
+  return round2((income / expenses) * 100);
+}
+
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
@@ -100,7 +124,6 @@ export function Dashboard() {
         expenses: 0,
         profit: 0,
         roiPercent: null as number | null,
-        totalInvestment: 0,
       };
     }
 
@@ -128,28 +151,25 @@ export function Dashboard() {
         income: report.data.income,
         expenses: expensesValue,
         profit: profitValue,
-        roiPercent:
-          report.data.totalInvestment > 0
-            ? round2((profitValue / report.data.totalInvestment) * 100)
-            : null,
-        totalInvestment: report.data.totalInvestment,
+        roiPercent: calcRoi(report.data.income, expensesValue),
       };
     }
 
     const carRow = report.data.byCar.find((row) => row.carId === statsCarId);
-    const car = cars.data?.find((c) => c.id === statsCarId);
     const income = carRow?.income ?? 0;
     // When a car is selected, prefer the locally-computed monthly number
     // (excludes TAX) over the server-side per-car total.
     const expenses =
       localExpenses != null ? localExpenses : (carRow?.expenses ?? 0);
     const profit = round2(income - expenses);
-    const totalInvestment =
-      car?.purchasePrice != null && car.purchasePrice > 0 ? round2(car.purchasePrice) : 0;
-    const roiPercent = totalInvestment > 0 ? round2((profit / totalInvestment) * 100) : null;
 
-    return { income, expenses, profit, roiPercent, totalInvestment };
-  }, [report.data, statsCarId, cars.data, expensesQuery.data, statsPeriod]);
+    return {
+      income,
+      expenses,
+      profit,
+      roiPercent: calcRoi(income, expenses),
+    };
+  }, [report.data, statsCarId, expensesQuery.data, statsPeriod]);
 
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
   const income = formatMoney(stats.income);
@@ -158,12 +178,17 @@ export function Dashboard() {
   const roi = formatRoi(stats.roiPercent);
   const periodSuffix =
     statsPeriod === "month" ? t("dashboard.monthSuffix") : t("dashboard.allTimeSuffix");
+  // ROI hint describes what the percentage means and shows the absolute
+  // numbers used in the calculation so the user can verify the figure.
+  //   - When there are no expenses yet, we show a "no expenses" message.
+  //   - Otherwise we show "income / expenses = X%" for the selected period.
   const roiHint =
-    stats.totalInvestment > 0
-      ? t(statsPeriod === "month" ? "dashboard.roiHint" : "dashboard.roiHintAllTime", {
-          investment: formatMoney(stats.totalInvestment),
+    stats.expenses > 0
+      ? t("dashboard.roiHint", {
+          income: formatMoney(stats.income),
+          expenses: formatMoney(stats.expenses),
         })
-      : t("dashboard.roiNoInvestment");
+      : t("dashboard.roiNoExpenses");
 
   function onStatsPeriodChange(period: DashboardStatsPeriod) {
     setStatsPeriod(period);

@@ -152,6 +152,63 @@ export function TextInput(props: {
   );
 }
 
+export function TextArea(props: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  invalid?: boolean;
+  /** Max characters. Shows a live counter when set. */
+  maxLength?: number;
+  /** Visible rows. Defaults to a comfortable multi-line height. */
+  rows?: number;
+  /** Auto-grow the textarea up to this many rows as the user types. */
+  maxRows?: number;
+  /** Disable browser resize handle / spellcheck etc. */
+  autoCorrect?: "on" | "off";
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+  const minRows = props.rows ?? 4;
+
+  // Auto-grow up to maxRows so the field never traps text behind a
+  // scrollbar on small screens, but caps so very long notes don't push
+  // the rest of the form off-screen.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const max = props.maxRows ?? 12;
+    el.style.height = "auto";
+    const lineHeight = 20;
+    const padding = 22;
+    const next = Math.min(el.scrollHeight, lineHeight * max + padding);
+    el.style.height = `${Math.max(next, lineHeight * minRows + padding)}px`;
+  }, [props.value, props.maxRows, minRows]);
+
+  const remaining =
+    props.maxLength != null ? props.maxLength - props.value.length : null;
+  const tooLong = remaining != null && remaining < 0;
+
+  return (
+    <div className={`crm-textarea${tooLong ? " crm-textarea--error" : ""}`}>
+      <textarea
+        ref={ref}
+        className={`crm-input${props.invalid ? " crm-input--error" : ""} crm-textarea__field`}
+        value={props.value}
+        placeholder={props.placeholder}
+        rows={minRows}
+        maxLength={props.maxLength}
+        autoCorrect={props.autoCorrect ?? "off"}
+        spellCheck={false}
+        onChange={(e) => props.onChange(e.target.value)}
+      />
+      {remaining != null ? (
+        <div className={`crm-textarea__counter${tooLong ? " crm-textarea__counter--error" : ""}`}>
+          {remaining}/{props.maxLength}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function NumberInput(props: {
   value: number | "";
   onChange: (v: number | "") => void;

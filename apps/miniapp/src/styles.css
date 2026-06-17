@@ -4349,6 +4349,119 @@ select.crm-input option {
   color: var(--taxi-text, #fff);
 }
 
+/* Textarea — wraps the field + character counter */
+.crm-textarea {
+  position: relative;
+  width: 100%;
+}
+
+.crm-textarea__field {
+  resize: none;
+  font-family: inherit;
+  line-height: 1.4;
+  min-height: 96px;
+  padding-bottom: 24px;
+}
+
+.crm-textarea__counter {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 11px;
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.5));
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--taxi-surface-raised, #101c2e) 30%);
+  padding: 0 4px;
+}
+
+.crm-textarea__counter--error {
+  color: #ff453a;
+}
+
+.crm-textarea--error .crm-textarea__field {
+  border-color: #ff453a !important;
+  box-shadow: 0 0 0 1px rgba(255, 69, 58, 0.35);
+}
+
+/* Read-only note viewer */
+.crm-note-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crm-note-viewer__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.crm-note-viewer__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--taxi-text, #fff);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.crm-note-viewer__subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.crm-note-viewer__amount {
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--taxi-expense, #ff5252);
+}
+
+.crm-note-viewer__date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.crm-note-viewer__note {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--taxi-surface-raised, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--taxi-border, rgba(255, 255, 255, 0.06));
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--taxi-text, #fff);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* "View note" affordance on finance list rows */
+.crm-finance-note-toggle {
+  margin-top: 6px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--taxi-accent, #ffc107);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crm-finance-note-toggle:hover {
+  text-decoration: underline;
+}
+
 .crm-form-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
