@@ -387,6 +387,7 @@ export function FleetTab() {
           <DateInput
             value={form.endDate}
             clearable
+            min={form.startDate}
             onChange={(v) => setForm({ ...form, endDate: v })}
           />
         </Field>

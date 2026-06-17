@@ -133,7 +133,7 @@ export function AgreementEditModal(props: {
         <DateInput value={startDate} onChange={setStartDate} />
       </Field>
       <Field label={t("drivers.endDate")}>
-        <DateInput value={endDate} clearable onChange={setEndDate} />
+        <DateInput value={endDate} clearable min={startDate} onChange={setEndDate} />
       </Field>
       <p className="crm-form-hint">{t("fleet.endDateHint")}</p>
       <Field label={t("drivers.rentAmount")}>

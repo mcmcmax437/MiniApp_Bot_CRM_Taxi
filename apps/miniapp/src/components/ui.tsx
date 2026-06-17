@@ -180,6 +180,10 @@ export function DateInput(props: {
   invalid?: boolean;
   /** Show a clear button when a date is set. */
   clearable?: boolean;
+  /** Minimum selectable date (YYYY-MM-DD). Earlier dates are blocked. */
+  min?: string;
+  /** Maximum selectable date (YYYY-MM-DD). Later dates are blocked. */
+  max?: string;
 }) {
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
@@ -195,6 +199,8 @@ export function DateInput(props: {
         className={`${dateClass} crm-date-field__input`}
         type="date"
         value={props.value}
+        min={props.min}
+        max={props.max}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onChange={(e) => props.onChange(e.target.value)}
@@ -206,11 +212,20 @@ export function DateInput(props: {
           className="crm-date-field__clear"
           aria-label={t("common.clear")}
           data-stop-press="true"
+          // On iOS Safari, tapping inside a <input type="date"> opens the
+          // native picker. We have to cancel the gesture at every stage:
+          // touchstart, pointerdown and mousedown. preventDefault on each
+          // of these is what stops the picker from opening; the click
+          // handler then commits the empty value.
+          onTouchStart={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
           onPointerDown={(e) => {
-            // On iOS Safari, tapping inside a <input type="date"> opens the
-            // native picker. We have to prevent that, then clear the value
-            // on click. preventDefault on mousedown is what stops the picker
-            // from opening; the click handler then commits the empty value.
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
           }}
@@ -292,6 +307,10 @@ export function SearchableSelect<T extends string>(props: {
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Guards the option click from being eaten by the document-close handler
+  // or by an input blur on iOS Safari. The synthetic mousedown that iOS
+  // dispatches ~300ms after a tap must not collapse the just-set selection.
+  const justPickedRef = useRef(0);
 
   const selected = props.options.find((o) => o.value === props.value);
 
@@ -307,6 +326,9 @@ export function SearchableSelect<T extends string>(props: {
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent | TouchEvent) {
+      // Skip the synthetic mousedown iOS dispatches after a tap on an option
+      // we just handled. Otherwise the selection would be wiped out.
+      if (Date.now() - justPickedRef.current < 800) return;
       if (!rootRef.current?.contains(e.target as Node)) {
         setOpen(false);
         setQuery("");
@@ -321,10 +343,17 @@ export function SearchableSelect<T extends string>(props: {
   }, [open]);
 
   function pick(value: T) {
+    justPickedRef.current = Date.now();
     props.onChange(value);
     setOpen(false);
     setQuery("");
-    inputRef.current?.blur();
+    // Defer the blur by one tick so iOS Safari doesn't hide the keyboard /
+    // shift the viewport before the state update commits. The dropdown
+    // closes anyway, so the user sees the selected label without the input
+    // stealing focus back.
+    setTimeout(() => {
+      inputRef.current?.blur();
+    }, 0);
   }
 
   const displayValue = open ? query : (selected?.label ?? "");
@@ -370,13 +399,21 @@ export function SearchableSelect<T extends string>(props: {
                     type="button"
                     role="option"
                     aria-selected={o.value === props.value}
+                    data-stop-press="true"
                     className={`crm-searchable-select__option${o.value === props.value ? " crm-searchable-select__option--active" : ""}`}
-                    onPointerDown={(e) => {
-                      // Capture the selection on pointerdown so it fires before
-                      // the input loses focus on iOS Safari (where calling
-                      // preventDefault on mousedown would suppress the click).
+                    // touchstart fires first on iOS Safari and lets us commit
+                    // the selection before the input can lose focus. We
+                    // preventDefault to suppress the synthetic click/mousedown
+                    // that would otherwise collapse the just-picked option.
+                    onTouchStart={(e) => {
                       e.preventDefault();
                       pick(o.value);
+                    }}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
                     }}
                     onClick={(e) => {
                       e.preventDefault();
