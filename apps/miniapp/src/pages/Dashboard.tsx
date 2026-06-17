@@ -36,10 +36,37 @@ import { closeTelegramApp } from "../telegram";
 const STATS_PERIOD_KEY = "dashboard-stats-period";
 const STATS_CAR_KEY = "dashboard-stats-car";
 
+/**
+ * Formats a raw ROI ratio (income/expenses × 100) into a user-facing return
+ * percentage. The raw value uses 100% as the break-even line:
+ *
+ *   - 100%   → the business broke even (income == expenses)
+ *   - > 100% → profit; anything above 100% is a positive return
+ *   - < 100% → loss; anything below 100% is a negative return
+ *
+ * Because the raw ratio is unintuitive at a glance ("50% return? that
+ * sounds great!"), we display the **delta from break-even** with a sign,
+ * so the user immediately sees profit vs. loss without doing the math.
+ *   -  50  → "-50.0%"  (income covered 50% of expenses — half a loss)
+ *   - 100  →  "0.0%"   (broke even)
+ *   - 150  → "+50.0%"  (50% above break-even — a real profit)
+ *   - 200  → "+100.0%" (doubled the expenses as income)
+ *
+ * Returns "—" when the input is null/undefined (no expenses yet).
+ */
 function formatRoi(percent: number | null | undefined): string {
   if (percent == null) return "—";
-  const sign = percent > 0 ? "+" : "";
-  return `${sign}${percent.toFixed(1)}%`;
+  // Round the delta first so the displayed number doesn't wobble across the
+  // 100% boundary (e.g. 99.96 → "-0.0%" looks wrong).
+  const delta = round2(percent - 100);
+  const rounded = Math.round((delta + Number.EPSILON) * 10) / 10;
+  // Use the rounded value for the sign too — if it's exactly 0 we drop the
+  // sign entirely ("break even" reads better than "+0.0%").
+  let body: string;
+  if (rounded > 0) body = `+${rounded.toFixed(1)}%`;
+  else if (rounded < 0) body = `${rounded.toFixed(1)}%`;
+  else body = `0.0%`;
+  return body;
 }
 
 /**
@@ -176,17 +203,29 @@ export function Dashboard() {
   const expenses = formatMoney(stats.expenses);
   const profit = formatMoney(stats.profit);
   const roi = formatRoi(stats.roiPercent);
+  // Pick the ROI card tone by sign so the colour matches the message:
+  // positive ROI → green (profit), 0% → neutral accent, negative → red (loss).
+  const roiTone: "income" | "expense" | "roi" =
+    stats.roiPercent == null
+      ? "roi"
+      : stats.roiPercent > 100
+        ? "income"
+        : stats.roiPercent < 100
+          ? "expense"
+          : "roi";
   const periodSuffix =
     statsPeriod === "month" ? t("dashboard.monthSuffix") : t("dashboard.allTimeSuffix");
   // ROI hint describes what the percentage means and shows the absolute
   // numbers used in the calculation so the user can verify the figure.
   //   - When there are no expenses yet, we show a "no expenses" message.
-  //   - Otherwise we show "income / expenses = X%" for the selected period.
+  //   - Otherwise we show income, expenses, and the same delta-from-break-even
+  //     percentage that appears on the card, so the two stay in sync.
   const roiHint =
     stats.expenses > 0
       ? t("dashboard.roiHint", {
           income: formatMoney(stats.income),
           expenses: formatMoney(stats.expenses),
+          return: formatRoi(stats.roiPercent),
         })
       : t("dashboard.roiNoExpenses");
 
@@ -261,7 +300,7 @@ export function Dashboard() {
           label={t("dashboard.roi")}
           value={roi}
           suffix={periodSuffix}
-          tone="roi"
+          tone={roiTone}
           icon={<Icon name="chart-increase" size={24} color="var(--taxi-accent)" />}
         />
       </div>
