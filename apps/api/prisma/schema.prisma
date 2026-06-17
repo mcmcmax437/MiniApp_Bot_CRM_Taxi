@@ -155,7 +155,7 @@ model Car {
   status           CarStatus  @default(AVAILABLE)
   insuranceExpiry  DateTime?
   inspectionExpiry DateTime?
-  notes            String?
+  notes            String?             @db.MediumText
   coverDocumentId  String?
   currentMileage   Int?
   mileageUpdatedAt DateTime?
@@ -215,7 +215,7 @@ model CarDocument {
   car        Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
   title      String
   expiryDate DateTime?
-  notes      String?
+  notes      String?             @db.MediumText
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -262,7 +262,7 @@ model MaintenanceRecord {
   completedAt DateTime
   mileageAt   Int?
   cost        Float?
-  notes       String?
+  notes       String?             @db.MediumText
   createdAt   DateTime         @default(now())
 
   @@index([ownerId])
@@ -280,7 +280,7 @@ model MileageLog {
   odometer   Int
   recordedAt DateTime
   source     MileageSource @default(MANUAL)
-  note       String?
+  note       String?             @db.MediumText
   createdAt  DateTime      @default(now())
 
   @@index([ownerId])
@@ -306,7 +306,7 @@ model Driver {
   fatherName       String?
   motherName       String?
   status           DriverStatus @default(ACTIVE)
-  notes            String?
+  notes            String?             @db.MediumText
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -333,7 +333,7 @@ model RentalAgreement {
   startDate  DateTime
   endDate    DateTime?
   status     AgreementStatus @default(ACTIVE)
-  notes      String?
+  notes      String?             @db.MediumText
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
@@ -355,7 +355,7 @@ model Payment {
   date           DateTime
   method         PaymentMethod @default(CASH)
   type           PaymentType   @default(RENT)
-  note           String?
+  note           String?             @db.MediumText
   receivedByPartner Boolean    @default(false)
   partnerSettled Boolean       @default(false)
   createdAt      DateTime      @default(now())
@@ -375,7 +375,7 @@ model Expense {
   category  ExpenseCategory @default(OTHER)
   amount          Float
   date            DateTime
-  note            String?
+  note            String?             @db.MediumText
   tag             String?
   paidByPartner   Boolean         @default(false)
   partnerSettled  Boolean         @default(false)
@@ -417,7 +417,7 @@ model Shift {
   mileageStart Int?
   mileageEnd   Int?
   income       Float?
-  note         String?
+  note         String?             @db.MediumText
   createdAt    DateTime @default(now())
 
   @@index([ownerId])

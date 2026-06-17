@@ -250,7 +250,7 @@ export function TaxesTab() {
         <Field label={t("finance.note")}>
           <TextArea
             value={form.note}
-            maxLength={10000}
+            maxLength={12000}
             rows={3}
             maxRows={10}
             onChange={(v) => setForm({ ...form, note: v })}
