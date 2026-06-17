@@ -1,7 +1,17 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useBalances, useCars, useMe, useReminders, useReport, useSetCurrency, useSetLocale } from "../hooks";
+import { ExpenseCategory } from "@taxi/shared";
+import {
+  useBalances,
+  useCars,
+  useExpenses,
+  useMe,
+  useReminders,
+  useReport,
+  useSetCurrency,
+  useSetLocale,
+} from "../hooks";
 import { CURRENCY_OPTIONS } from "../currency";
 import type { Currency } from "@taxi/shared";
 import { formatMoney } from "../components/ui";
@@ -10,6 +20,7 @@ import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
 import { useReadOnly } from "../readOnly";
 import { ReminderList } from "../components/ReminderList";
 import { RecentActivitySection } from "../components/RecentActivitySection";
+import { financeInPeriod } from "../components/finance/FinanceUi";
 import {
   AppHeader,
   Icon,
@@ -72,6 +83,10 @@ export function Dashboard() {
   const reportRange = useMemo(() => reportDateRange(statsPeriod), [statsPeriod]);
   const report = useReport(reportRange.from, reportRange.to);
   const cars = useCars();
+  // Pull all expenses so we can compute the monthly expenses stat locally
+  // and match the Finance page's "This month" card exactly (which excludes
+  // TAX and uses the entire calendar month, not 1st-to-today).
+  const expensesQuery = useExpenses();
   const reminders = useReminders();
   const balances = useBalances();
   const me = useMe();
@@ -89,12 +104,34 @@ export function Dashboard() {
       };
     }
 
+    // For the "month" view, recompute expenses locally so the number
+    // matches the Finance page's Expenses tab:
+    //   - Excludes TAX (which has its own tab there)
+    //   - Covers the whole calendar month, not just 1st-to-today
+    //   - Filters by selected car when one is picked
+    let localExpenses: number | null = null;
+    if (statsPeriod === "month") {
+      const list = (expensesQuery.data ?? []).filter(
+        (e) =>
+          e.category !== ExpenseCategory.TAX &&
+          financeInPeriod(e.date, "month") &&
+          (!statsCarId || e.carId === statsCarId),
+      );
+      localExpenses = round2(list.reduce((s, e) => s + e.amount, 0));
+    }
+
     if (!statsCarId) {
+      const expensesValue =
+        localExpenses != null ? localExpenses : report.data.expenses;
+      const profitValue = round2(report.data.income - expensesValue);
       return {
         income: report.data.income,
-        expenses: report.data.expenses,
-        profit: report.data.profit,
-        roiPercent: report.data.roiPercent,
+        expenses: expensesValue,
+        profit: profitValue,
+        roiPercent:
+          report.data.totalInvestment > 0
+            ? round2((profitValue / report.data.totalInvestment) * 100)
+            : null,
         totalInvestment: report.data.totalInvestment,
       };
     }
@@ -102,14 +139,17 @@ export function Dashboard() {
     const carRow = report.data.byCar.find((row) => row.carId === statsCarId);
     const car = cars.data?.find((c) => c.id === statsCarId);
     const income = carRow?.income ?? 0;
-    const expenses = carRow?.expenses ?? 0;
-    const profit = carRow?.profit ?? round2(income - expenses);
+    // When a car is selected, prefer the locally-computed monthly number
+    // (excludes TAX) over the server-side per-car total.
+    const expenses =
+      localExpenses != null ? localExpenses : (carRow?.expenses ?? 0);
+    const profit = round2(income - expenses);
     const totalInvestment =
       car?.purchasePrice != null && car.purchasePrice > 0 ? round2(car.purchasePrice) : 0;
     const roiPercent = totalInvestment > 0 ? round2((profit / totalInvestment) * 100) : null;
 
     return { income, expenses, profit, roiPercent, totalInvestment };
-  }, [report.data, statsCarId, cars.data]);
+  }, [report.data, statsCarId, cars.data, expensesQuery.data, statsPeriod]);
 
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
   const income = formatMoney(stats.income);
