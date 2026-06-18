@@ -4,7 +4,6 @@ const CAR_REMINDER_KINDS = new Set<ReminderItem["kind"]>([
   "INSURANCE",
   "INSPECTION",
   "DOCUMENT",
-  "MAINTENANCE",
   "MILEAGE_REPORT",
 ]);
 
