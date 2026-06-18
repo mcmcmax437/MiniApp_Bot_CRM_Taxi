@@ -1646,6 +1646,58 @@ body {
   flex-shrink: 0;
 }
 
+.crm-car-overview__cell-hint {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Inspection-by-mileage cell — the inline "X km left" badge. The tone
+   matches the rest of the inspection reminders: red when overdue, amber
+   when within 500 km, and a neutral accent when there's still a healthy
+   amount of mileage left. */
+.crm-inspection-km {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.crm-inspection-km--ok {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.crm-inspection-km--warning {
+  background: rgba(255, 193, 7, 0.16);
+  border-color: rgba(255, 193, 7, 0.5);
+  color: #ffd54a;
+}
+
+.crm-inspection-km--overdue {
+  background: rgba(255, 82, 82, 0.18);
+  border-color: rgba(255, 82, 82, 0.55);
+  color: #ff8a80;
+}
+
+.crm-inspection-km--none {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  padding-left: 0;
+  padding-right: 0;
+  border: none;
+}
+
 .crm-car-overview__cell-body {
   flex: 1;
   display: flex;
