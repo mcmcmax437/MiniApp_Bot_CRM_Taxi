@@ -3,7 +3,6 @@ import { AgreementStatus, type ReminderItem } from "@taxi/shared";
 import { computeDriverBalances } from "./balance.js";
 import {
   daysUntil,
-  isMaintenanceDue,
   parseDaysBeforeList,
 } from "./maintenance.js";
 import { ensureReminderSettings } from "./reminder-settings.js";
@@ -71,8 +70,12 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
   }
 
   if (settings.inspectionMileageIntervalKm) {
+    // Inspection-by-mileage reminder. We always emit the entry so the user
+    // can see exactly how many km are left until the next inspection — not
+    // just when they're close to due. The previous version only emitted
+    // when kmLeft <= 500, which made it look like the system had no idea
+    // about the inspection interval until the last moment.
     const interval = settings.inspectionMileageIntervalKm;
-    const warnKm = 500;
     const inspectionRecords = await prisma.maintenanceRecord.findMany({
       where: { ownerId, presetKey: "presetInspectionService", mileageAt: { not: null } },
       orderBy: { completedAt: "desc" },
@@ -99,16 +102,17 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
       if (baseline == null) continue;
       const nextDue = baseline + interval;
       const kmLeft = nextDue - c.currentMileage;
-      if (kmLeft <= warnKm) {
-        items.push({
-          kind: "INSPECTION",
-          refId: `${c.id}-mileage`,
-          carId: c.id,
-          label: carLabel(c),
-          dueDate: null,
-          detail: kmLeft <= 0 ? "overdue" : `${kmLeft} km`,
-        });
-      }
+      // Always include the reminder so the user can plan ahead. The "kmLeft"
+      // detail (e.g. "1 240 km") carries the exact remaining distance; the
+      // UI styles it red once overdue or amber when close (<500 km).
+      items.push({
+        kind: "INSPECTION",
+        refId: `${c.id}-mileage`,
+        carId: c.id,
+        label: carLabel(c),
+        dueDate: null,
+        detail: kmLeft <= 0 ? "overdue" : `${kmLeft} km`,
+      });
     }
   }
 
@@ -123,53 +127,12 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
     pushDateReminders(items, "DOCUMENT", doc.id, label, doc.expiryDate, docDays, doc.carId);
   }
 
-  const maintDays = parseDaysBeforeList(settings.maintenanceDaysBefore);
-  const rules = await prisma.maintenanceRule.findMany({
-    where: { ownerId, isActive: true },
-    include: { car: { select: { plate: true, make: true, model: true, currentMileage: true } } },
-  });
-  for (const rule of rules) {
-    const label = `${rule.name} — ${carLabel(rule.car)}`;
-    if (isMaintenanceDue(rule, rule.car.currentMileage, now)) {
-      items.push({
-        kind: "MAINTENANCE",
-        refId: rule.id,
-        carId: rule.carId,
-        label,
-        dueDate: rule.nextDueDate?.toISOString() ?? null,
-        detail: "due",
-      });
-      continue;
-    }
-    if (rule.nextDueDate) {
-      pushDateReminders(items, "MAINTENANCE", rule.id, label, rule.nextDueDate, maintDays, rule.carId);
-    }
-    if (rule.nextDueMileage != null && rule.car.currentMileage != null) {
-      const kmLeft = rule.nextDueMileage - rule.car.currentMileage;
-      if (kmLeft <= 500) {
-        items.push({
-          kind: "MAINTENANCE",
-          refId: rule.id,
-          carId: rule.carId,
-          label,
-          dueDate: null,
-          detail: `${kmLeft} km`,
-        });
-      }
-    } else if (!rule.nextDueDate && rule.nextDueMileage != null) {
-      const soon = rule.car.currentMileage == null;
-      if (soon) {
-        items.push({
-          kind: "MAINTENANCE",
-          refId: rule.id,
-          carId: rule.carId,
-          label,
-          dueDate: null,
-          detail: `${rule.nextDueMileage} km`,
-        });
-      }
-    }
-  }
+  // Maintenance rules are no longer surfaced as reminders. Insurance,
+  // inspection and document reminders already cover the cases that
+  // mattered (the next service date, the next inspection mileage, the next
+  // insurance/doc expiry). The underlying MaintenanceRule model and the
+  // tracking UI stay in place — the user just doesn't get a daily nag
+  // for each rule.
 
   if (settings.weeklyMileageEnabled) {
     const weekAgo = new Date(now.getTime() - WEEK_MS);
@@ -260,8 +223,6 @@ function formatReminderLine(item: ReminderItem): string {
       return `🔧 Inspection: <b>${item.label}</b> — ${date}${extra}`;
     case "DOCUMENT":
       return `📄 Document: <b>${item.label}</b> — ${date}${extra}`;
-    case "MAINTENANCE":
-      return `🔩 Maintenance: <b>${item.label}</b>${date ? ` — ${date}` : ""}${extra}`;
     case "MILEAGE_REPORT":
       return `📊 Mileage update needed: <b>${item.label}</b>`;
     case "OVERDUE_PAYMENT":

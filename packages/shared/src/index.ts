@@ -480,7 +480,6 @@ export const reminderSettingsUpdateSchema = z.object({
   insuranceDaysBefore: z.string().trim().max(64).optional(),
   inspectionDaysBefore: z.string().trim().max(64).optional(),
   documentDaysBefore: z.string().trim().max(64).optional(),
-  maintenanceDaysBefore: z.string().trim().max(64).optional(),
   inspectionMileageIntervalKm: z.number().int().min(1000).max(500_000).optional().nullable(),
   weeklyMileageEnabled: z.boolean().optional(),
   weeklyMileageWeekday: z.number().int().min(0).max(6).optional(),
@@ -561,7 +560,6 @@ export interface ReminderItem {
     | "INSURANCE"
     | "INSPECTION"
     | "DOCUMENT"
-    | "MAINTENANCE"
     | "OVERDUE_PAYMENT"
     | "MILEAGE_REPORT"
     | "RENTAL_ENDING";
@@ -580,7 +578,6 @@ export interface ReminderSettings {
   insuranceDaysBefore: string;
   inspectionDaysBefore: string;
   documentDaysBefore: string;
-  maintenanceDaysBefore: string;
   inspectionMileageIntervalKm: number | null;
   weeklyMileageEnabled: boolean;
   weeklyMileageWeekday: number;

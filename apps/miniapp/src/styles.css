@@ -545,6 +545,24 @@ body {
   cursor: default;
 }
 
+/* Inspection-by-mileage reminder tones. The remaining km is shown in
+   the meta line; we use colour to flag rows that need attention now
+   (overdue, red) versus soon (warning, amber). Rows more than 500 km
+   away keep the default style. */
+.crm-reminder-item--warning {
+  border-color: rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.08);
+}
+
+.crm-reminder-item--overdue {
+  border-color: rgba(255, 82, 82, 0.55);
+  background: rgba(255, 82, 82, 0.1);
+}
+
+.crm-reminder-item--overdue .crm-reminder-item__kind {
+  color: #ff8a80;
+}
+
 .crm-reminder-item__icon {
   flex-shrink: 0;
   font-size: 22px;
@@ -4057,6 +4075,127 @@ div.crm-finance-item {
 
 .crm-reminder-settings__edit {
   margin-top: 12px;
+}
+
+/* ---------------------------------------------------------------
+   Reminder settings — structured summary view
+   ---------------------------------------------------------------
+   Three sections ("Before due date", "By mileage", "Weekly
+   check-in") with rows that pair an icon + label on the left
+   with compact day chips on the right. Designed to fit on one
+   screen on mobile and avoid the "wall of comma-separated
+   text" the old `crm-car-detail-dl` layout produced when the
+   user had 4–5 days before each due date. */
+.crm-reminder-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.crm-reminder-summary__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crm-reminder-summary__heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.42);
+  padding: 0 2px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.crm-reminder-summary__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.crm-reminder-summary__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.crm-reminder-summary__label-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.2;
+}
+
+.crm-reminder-summary__label-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.crm-reminder-summary__value {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  max-width: 60%;
+}
+
+.crm-reminder-summary__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.crm-reminder-summary__chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  white-space: nowrap;
+}
+
+.crm-reminder-summary__chip--accent {
+  border-color: rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.12);
+  color: var(--taxi-text, #fff);
+}
+
+.crm-reminder-summary__chip--more {
+  border-style: dashed;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.crm-reminder-summary__empty {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 480px) {
+  .crm-reminder-summary__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .crm-reminder-summary__value {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+  .crm-reminder-summary__chips {
+    justify-content: flex-start;
+  }
 }
 
 .crm-auth-screen {

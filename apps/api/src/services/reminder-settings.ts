@@ -4,7 +4,6 @@ const DEFAULTS = {
   insuranceDaysBefore: "14,7,3",
   inspectionDaysBefore: "7,3,1",
   documentDaysBefore: "14,7,3",
-  maintenanceDaysBefore: "7,3,1",
   weeklyMileageEnabled: true,
   weeklyMileageWeekday: 1,
 };
