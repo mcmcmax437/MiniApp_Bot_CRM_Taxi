@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AgreementStatus,
@@ -40,7 +40,6 @@ import { Documents } from "../components/Documents";
 import { AppHeader, Icon } from "../components/crm";
 import { DriverCard, DriversEmptyState } from "../components/DriverCard";
 import { DriverBalanceBreakdownModal } from "../components/DriverBalanceBreakdownModal";
-import { GiveDiscountModal } from "../components/GiveDiscountModal";
 import { SwipeToDelete } from "../components/SwipeToDelete";
 import { useReadOnly } from "../readOnly";
 import { confirmAction, showAlert } from "../telegram";
@@ -125,6 +124,7 @@ function tripsThisMonthByDriver(shifts: { driverId: string; date: string }[] | u
 export function DriversPage() {
   const { t } = useTranslation();
   const readOnly = useReadOnly();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const drivers = useDrivers();
   const cars = useCars();
@@ -144,7 +144,6 @@ export function DriversPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Set<DriverFormField>>(new Set());
   const [balanceModal, setBalanceModal] = useState<{ driverId: string; driverName: string } | null>(null);
-  const [discountModal, setDiscountModal] = useState<{ driverId: string; driverName: string } | null>(null);
   const modalRef = useRef<ModalHandle>(null);
 
   const detail = useDriver(open && editId ? editId : undefined);
@@ -645,26 +644,22 @@ export function DriversPage() {
         driverName={balanceModal?.driverName ?? ""}
         onClose={() => setBalanceModal(null)}
         onGiveDiscount={
+          // Discounts are no longer a separate modal — they're entered
+          // inline on a RENT payment in the Finance tab. Sending the
+          // owner to Finance → Add payment with this driver preselected
+          // (and the active car, when there is one) gets them to the
+          // discount field in a single tap.
           !readOnly && balanceModal
             ? () => {
-                setDiscountModal(balanceModal);
+                const params = new URLSearchParams({
+                  addPayment: "1",
+                  driverId: balanceModal.driverId,
+                });
+                navigate(`/finance?${params.toString()}`);
                 setBalanceModal(null);
               }
             : undefined
         }
-      />
-
-      <GiveDiscountModal
-        open={discountModal != null}
-        driverId={discountModal?.driverId ?? ""}
-        driverName={discountModal?.driverName ?? ""}
-        cars={cars.data ?? []}
-        agreements={allAgreements.data ?? []}
-        readOnly={readOnly}
-        onClose={() => setDiscountModal(null)}
-        onSaved={() => {
-          // The mutation's onSuccess already invalidates payments/balances.
-        }}
       />
     </div>
   );

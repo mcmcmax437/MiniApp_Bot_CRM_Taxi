@@ -85,7 +85,19 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
     if (!p.driverId) continue;
     if (p.type === "RENT") {
       rentPaidByDriver.set(p.driverId, (rentPaidByDriver.get(p.driverId) ?? 0) + p.amount);
+      // Discounts recorded inline on the rent payment row (e.g. the
+      // driver paid 400 of a 700 rent because the car was inactive for
+      // two days — discountAmount = 300). Counts as a credit toward
+      // the driver's balance, same as a separate DISCOUNT-type row.
+      if (p.discountAmount && p.discountAmount > 0) {
+        discountByDriver.set(
+          p.driverId,
+          (discountByDriver.get(p.driverId) ?? 0) + p.discountAmount,
+        );
+      }
     } else if (p.type === "DISCOUNT") {
+      // Legacy DISCOUNT-type rows are still honoured for backwards
+      // compatibility — old entries predate the inline discount field.
       discountByDriver.set(p.driverId, (discountByDriver.get(p.driverId) ?? 0) + p.amount);
     }
   }

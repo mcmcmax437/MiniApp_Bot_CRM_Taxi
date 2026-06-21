@@ -159,7 +159,22 @@ export function buildDriverBalanceBreakdown(args: {
     if (p.type === "RENT") {
       rentPayments.push(line);
       rentPaid += p.amount;
+      // Inline discount on a RENT payment (preferred flow). Each rent
+      // payment can carry its own `discountAmount` so the owner only
+      // enters one record per cash event — the discounted amount they
+      // actually received and the credit they applied to the driver.
+      if (p.discountAmount && p.discountAmount > 0) {
+        discountPayments.push({
+          ...line,
+          // The amount shown in the discounts list is the discount,
+          // not the rent paid.
+          amount: p.discountAmount,
+        });
+        discounts += p.discountAmount;
+      }
     } else if (p.type === "DISCOUNT") {
+      // Legacy DISCOUNT-type rows are still rendered for backwards
+      // compatibility — older payments predate the inline field.
       discountPayments.push(line);
       discounts += p.amount;
     } else if (p.type === "DEPOSIT") {

@@ -361,6 +361,13 @@ export const paymentCreateSchema = z.object({
   driverId: z.string().cuid().optional().nullable(),
   carId: z.string().cuid().optional().nullable(),
   amount: money,
+  // Optional one-off discount applied to this payment. Recorded on the
+  // same Payment row so the owner only creates one entry per cash event
+  // (e.g. rent was 700, the car was inactive for two days, the driver
+  // paid 400, and the discount is 300). Default 0 means "no discount";
+  // legacy DISCOUNT-type payments are still honoured by the balance
+  // calculation for backwards compatibility.
+  discountAmount: money.optional().default(0),
   date: isoDate,
   method: z.nativeEnum(PaymentMethod).default(PaymentMethod.BANK),
   type: z.nativeEnum(PaymentType).default(PaymentType.RENT),

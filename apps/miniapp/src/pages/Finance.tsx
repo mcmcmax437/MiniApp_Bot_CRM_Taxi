@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { PAYMENT_METHODS, PaymentMethod, PaymentType, ExpenseCategory } from "@taxi/shared";
 import {
   usePayments,
@@ -116,6 +117,14 @@ function PaymentsTab() {
   const del = useDeletePayment();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  // The driver breakdown modal's "give a discount" CTA jumps here with
+  // ?addPayment=1&driverId=… so we can drop the owner straight into the
+  // add-payment flow with the driver (and the active car, when there is
+  // one) already chosen. Read the params once on mount and let the
+  // existing openCreate() handle the rest.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const presetDriverId = searchParams.get("driverId") ?? "";
+  const wantsAddPayment = searchParams.get("addPayment") === "1";
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [periodOpen, setPeriodOpen] = useState(false);
@@ -123,7 +132,7 @@ function PaymentsTab() {
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<PaymentType | "ALL">("ALL");
-  const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean; discount?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
     subtitle?: string;
@@ -135,6 +144,13 @@ function PaymentsTab() {
     driverId: string;
     carId: string;
     amount: number | "";
+    // Inline discount applied to this payment (e.g. rent was 700, the
+    // car was inactive for two days, the driver paid 400, and the
+    // discount is 300). Empty string means "no discount on this
+    // payment". The same field is sent as `discountAmount` to the API
+    // and is honoured by the balance calculation alongside the legacy
+    // DISCOUNT-type rows.
+    discount: number | "";
     date: string;
     method: PaymentMethod;
     type: PaymentType;
@@ -145,6 +161,7 @@ function PaymentsTab() {
     driverId: "",
     carId: "",
     amount: "",
+    discount: "",
     date: todayInput(),
     method: PaymentMethod.BANK,
     type: PaymentType.RENT,
@@ -153,12 +170,58 @@ function PaymentsTab() {
     partnerSettled: false,
   });
 
-  // Discounts are tracked as Payment rows with type=DISCOUNT so the balance
-  // calculation picks them up, but they are NOT income and shouldn't be
-  // mixed into the payments list. Use `all` for the list and `allIncludingDiscounts`
-  // only when the caller explicitly needs the raw data.
+  // Discounts used to live as their own Payment rows with type=DISCOUNT
+  // (managed through GiveDiscountModal). That flow is deprecated — the
+  // owner now records a discount inline on the same RENT payment. Legacy
+  // DISCOUNT-type rows still appear in the raw list for backwards
+  // compatibility, but are excluded from the visible payments tab because
+  // they are not income. New discounts ride along on their RENT row and
+  // are visible there instead.
   const allIncludingDiscounts = payments.data ?? [];
   const all = allIncludingDiscounts.filter((p) => p.type !== PaymentType.DISCOUNT);
+
+  // Auto-open the add-payment modal when arriving from the driver
+  // breakdown's "give a discount" CTA. Preselect the driver (and the
+  // active car, when there is one) so the discount field is the only
+  // thing left to fill in.
+  useEffect(() => {
+    if (!wantsAddPayment || readOnly) return;
+    if (open) return;
+    setEditId(null);
+    setFieldErrors({});
+    const { suggestedCarId } = rankCarsForDriver(
+      presetDriverId,
+      agreements.data ?? [],
+      (cars.data ?? []).map((c) => c.id),
+    );
+    setForm({
+      driverId: presetDriverId,
+      carId: suggestedCarId ?? "",
+      amount: "",
+      discount: "",
+      date: todayInput(),
+      method: PaymentMethod.BANK,
+      type: PaymentType.RENT,
+      note: "",
+      receivedByPartner: false,
+      partnerSettled: false,
+    });
+    setOpen(true);
+    // Strip the query params so a page refresh doesn't reopen the modal.
+    const next = new URLSearchParams(searchParams);
+    next.delete("addPayment");
+    next.delete("driverId");
+    setSearchParams(next, { replace: true });
+  }, [
+    wantsAddPayment,
+    presetDriverId,
+    readOnly,
+    open,
+    agreements.data,
+    cars.data,
+    searchParams,
+    setSearchParams,
+  ]);
   const totalPaid = all.reduce((s, p) => s + p.amount, 0);
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
   const monthItems = all.filter((p) => financeInPeriod(p.date, "month"));
@@ -185,6 +248,7 @@ function PaymentsTab() {
       driverId: "",
       carId: "",
       amount: "",
+      discount: "",
       date: todayInput(),
       method: PaymentMethod.BANK,
       type: PaymentType.RENT,
@@ -195,7 +259,7 @@ function PaymentsTab() {
     setOpen(true);
   }
 
-  function openEdit(p: (typeof all)[number]) {
+  function openEdit(p: (typeof allIncludingDiscounts)[number]) {
     setEditId(p.id);
     setFieldErrors({});
     // Legacy payments may have types the form no longer offers (REFUND,
@@ -209,6 +273,17 @@ function PaymentsTab() {
       driverId: p.driverId ?? "",
       carId: p.carId ?? "",
       amount: p.amount,
+      // Legacy DISCOUNT-type rows used to carry the credit as `amount`
+      // (the "discount amount"). Convert it into the inline discount
+      // field so opening one of those old rows still shows the credit
+      // the owner applied — they can then change the type and the form
+      // will save it as a normal RENT with discountAmount.
+      discount:
+        p.type === PaymentType.DISCOUNT
+          ? p.amount
+          : p.discountAmount && p.discountAmount > 0
+            ? p.discountAmount
+            : "",
       date: p.date.slice(0, 10),
       method: p.method === PaymentMethod.CASH ? PaymentMethod.CASH : PaymentMethod.BANK,
       type: editableType,
@@ -224,9 +299,13 @@ function PaymentsTab() {
       amount: form.amount === "",
       date: !form.date.trim(),
       method: !form.method,
+      // The discount is optional. We only flag it as invalid if the
+      // owner typed a value that isn't a non-negative number (a
+      // negative discount doesn't make sense — the API clamps to >= 0).
+      discount: form.discount !== "" && (typeof form.discount !== "number" || form.discount < 0),
     };
     setFieldErrors(errors);
-    if (errors.amount || errors.date || errors.method) return;
+    if (errors.amount || errors.date || errors.method || errors.discount) return;
     save.mutate(
       {
         id: editId ?? undefined,
@@ -234,6 +313,9 @@ function PaymentsTab() {
           driverId: form.driverId || null,
           carId: form.carId || null,
           amount: form.amount,
+          // Empty discount → 0 (no credit applied). The API clamps to
+          // >= 0 so a stray negative number never makes it to the DB.
+          discountAmount: form.discount === "" ? 0 : form.discount,
           date: form.date,
           method: form.method,
           type: form.type,
@@ -855,6 +937,7 @@ function PaymentModal(props: {
     driverId: string;
     carId: string;
     amount: number | "";
+    discount: number | "";
     date: string;
     method: PaymentMethod;
     type: PaymentType;
@@ -863,14 +946,14 @@ function PaymentModal(props: {
     partnerSettled: boolean;
   };
   setForm: (f: typeof props.form) => void;
-  fieldErrors: { amount?: boolean; date?: boolean; method?: boolean };
+  fieldErrors: { amount?: boolean; date?: boolean; method?: boolean; discount?: boolean };
   drivers: { id: string; fullName: string }[];
   cars: { id: string; plate: string }[];
   agreements: Agreement[];
   saving: boolean;
   onClose: () => void;
   onSave: () => void;
-  onFieldErrorClear?: (key: "amount" | "date" | "method") => void;
+  onFieldErrorClear?: (key: "amount" | "date" | "method" | "discount") => void;
   onDelete?: () => void;
 }) {
   const { t } = useTranslation();
@@ -1006,6 +1089,51 @@ function PaymentModal(props: {
           }}
         />
       </Field>
+      {form.type === PaymentType.RENT ? (
+        <Field
+          label={t("finance.discount")}
+          hint={t("finance.discountHint")}
+          invalid={fieldErrors.discount}
+          errorMessage={
+            fieldErrors.discount ? t("finance.discountInvalid") : undefined
+          }
+        >
+          <MoneyNumberInput
+            value={form.discount}
+            invalid={fieldErrors.discount}
+            onChange={(v) => {
+              // Clamp negatives at the input layer so the preview never
+              // shows a "negative discount" (which would actually
+              // *increase* the driver's balance via the formula).
+              const clamped = typeof v === "number" && v < 0 ? 0 : v;
+              setForm({ ...form, discount: clamped });
+              props.onFieldErrorClear?.("discount");
+            }}
+            placeholder="0"
+          />
+        </Field>
+      ) : null}
+      {form.type === PaymentType.RENT &&
+      form.amount !== "" &&
+      form.discount !== "" &&
+      form.discount > 0 ? (
+        <div className="crm-discount-preview">
+          <div className="crm-discount-preview__row">
+            <span>{t("finance.fullRent")}</span>
+            <strong>{formatMoney(form.amount + form.discount)}</strong>
+          </div>
+          <div className="crm-discount-preview__row">
+            <span>{t("finance.discount")}</span>
+            <strong className="crm-discount-preview__discount">
+              −{formatMoney(form.discount)}
+            </strong>
+          </div>
+          <div className="crm-discount-preview__row crm-discount-preview__row--total">
+            <span>{t("finance.amountPaid")}</span>
+            <strong>{formatMoney(form.amount)}</strong>
+          </div>
+        </div>
+      ) : null}
       <Field
         label={t("finance.date")}
         invalid={fieldErrors.date}
@@ -1028,8 +1156,9 @@ function PaymentModal(props: {
           // receives from a driver (RENT) or holds on their behalf as a
           // refundable deposit (DEPOSIT). Refunds are issued via the
           // dashboard's deposit controls, fines live in the dedicated Fines
-          // module, and discounts are recorded through GiveDiscountModal —
-          // each has its own UI and shouldn't be selectable here.
+          // module, and discounts are now recorded inline on a RENT payment
+          // (see the Discount field above) — they don't need their own
+          // payment-type entry.
           options={[
             { value: PaymentType.RENT, label: t(`finance.${PaymentType.RENT}`) },
             { value: PaymentType.DEPOSIT, label: t(`finance.${PaymentType.DEPOSIT}`) },

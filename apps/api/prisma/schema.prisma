@@ -352,6 +352,14 @@ model Payment {
   carId          String?
   car            Car?          @relation(fields: [carId], references: [id], onDelete: SetNull)
   amount         Float
+  // Optional one-off discount that the owner applied to this payment
+  // (e.g. the car was inactive for two days this week, so the rent of
+  // 700 was reduced by 300 and the driver paid 400). Stored on the
+  // Payment row instead of as a separate DISCOUNT-type entry so the
+  // owner only enters one record per cash event. Default 0 means "no
+  // discount on this payment"; legacy DISCOUNT-type rows are still
+  // honoured by the balance calculation for backwards compatibility.
+  discountAmount Float         @default(0)
   date           DateTime
   method         PaymentMethod @default(CASH)
   type           PaymentType   @default(RENT)

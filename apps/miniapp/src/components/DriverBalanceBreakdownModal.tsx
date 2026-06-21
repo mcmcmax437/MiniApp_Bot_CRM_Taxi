@@ -125,6 +125,11 @@ export function DriverBalanceBreakdownModal(props: {
           </div>
 
           {props.onGiveDiscount ? (
+            // The "give a discount" CTA used to launch the standalone
+            // GiveDiscountModal. Discounts now live inline on the rent
+            // payment form (one record per cash event), so this button
+            // takes the user straight to the Finance → Add payment
+            // flow, pre-filled with the driver and the active car.
             <button
               type="button"
               className="crm-btn-outline crm-discount-cta"

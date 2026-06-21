@@ -116,10 +116,16 @@ export function Field(props: {
   children: React.ReactNode;
   invalid?: boolean;
   errorMessage?: string;
+  // Optional helper text shown below the label and above the input.
+  // Used for fields where the meaning isn't obvious from the label
+  // alone — e.g. the new inline discount on the payment form, where
+  // we want to clarify "what should I put here?".
+  hint?: string;
 }) {
   return (
     <label className={`form-stack${props.invalid ? " crm-field--error" : ""}`}>
       <span className="crm-field-label">{props.label}</span>
+      {props.hint ? <span className="crm-field-hint">{props.hint}</span> : null}
       {props.children}
       {props.invalid && props.errorMessage ? (
         <span className="crm-field-error">{props.errorMessage}</span>

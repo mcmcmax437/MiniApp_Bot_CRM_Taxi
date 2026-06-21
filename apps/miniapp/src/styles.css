@@ -5234,8 +5234,12 @@ select.crm-input option {
 
 .crm-discount-preview {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  /* Children are `.crm-discount-preview__row` items that already have
+     `display: flex`, so the parent stacks them vertically. */
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 4px;
   padding: 10px 14px;
   border-radius: 10px;
   background: rgba(105, 240, 174, 0.08);
@@ -5248,6 +5252,40 @@ select.crm-input option {
 .crm-discount-preview strong {
   color: #69f0ae;
   font-variant-numeric: tabular-nums;
+}
+
+/* When the discount is recorded inline on the payment form we render
+   three rows: full rent (with the discount re-added), the discount
+   itself as a deduction, and the actual amount the owner received.
+   Each row stacks on its own line, so the original flex layout needs
+   to become a vertical flex container. */
+.crm-discount-preview__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 2px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.crm-discount-preview__row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.crm-discount-preview__row--total {
+  border-top: 1px solid rgba(105, 240, 174, 0.25);
+  margin-top: 4px;
+  padding-top: 6px;
+  font-size: 14px;
+}
+
+.crm-discount-preview__row--total strong {
+  color: #69f0ae;
+}
+
+.crm-discount-preview__discount {
+  color: #ff8a80 !important;
 }
 
 .crm-discount-cta {

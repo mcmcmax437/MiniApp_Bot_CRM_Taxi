@@ -59,6 +59,11 @@ export function paymentDisplaySubtitle(
     driver?: { fullName: string } | null;
     car?: { plate: string } | null;
     method: string;
+    // Optional inline discount recorded on the same RENT payment. Shown
+    // as a separate segment so the user can see at a glance that the
+    // rent was reduced (e.g. "−300 zł discount" between the plate and
+    // the payment type).
+    discountAmount?: number;
   },
   dateLabel: string,
   t: Translate,
@@ -66,9 +71,16 @@ export function paymentDisplaySubtitle(
 ): string {
   const hasNote = Boolean(payment.note?.trim());
   const plate = payment.car?.plate ?? noneLabel;
+  const discountTag =
+    payment.discountAmount && payment.discountAmount > 0
+      ? t("finance.discountTag", {
+          value: payment.discountAmount.toLocaleString(),
+        })
+      : null;
   return [
     dateLabel,
     plate,
+    discountTag,
     hasNote && payment.driver?.fullName ? payment.driver.fullName : null,
     t(`finance.${payment.type}`),
     t(`finance.${payment.method}`),

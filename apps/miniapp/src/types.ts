@@ -159,6 +159,11 @@ export interface Payment {
   driverId: string | null;
   carId: string | null;
   amount: number;
+  // Optional one-off discount applied to this payment (see Payment.discountAmount
+  // in the Prisma schema). Default 0 on the server; legacy DISCOUNT-type rows
+  // continue to carry their discount via the dedicated `type = DISCOUNT`
+  // semantics so the balance breakdown can render both kinds.
+  discountAmount: number;
   date: string;
   method: PaymentMethod;
   type: PaymentType;
