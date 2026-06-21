@@ -1,6 +1,12 @@
 import type { ExpenseCategory, PaymentType } from "@taxi/shared";
 
-type Translate = (key: string) => string;
+// i18next's `t` can be called with a single key (e.g. `t("finance.RENT")`)
+// or with a key plus an interpolation object (e.g. `t("finance.discountTag", {
+// value: 300 })`). The narrow `(key) => string` signature is convenient
+// inside these pure label helpers because they don't pull in i18next as a
+// dependency, but it has to allow the second argument so the helpers
+// remain type-safe when callers want to interpolate.
+type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 export function expenseDisplayTitle(
   expense: {
