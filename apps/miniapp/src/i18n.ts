@@ -134,6 +134,9 @@ const en = {
     chartEmpty: "No fleet data yet — add a car to see how it's performing.",
     chartRowOpen: "Open {{label}} details",
     carChartEmpty: "No income or expenses recorded for this car yet.",
+    carChartPeriodLabel: "Chart period",
+    carChartPeriod12m: "Last 12 months",
+    carChartPeriodAll: "All time",
     entries: "{{count}} entries",
   },
   cars: {
@@ -223,7 +226,7 @@ const en = {
     MAINTENANCE: "Maintenance",
     INACTIVE: "Inactive",
     financeChartTitle: "Monthly finance",
-    financeChartSubtitle: "Income, expenses and profit per month for the last 12 months.",
+    financeChartSubtitle: "Income, expenses and profit per month for this car.",
     placeholder: {
       plate: "AA1234BB",
       vin: "1HGCM82633A123456",
@@ -819,6 +822,9 @@ const uk: Resources = {
     chartEmpty: "Ще немає даних по автопарку — додайте авто, щоб побачити, як воно працює.",
     chartRowOpen: "Відкрити деталі {{label}}",
     carChartEmpty: "Для цього авто ще не зафіксовано доходів чи витрат.",
+    carChartPeriodLabel: "Період графіка",
+    carChartPeriod12m: "Останні 12 місяців",
+    carChartPeriodAll: "Весь час",
     entries: "{{count}} записів",
   },
   cars: {
@@ -908,7 +914,7 @@ const uk: Resources = {
     MAINTENANCE: "Обслуговування",
     INACTIVE: "Неактивне",
     financeChartTitle: "Фінанси по місяцях",
-    financeChartSubtitle: "Дохід, витрати та прибуток по місяцях за останні 12 місяців.",
+    financeChartSubtitle: "Дохід, витрати та прибуток по місяцях для цього авто.",
     placeholder: {
       plate: "AA1234BB",
       vin: "1HGCM82633A123456",
@@ -1502,6 +1508,9 @@ const ru: Resources = {
     chartEmpty: "Пока нет данных по автопарку — добавьте авто, чтобы увидеть, как оно работает.",
     chartRowOpen: "Открыть детали {{label}}",
     carChartEmpty: "Для этого авто ещё нет доходов или расходов.",
+    carChartPeriodLabel: "Период графика",
+    carChartPeriod12m: "Последние 12 месяцев",
+    carChartPeriodAll: "Всё время",
     entries: "{{count}} записей",
   },
   cars: {
@@ -1591,7 +1600,7 @@ const ru: Resources = {
     MAINTENANCE: "Обслуживание",
     INACTIVE: "Неактивно",
     financeChartTitle: "Финансы по месяцам",
-    financeChartSubtitle: "Доход, расходы и прибыль по месяцам за последние 12 месяцев.",
+    financeChartSubtitle: "Доход, расходы и прибыль по месяцам для этого авто.",
     placeholder: {
       plate: "AA1234BB",
       vin: "1HGCM82633A123456",
