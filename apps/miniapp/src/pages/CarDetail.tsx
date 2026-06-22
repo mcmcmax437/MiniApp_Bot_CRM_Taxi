@@ -1,13 +1,14 @@
-import { useLayoutEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
 import { useCar, useReminders } from "../hooks";
-import { AppHeader, Icon, IconActionButton } from "../components/crm";
+import { AppHeader, Icon, IconActionButton, SectionCard } from "../components/crm";
 import { CopyOnDoubleTap } from "../components/ui";
 import { carNeedsAttention } from "../components/carAttention";
 import { CarAttentionMark } from "../components/CarAttentionMark";
 import { CarDetailHeroGallery } from "../components/CarDetailHeroGallery";
+import { CarFinanceChart } from "../components/CarFinanceChart";
 import { CarOverviewPanel } from "../components/CarOverviewPanel";
 import { CarPhotosSection } from "../components/CarPhotosSection";
 import { CarDocumentsSection } from "../components/CarDocumentsSection";
@@ -31,6 +32,13 @@ export function CarDetailPage() {
   const readOnly = useReadOnly();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The dashboard chart sets `?finance=1` to tell us the user came from the
+  // "Fleet at a glance" chart and wants the per-car monthly view front and
+  // centre. We honour it by default-opening the finance section and scrolling
+  // to it once the section has rendered.
+  const fromFinanceChart = searchParams.get("finance") === "1";
+  const financeSectionRef = useRef<HTMLDivElement | null>(null);
   const carQuery = useCar(id);
   const reminders = useReminders();
   const [editOpen, setEditOpen] = useState(false);
@@ -53,6 +61,23 @@ export function CarDetailPage() {
       document.body.scrollTop = 0;
     }
   }, [id, carQuery.isLoading, car?.id]);
+
+  // When the dashboard chart opens this page with `?finance=1`, wait for
+  // the car to load, then scroll the finance section into view. We also
+  // clear the query param so a manual reload doesn't re-trigger the scroll.
+  useEffect(() => {
+    if (!fromFinanceChart) return;
+    if (carQuery.isLoading || !car) return;
+    const node = financeSectionRef.current;
+    if (!node) return;
+    node.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (searchParams.has("finance")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("finance");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromFinanceChart, carQuery.isLoading, car?.id]);
   const subtitle = car ? [car.make, car.model, car.year].filter(Boolean).join(" ") : "";
   const needsAttention = useMemo(
     () => (car ? carNeedsAttention(car.id, reminders.data) : false),
@@ -151,6 +176,21 @@ export function CarDetailPage() {
       </div>
 
       <CarOverviewPanel car={car} readOnly={readOnly} onEditTires={() => setTiresOpen(true)} />
+
+      <div ref={financeSectionRef}>
+        <SectionCard
+          storageKey="car-finance-chart"
+          // When arriving from the dashboard chart we want the section
+          // to be open by default so the user sees what they came for.
+          // Otherwise we keep it closed so the page doesn't feel noisy.
+          defaultOpen={fromFinanceChart}
+          title={t("cars.financeChartTitle")}
+          subtitle={t("cars.financeChartSubtitle")}
+          icon={<Icon name="chart-increase" size={24} color="var(--taxi-accent)" />}
+        >
+          <CarFinanceChart carId={car.id} />
+        </SectionCard>
+      </div>
 
       <CarTrackingSections car={car} readOnly={readOnly} onUpdated={refresh} />
 

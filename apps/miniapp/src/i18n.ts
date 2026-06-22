@@ -132,6 +132,9 @@ const en = {
     chartTitle: "Fleet at a glance",
     chartSubtitle: "Income vs expenses for each car in the selected period.",
     chartEmpty: "No fleet data yet — add a car to see how it's performing.",
+    chartRowOpen: "Open {{label}} details",
+    carChartEmpty: "No income or expenses recorded for this car yet.",
+    entries: "{{count}} entries",
   },
   cars: {
     title: "Cars",
@@ -219,6 +222,8 @@ const en = {
     RENTED: "Rented",
     MAINTENANCE: "Maintenance",
     INACTIVE: "Inactive",
+    financeChartTitle: "Monthly finance",
+    financeChartSubtitle: "Income, expenses and profit per month for the last 12 months.",
     placeholder: {
       plate: "AA1234BB",
       vin: "1HGCM82633A123456",
@@ -812,6 +817,9 @@ const uk: Resources = {
     chartTitle: "Автопарк очима",
     chartSubtitle: "Дохід проти витрат для кожного авто за обраний період.",
     chartEmpty: "Ще немає даних по автопарку — додайте авто, щоб побачити, як воно працює.",
+    chartRowOpen: "Відкрити деталі {{label}}",
+    carChartEmpty: "Для цього авто ще не зафіксовано доходів чи витрат.",
+    entries: "{{count}} записів",
   },
   cars: {
     title: "Авто",
@@ -899,6 +907,8 @@ const uk: Resources = {
     RENTED: "В оренді",
     MAINTENANCE: "Обслуговування",
     INACTIVE: "Неактивне",
+    financeChartTitle: "Фінанси по місяцях",
+    financeChartSubtitle: "Дохід, витрати та прибуток по місяцях за останні 12 місяців.",
     placeholder: {
       plate: "AA1234BB",
       vin: "1HGCM82633A123456",
@@ -1490,6 +1500,9 @@ const ru: Resources = {
     chartTitle: "Автопарк наглядно",
     chartSubtitle: "Доход против расходов для каждого авто за выбранный период.",
     chartEmpty: "Пока нет данных по автопарку — добавьте авто, чтобы увидеть, как оно работает.",
+    chartRowOpen: "Открыть детали {{label}}",
+    carChartEmpty: "Для этого авто ещё нет доходов или расходов.",
+    entries: "{{count}} записей",
   },
   cars: {
     title: "Авто",
@@ -1577,6 +1590,8 @@ const ru: Resources = {
     RENTED: "В аренде",
     MAINTENANCE: "Обслуживание",
     INACTIVE: "Неактивно",
+    financeChartTitle: "Финансы по месяцам",
+    financeChartSubtitle: "Доход, расходы и прибыль по месяцам за последние 12 месяцев.",
     placeholder: {
       plate: "AA1234BB",
       vin: "1HGCM82633A123456",

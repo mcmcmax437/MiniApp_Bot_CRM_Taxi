@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { formatMoney } from "../ui";
 import { Icon } from "../crm";
 import type { ReportSummary } from "@taxi/shared";
@@ -14,9 +15,15 @@ import type { ReportSummary } from "@taxi/shared";
  *   - The data is small (one bar pair per car) so DOM rendering is cheap.
  *   - Numbers live in the `byCar` rows on the report summary we already
  *     pull, so no new API call is needed.
+ *
+ * Each row is a clickable button that navigates to the car detail page
+ * with `?finance=1`. That flag tells the detail page to auto-open the
+ * monthly finance chart section, so the user lands directly on the data
+ * they came from the dashboard to see.
  */
 export function StatsChart(props: { rows: ReportSummary["byCar"] }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const rows = props.rows;
 
   if (!rows.length) {
@@ -46,35 +53,49 @@ export function StatsChart(props: { rows: ReportSummary["byCar"] }) {
           row.profit > 0 ? "profit" : row.profit < 0 ? "loss" : "neutral";
         return (
           <li key={row.carId} className={`crm-stats-chart__row crm-stats-chart__row--${tone}`}>
-            <div className="crm-stats-chart__label">{row.label}</div>
-            <div className="crm-stats-chart__bars">
-              <div className="crm-stats-chart__line">
-                <span className="crm-stats-chart__caption">{t("dashboard.income")}</span>
-                <div className="crm-stats-chart__bar crm-stats-chart__bar--income">
-                  <div
-                    className="crm-stats-chart__bar-fill"
-                    style={{ width: `${incomeWidth}%` }}
-                  />
+            <button
+              type="button"
+              className="crm-stats-chart__row-button"
+              onClick={() => navigate(`/cars/${row.carId}?finance=1`)}
+              aria-label={t("dashboard.chartRowOpen", { label: row.label })}
+            >
+              <div className="crm-stats-chart__label">
+                <span>{row.label}</span>
+                <Icon
+                  name="arrow-right-01"
+                  size={14}
+                  color="rgba(255,255,255,0.45)"
+                />
+              </div>
+              <div className="crm-stats-chart__bars">
+                <div className="crm-stats-chart__line">
+                  <span className="crm-stats-chart__caption">{t("dashboard.income")}</span>
+                  <div className="crm-stats-chart__bar crm-stats-chart__bar--income">
+                    <div
+                      className="crm-stats-chart__bar-fill"
+                      style={{ width: `${incomeWidth}%` }}
+                    />
+                  </div>
+                  <span className="crm-stats-chart__value">{formatMoney(row.income)}</span>
                 </div>
-                <span className="crm-stats-chart__value">{formatMoney(row.income)}</span>
-              </div>
-              <div className="crm-stats-chart__line">
-                <span className="crm-stats-chart__caption">{t("dashboard.expenses")}</span>
-                <div className="crm-stats-chart__bar crm-stats-chart__bar--expense">
-                  <div
-                    className="crm-stats-chart__bar-fill"
-                    style={{ width: `${expenseWidth}%` }}
-                  />
+                <div className="crm-stats-chart__line">
+                  <span className="crm-stats-chart__caption">{t("dashboard.expenses")}</span>
+                  <div className="crm-stats-chart__bar crm-stats-chart__bar--expense">
+                    <div
+                      className="crm-stats-chart__bar-fill"
+                      style={{ width: `${expenseWidth}%` }}
+                    />
+                  </div>
+                  <span className="crm-stats-chart__value">{formatMoney(row.expenses)}</span>
                 </div>
-                <span className="crm-stats-chart__value">{formatMoney(row.expenses)}</span>
+                <div className="crm-stats-chart__profit">
+                  {t("dashboard.profit")}:{" "}
+                  <strong className={`crm-stats-chart__profit-value crm-stats-chart__profit-value--${tone}`}>
+                    {formatMoney(row.profit)}
+                  </strong>
+                </div>
               </div>
-              <div className="crm-stats-chart__profit">
-                {t("dashboard.profit")}:{" "}
-                <strong className={`crm-stats-chart__profit-value crm-stats-chart__profit-value--${tone}`}>
-                  {formatMoney(row.profit)}
-                </strong>
-              </div>
-            </div>
+            </button>
           </li>
         );
       })}

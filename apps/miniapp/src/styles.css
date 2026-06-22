@@ -273,6 +273,36 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* The row itself is just a <li> shell — the actual interactive surface
+   is the inner button so that the whole chart row is one big tap target
+   that navigates to the car detail page. We strip default button styling
+   and inherit color so the button blends in with the row. */
+.crm-stats-chart__row-button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.15s ease;
+}
+
+.crm-stats-chart__row-button:hover {
+  transform: translateX(2px);
+}
+
+.crm-stats-chart__row-button:focus-visible {
+  outline: 2px solid var(--taxi-accent, #ffc107);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
 .crm-stats-chart__row--profit {
   border-color: rgba(105, 240, 174, 0.2);
 }
@@ -282,11 +312,21 @@ body {
 }
 
 .crm-stats-chart__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
   color: #fff;
   line-height: 1.25;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-stats-chart__label > span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -373,6 +413,109 @@ body {
   gap: 8px;
   padding: 24px 16px;
   text-align: center;
+}
+
+/* Per-car monthly chart — sits inside a SectionCard body on the car
+   detail page. Reuses the .crm-stats-chart primitives above but adds
+   a totals row at the top and a non-interactive month layout (no
+   row-button — there's no further drill-down from here). */
+.crm-car-finance-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crm-car-finance-chart__totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.crm-car-finance-chart__total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.crm-car-finance-chart__total-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--taxi-text-muted);
+}
+
+.crm-car-finance-chart__total-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.crm-car-finance-chart__total--income {
+  border-color: rgba(105, 240, 174, 0.2);
+}
+
+.crm-car-finance-chart__total--income .crm-car-finance-chart__total-value {
+  color: var(--taxi-income, #69f0ae);
+}
+
+.crm-car-finance-chart__total--expense {
+  border-color: rgba(255, 138, 128, 0.2);
+}
+
+.crm-car-finance-chart__total--expense .crm-car-finance-chart__total-value {
+  color: var(--taxi-expense, #ff5252);
+}
+
+.crm-car-finance-chart__total--profit {
+  border-color: rgba(105, 240, 174, 0.25);
+}
+
+.crm-car-finance-chart__total--profit .crm-car-finance-chart__total-value {
+  color: var(--taxi-income, #69f0ae);
+}
+
+.crm-car-finance-chart__total--loss {
+  border-color: rgba(255, 138, 128, 0.25);
+}
+
+.crm-car-finance-chart__total--loss .crm-car-finance-chart__total-value {
+  color: var(--taxi-expense, #ff5252);
+}
+
+.crm-car-finance-chart__months {
+  /* The monthly chart can grow tall (12 months) so we let it scroll
+     inside the section rather than push the rest of the page off. */
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.crm-car-finance-chart__month {
+  /* Override the row hover-translate from .crm-stats-chart__row-button
+     since these rows aren't clickable. Keep the same chrome though. */
+  cursor: default;
+}
+
+.crm-car-finance-chart__month-label {
+  /* The month label carries the date on the left and the entry count
+     on the right, so it stays two-column at all widths. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.crm-car-finance-chart__month-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--taxi-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 640px) {
