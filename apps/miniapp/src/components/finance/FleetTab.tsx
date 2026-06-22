@@ -278,6 +278,11 @@ export function FleetTab() {
                     {agreement.driver?.fullName ?? "—"} · {t("fleet.since")}{" "}
                     {formatDate(agreement.startDate)}
                   </p>
+                  {agreement.endDate ? (
+                    <p className="crm-fleet-card__meta crm-fleet-card__meta--end">
+                      {t("fleet.endsOn", { date: formatDate(agreement.endDate) })}
+                    </p>
+                  ) : null}
                   <span className="crm-fleet-card__history-link">
                     {t("fleet.viewDriverHistory")}
                     <Icon name="arrow-right-01" size={14} color="rgba(255,255,255,0.45)" />

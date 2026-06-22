@@ -5,6 +5,7 @@ import { useReadOnly } from "../readOnly";
 import { AppHeader, Icon } from "../components/crm";
 import { OwnerCard, OwnersAddSection } from "../components/OwnerCard";
 import { FleetMembersCard } from "../components/FleetMembersCard";
+import { ImportSection } from "../components/ImportSection";
 import { Modal } from "../components/ui";
 
 export function AdminPage(props: { isSuperAdmin: boolean }) {
@@ -21,21 +22,21 @@ export function AdminPage(props: { isSuperAdmin: boolean }) {
         <AppHeader title={t("dashboard.appName")} subtitle={t("dashboard.appSubtitle")} />
       </div>
 
-      {!readOnly ? <FleetMembersCard /> : null}
+      <div className="crm-page-head">
+        <div className="crm-page-head__titles">
+          <h2 className="crm-page-head__title">{t("admin.title")}</h2>
+          <p className="crm-page-head__subtitle">{t("admin.pageSubtitle")}</p>
+        </div>
+        {props.isSuperAdmin ? (
+          <button type="button" className="crm-btn-primary" onClick={() => setAddOpen(true)}>
+            <Icon name="add-01" size={18} color="#fff" />
+            <span>{t("admin.addOwner")}</span>
+          </button>
+        ) : null}
+      </div>
 
       {props.isSuperAdmin ? (
         <>
-          <div className="crm-page-head">
-            <div className="crm-page-head__titles">
-              <h2 className="crm-page-head__title">{t("admin.title")}</h2>
-              <p className="crm-page-head__subtitle">{t("admin.pageSubtitle")}</p>
-            </div>
-            <button type="button" className="crm-btn-primary" onClick={() => setAddOpen(true)}>
-              <Icon name="add-01" size={18} color="#fff" />
-              <span>{t("admin.addOwner")}</span>
-            </button>
-          </div>
-
           {owners.isLoading && (
             <div className="crm-empty-box">
               <span className="crm-spinner" />
@@ -77,6 +78,34 @@ export function AdminPage(props: { isSuperAdmin: boolean }) {
               {t("common.back")}
             </button>
           </Modal>
+        </>
+      ) : null}
+
+      {!readOnly ? (
+        <>
+          {/* Investor access — same page-head layout as Owners so the two
+              sections sit as peers. FleetMembersCard is just the form +
+              list now; the title/subtitle live on the page, not inside a
+              collapsed SectionCard. */}
+          <div className="crm-page-head">
+            <div className="crm-page-head__titles">
+              <h2 className="crm-page-head__title">{t("team.pageTitle")}</h2>
+              <p className="crm-page-head__subtitle">{t("team.pageSubtitle")}</p>
+            </div>
+          </div>
+          <FleetMembersCard />
+        </>
+      ) : null}
+
+      {!readOnly ? (
+        <>
+          <div className="crm-page-head">
+            <div className="crm-page-head__titles">
+              <h2 className="crm-page-head__title">{t("importData.pageTitle")}</h2>
+              <p className="crm-page-head__subtitle">{t("importData.pageSubtitle")}</p>
+            </div>
+          </div>
+          <ImportSection />
         </>
       ) : null}
     </div>

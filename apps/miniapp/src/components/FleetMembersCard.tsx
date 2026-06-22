@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFleetMembers, useSaveFleetMember, useUpdateFleetMember, useDeleteFleetMember } from "../hooks";
-import { SectionCard, Icon, IconActionButton } from "./crm";
+import { IconActionButton } from "./crm";
 import { Field, TextInput } from "./ui";
 import type { FleetMember } from "../types";
 
+/**
+ * Investor access form + member list. The page-level title and subtitle
+ * live in `Admin.tsx` next to the "Owners" title, so this component just
+ * renders the form and the list. The previous version wrapped everything
+ * in a `SectionCard` with its own `team.title` heading, which is what
+ * made the investor section look like a different kind of block from the
+ * "Owners" list above it.
+ */
 export function FleetMembersCard() {
   const { t } = useTranslation();
   const members = useFleetMembers();
@@ -29,12 +37,7 @@ export function FleetMembersCard() {
   }
 
   return (
-    <SectionCard
-      title={t("team.title")}
-      icon={<Icon name="user-add-01" size={22} color="var(--taxi-accent)" />}
-      storageKey="team"
-      defaultOpen={false}
-    >
+    <div className="crm-team-invite-card">
       <p className="crm-form-hint">{t("team.hint")}</p>
       <div className="crm-team-invite">
         <Field label={t("team.telegramId")}>
@@ -69,7 +72,7 @@ export function FleetMembersCard() {
       ) : (
         <p className="crm-form-hint">{t("team.empty")}</p>
       )}
-    </SectionCard>
+    </div>
   );
 }
 

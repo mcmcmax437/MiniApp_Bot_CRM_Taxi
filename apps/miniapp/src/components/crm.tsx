@@ -141,6 +141,8 @@ function useSectionCollapsed(storageKey: string | undefined, defaultOpen: boolea
 
 export function SectionCard(props: {
   title: string;
+  /** Optional one-line description shown under the title. */
+  subtitle?: string;
   icon: ReactNode;
   action?: ReactNode;
   children: ReactNode;
@@ -154,7 +156,10 @@ export function SectionCard(props: {
   const headContent = (
     <>
       <span className="crm-section__icon">{props.icon}</span>
-      <h2 className="crm-section__title">{props.title}</h2>
+      <div className="crm-section__titles">
+        <h2 className="crm-section__title">{props.title}</h2>
+        {props.subtitle ? <p className="crm-section__subtitle">{props.subtitle}</p> : null}
+      </div>
       {props.action ? (
         <div className="crm-section__action" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
           {props.action}

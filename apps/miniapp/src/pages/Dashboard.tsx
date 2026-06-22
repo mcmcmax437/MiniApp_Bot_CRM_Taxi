@@ -15,11 +15,11 @@ import {
 import { CURRENCY_OPTIONS } from "../currency";
 import type { Currency } from "@taxi/shared";
 import { formatMoney } from "../components/ui";
-import { ImportSection } from "../components/ImportSection";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
 import { useReadOnly } from "../readOnly";
 import { ReminderList } from "../components/ReminderList";
 import { RecentActivitySection } from "../components/RecentActivitySection";
+import { StatsChart } from "../components/dashboard/StatsChart";
 import { financeInPeriod } from "../components/finance/FinanceUi";
 import {
   AppHeader,
@@ -306,6 +306,27 @@ export function Dashboard() {
       </div>
       {report.data ? <p className="crm-stat-grid-hint">{roiHint}</p> : null}
 
+      <SectionCard
+        storageKey="dashboard-stats-chart"
+        defaultOpen
+        title={t("dashboard.chartTitle")}
+        subtitle={t("dashboard.chartSubtitle")}
+        icon={<Icon name="chart-increase" size={24} color="var(--taxi-accent)" />}
+      >
+        {report.isLoading ? (
+          <div className="crm-empty-box">
+            <span className="crm-spinner" />
+            <p>{t("common.loading")}</p>
+          </div>
+        ) : (
+          // Pass `byCar` regardless of the active car filter — the chart is
+          // meant to compare cars, so showing only the selected car would be
+          // a single bar and pointless. When `statsCarId` is set we keep
+          // the totals (the stat grid above) but chart the whole fleet.
+          <StatsChart rows={report.data?.byCar ?? []} />
+        )}
+      </SectionCard>
+
       {report.data &&
       (report.data.partnerUnsettled.paymentsUnsettled > 0 ||
         report.data.partnerUnsettled.expensesUnsettled > 0) ? (
@@ -410,8 +431,6 @@ export function Dashboard() {
       </SectionCard>
 
       {!readOnly ? <ReminderSettingsCard /> : null}
-
-      {!readOnly ? <ImportSection /> : null}
 
       <SectionCard
         storageKey="language"

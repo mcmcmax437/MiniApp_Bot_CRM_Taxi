@@ -81,6 +81,8 @@ const en = {
   },
   team: {
     title: "Investor access",
+    pageTitle: "Investor access",
+    pageSubtitle: "Invite investors by Telegram ID. They can view fleet data but cannot change anything.",
     hint: "Invite investors by Telegram ID. They can view fleet data but cannot change anything.",
     telegramId: "Telegram user ID",
     nameOptional: "Name (optional)",
@@ -127,6 +129,9 @@ const en = {
     reminders: "Reminders",
     noReminders: "No reminders",
     periodSuffix: "",
+    chartTitle: "Fleet at a glance",
+    chartSubtitle: "Income vs expenses for each car in the selected period.",
+    chartEmpty: "No fleet data yet — add a car to see how it's performing.",
   },
   cars: {
     title: "Cars",
@@ -468,6 +473,7 @@ const en = {
     endConfirm: "End this rental and mark the car as available?",
     returnCar: "Return car",
     since: "Since",
+    endsOn: "Ends {{date}}",
     viewDriverHistory: "View driver history",
     driverHistoryTitle: "Driver history",
     driverHistoryHint: "Past and active rentals for this car.",
@@ -482,6 +488,8 @@ const en = {
   },
   reminders: {
     title: "Reminders",
+    pageTitle: "Reminders",
+    pageSubtitle: "Insurance, inspections, mileage reports and rental endings that need your attention.",
     INSURANCE: "Insurance",
     INSPECTION: "Inspection",
     DOCUMENT: "Document",
@@ -629,6 +637,8 @@ const en = {
   },
   importData: {
     title: "Bulk import",
+    pageTitle: "Bulk import",
+    pageSubtitle: "Paste a list of cars, drivers, payments, or expenses to add them in bulk.",
     cars: "Import cars",
     drivers: "Import drivers",
     payments: "Import payments",
@@ -751,6 +761,8 @@ const uk: Resources = {
   },
   team: {
     title: "Доступ інвесторів",
+    pageTitle: "Доступ інвесторів",
+    pageSubtitle: "Запрошуйте інвесторів за Telegram ID. Вони зможуть переглядати дані автопарку, але не змінювати їх.",
     hint: "Запрошуйте інвесторів за Telegram ID. Вони зможуть переглядати дані автопарку, але не змінювати їх.",
     telegramId: "Telegram ID користувача",
     nameOptional: "Ім'я (необов'язково)",
@@ -797,6 +809,9 @@ const uk: Resources = {
     reminders: "Нагадування",
     noReminders: "Немає нагадувань",
     periodSuffix: "",
+    chartTitle: "Автопарк очима",
+    chartSubtitle: "Дохід проти витрат для кожного авто за обраний період.",
+    chartEmpty: "Ще немає даних по автопарку — додайте авто, щоб побачити, як воно працює.",
   },
   cars: {
     title: "Авто",
@@ -1138,6 +1153,7 @@ const uk: Resources = {
     endConfirm: "Завершити цю оренду та позначити авто як вільне?",
     returnCar: "Повернути авто",
     since: "З",
+    endsOn: "Завершується {{date}}",
     viewDriverHistory: "Історія водіїв",
     driverHistoryTitle: "Історія водіїв",
     driverHistoryHint: "Минулі та активні оренди для цього авто.",
@@ -1152,6 +1168,8 @@ const uk: Resources = {
   },
   reminders: {
     title: "Нагадування",
+    pageTitle: "Нагадування",
+    pageSubtitle: "Страховки, техогляди, звіти пробігу та завершення оренд, на які варто звернути увагу.",
     INSURANCE: "Страховка",
     INSPECTION: "Техогляд",
     DOCUMENT: "Документ",
@@ -1299,6 +1317,8 @@ const uk: Resources = {
   },
   importData: {
     title: "Масовий імпорт",
+    pageTitle: "Масовий імпорт",
+    pageSubtitle: "Вставте список авто, водіїв, платежів або витрат, щоб додати їх одразу.",
     cars: "Імпорт авто",
     drivers: "Імпорт водіїв",
     payments: "Імпорт платежів",
@@ -1419,6 +1439,8 @@ const ru: Resources = {
   },
   team: {
     title: "Доступ инвесторов",
+    pageTitle: "Доступ инвесторов",
+    pageSubtitle: "Приглашайте инвесторов по Telegram ID. Они смогут просматривать данные автопарка, но не изменять их.",
     hint: "Приглашайте инвесторов по Telegram ID. Они смогут просматривать данные автопарка, но не изменять их.",
     telegramId: "Telegram ID пользователя",
     nameOptional: "Имя (необязательно)",
@@ -1465,6 +1487,9 @@ const ru: Resources = {
     reminders: "Напоминания",
     noReminders: "Нет напоминаний",
     periodSuffix: "",
+    chartTitle: "Автопарк наглядно",
+    chartSubtitle: "Доход против расходов для каждого авто за выбранный период.",
+    chartEmpty: "Пока нет данных по автопарку — добавьте авто, чтобы увидеть, как оно работает.",
   },
   cars: {
     title: "Авто",
@@ -1806,6 +1831,7 @@ const ru: Resources = {
     endConfirm: "Завершить эту аренду и пометить авто как свободное?",
     returnCar: "Вернуть авто",
     since: "С",
+    endsOn: "Заканчивается {{date}}",
     viewDriverHistory: "История водителей",
     driverHistoryTitle: "История водителей",
     driverHistoryHint: "Прошлые и активные аренды для этого авто.",
@@ -1820,6 +1846,8 @@ const ru: Resources = {
   },
   reminders: {
     title: "Напоминания",
+    pageTitle: "Напоминания",
+    pageSubtitle: "Страховки, техосмотры, отчёты пробега и окончания аренд, на которые стоит обратить внимание.",
     INSURANCE: "Страховка",
     INSPECTION: "Техосмотр",
     DOCUMENT: "Документ",
@@ -1967,6 +1995,8 @@ const ru: Resources = {
   },
   importData: {
     title: "Массовый импорт",
+    pageTitle: "Массовый импорт",
+    pageSubtitle: "Вставьте список машин, водителей, платежей или расходов, чтобы добавить их разом.",
     cars: "Импорт авто",
     drivers: "Импорт водителей",
     payments: "Импорт платежей",
