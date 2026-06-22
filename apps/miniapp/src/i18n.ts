@@ -507,6 +507,8 @@ const en = {
     daysOverdue: "{{count}} days overdue",
     daysUntil: "in {{count}} days",
     dueToday: "today",
+    dueNow: "due now",
+    weekly: "weekly",
     overdue: "{{count}} days overdue",
   },
   tracking: {
@@ -1195,6 +1197,8 @@ const uk: Resources = {
     daysOverdue: "прострочено на {{count}} дн.",
     daysUntil: "через {{count}} дн.",
     dueToday: "сьогодні",
+    dueNow: "настає",
+    weekly: "щотижня",
     overdue: "прострочено на {{count}} дн.",
   },
   tracking: {
@@ -1881,6 +1885,8 @@ const ru: Resources = {
     daysOverdue: "просрочено на {{count}} дн.",
     daysUntil: "через {{count}} дн.",
     dueToday: "сегодня",
+    dueNow: "наступает",
+    weekly: "еженедельно",
     overdue: "просрочено на {{count}} дн.",
   },
   tracking: {

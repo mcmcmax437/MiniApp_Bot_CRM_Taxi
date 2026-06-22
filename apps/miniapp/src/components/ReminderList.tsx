@@ -32,9 +32,9 @@ export function reminderPath(r: ReminderItem): string | null {
 }
 
 function formatReminderDetail(detail: string, t: (key: string) => string): string {
-  if (detail === "weekly") return t("reminder.weekly");
-  if (detail === "overdue") return t("reminder.overdue");
-  if (detail === "due") return t("reminder.dueNow");
+  if (detail === "weekly") return t("reminders.weekly");
+  if (detail === "overdue") return t("reminders.dueToday");
+  if (detail === "due") return t("reminders.dueNow");
   if (/^\d+d$/.test(detail)) return detail;
   if (detail.endsWith(" km")) return detail;
   return detail;
@@ -78,8 +78,8 @@ function formatReminderMeta(
   const tone = reminderTone(r);
 
   if (r.daysUntil != null) {
-    if (r.daysUntil < 0) parts.push(t("reminder.overdue"));
-    else parts.push(t("reminder.daysUntil", { count: r.daysUntil }));
+    if (r.daysUntil < 0) parts.push(t("reminders.daysOverdue", { count: -r.daysUntil }));
+    else parts.push(t("reminders.daysUntil", { count: r.daysUntil }));
   }
 
   if (r.dueDate) parts.push(formatDate(r.dueDate));
@@ -121,7 +121,7 @@ export function ReminderList(props: { items: ReminderItem[]; limit?: number }) {
           >
             <span className="crm-reminder-item__icon">{reminderIcon(r.kind)}</span>
             <div className="crm-reminder-item__body">
-              <div className="crm-reminder-item__kind">{t(`reminder.${r.kind}`)}</div>
+              <div className="crm-reminder-item__kind">{t(`reminders.${r.kind}`)}</div>
               <div className="crm-reminder-item__label">{r.label}</div>
               {meta.text ? <div className="crm-reminder-item__meta">{meta.text}</div> : null}
             </div>
