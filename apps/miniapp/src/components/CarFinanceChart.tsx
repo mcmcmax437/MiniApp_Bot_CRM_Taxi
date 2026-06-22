@@ -139,7 +139,11 @@ export function CarFinanceChart(props: { carId: string }) {
             )
           : buildMonthRange(earliest, now);
 
-    return monthList.map(({ key, date }) => {
+    // The user wants newest-first: the current month at the top, the
+    // earliest month at the bottom. `buildMonthRange` walks oldest → newest,
+    // so we reverse the list before mapping to MonthRow.
+    const reversed = monthList.slice().reverse();
+    return reversed.map(({ key, date }) => {
       const slot = byKey.get(key) ?? { income: 0, expenses: 0, count: 0 };
       const income = round2(slot.income);
       const expenses = round2(slot.expenses);
