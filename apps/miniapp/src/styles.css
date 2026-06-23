@@ -1893,12 +1893,50 @@ body {
   justify-content: space-between;
   gap: 10px;
   margin-top: 2px;
+  /* Allow the actions to wrap to a new line on narrow screens instead of
+     being squeezed against the title — the previous behaviour caused the
+     red "!" attention mark to collide with the orange edit pencil and
+     the driver pill on phones. */
+  flex-wrap: wrap;
 }
 
 .crm-car-detail-head__title-row .crm-doc-detail-head__title {
   margin-top: 8px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
+}
+
+/* The attention mark is rendered inside the actions block now, which
+   means the row can grow vertically if both the mark and the edit
+   button need to sit next to each other. Centre it visually with the
+   other action icons and ensure the underlying badge keeps its
+   clickable/touch target intact. */
+.crm-car-detail-head__attention {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  /* On phones the title row stacks so the plate, the (optional)
+     attention mark, the edit pencil and the driver pill can never
+     overlap. Without this, the previous layout would squeeze the
+     action icons against the plate text on very narrow viewports. */
+  .crm-car-detail-head__title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .crm-car-detail-head__title-row .crm-doc-detail-head__title {
+    flex: 1 1 auto;
+  }
+  .crm-car-detail-head__actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .crm-car-detail-head__driver-pill {
@@ -4458,6 +4496,12 @@ div.crm-finance-item {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  /* Keep the actions row on the right side of the title when there's
+     space; on narrow screens the title row's flex-wrap will allow the
+     actions to flow onto the next line so the icons never collide. */
+  justify-content: flex-end;
 }
 
 .crm-reminder-settings__edit {

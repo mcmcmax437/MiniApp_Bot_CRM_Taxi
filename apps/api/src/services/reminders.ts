@@ -7,12 +7,59 @@ import {
 } from "./maintenance.js";
 import { ensureReminderSettings } from "./reminder-settings.js";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_MS = 7 * DAY_MS;
-
 function carLabel(c: { plate: string; make: string | null; model: string | null }): string {
   const m = [c.make, c.model].filter(Boolean).join(" ");
   return m ? `${c.plate} (${m})` : c.plate;
+}
+
+/**
+ * Start of the current "weekly mileage" window, anchored to the configured
+ * weekday (e.g. Monday at 00:00). Anchoring to a fixed weekday — instead of
+ * a rolling 7-day window from the last log — guarantees that:
+ *
+ *  - A car that hasn't been logged this calendar week always shows up in
+ *    the in-app reminder list and the weekly Telegram push, regardless of
+ *    whether the previous week's notification was acted on.
+ *  - A car that *is* logged between two scheduled weekdays is considered
+ *    up-to-date for that week and stops showing up everywhere until the
+ *    next window opens.
+ *  - The same definition is shared between the in-app reminder builder and
+ *    the weekly Telegram job so the two channels can never disagree.
+ */
+function startOfCurrentWeek(now: Date, weekday: number): Date {
+  const day = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
+  const diff = (day - weekday + 7) % 7;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - diff);
+  return start;
+}
+
+/**
+ * Return the cars in the owner's fleet that don't have a mileage log
+ * recorded since the start of the current weekly window. Used by both the
+ * in-app reminder list and the weekly Telegram push so they stay in sync.
+ */
+async function findCarsNeedingMileage(
+  ownerId: string,
+  settings: { weeklyMileageEnabled: boolean; weeklyMileageWeekday: number },
+  now: Date = new Date(),
+): Promise<
+  Array<{ id: string; plate: string; make: string | null; model: string | null }>
+> {
+  if (!settings.weeklyMileageEnabled) return [];
+  const cars = await prisma.car.findMany({
+    where: { ownerId },
+    select: { id: true, plate: true, make: true, model: true },
+  });
+  if (cars.length === 0) return [];
+  const windowStart = startOfCurrentWeek(now, settings.weeklyMileageWeekday);
+  const stale = await prisma.mileageLog.findMany({
+    where: { ownerId, recordedAt: { gte: windowStart } },
+    select: { carId: true },
+  });
+  const logged = new Set(stale.map((m) => m.carId));
+  return cars.filter((c) => !logged.has(c.id));
 }
 
 function pushDateReminders(
@@ -134,23 +181,21 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
   // tracking UI stay in place — the user just doesn't get a daily nag
   // for each rule.
 
-  if (settings.weeklyMileageEnabled) {
-    const weekAgo = new Date(now.getTime() - WEEK_MS);
-    for (const c of cars) {
-      const recent = await prisma.mileageLog.findFirst({
-        where: { carId: c.id, recordedAt: { gte: weekAgo } },
-      });
-      if (!recent) {
-        items.push({
-          kind: "MILEAGE_REPORT",
-          refId: c.id,
-          carId: c.id,
-          label: carLabel(c),
-          dueDate: null,
-          detail: "weekly",
-        });
-      }
-    }
+  // Weekly mileage check-in. Anchored to the configured weekday (see
+  // findCarsNeedingMileage) so a missed week never blocks the next one
+  // from surfacing — exactly the behaviour requested when the previous
+  // fix was merged. Runs in a single pass so we don't issue a query per
+  // car (the fleet at a glance page can be large).
+  const needsMileage = await findCarsNeedingMileage(ownerId, settings, now);
+  for (const c of needsMileage) {
+    items.push({
+      kind: "MILEAGE_REPORT",
+      refId: c.id,
+      carId: c.id,
+      label: carLabel(c),
+      dueDate: null,
+      detail: "weekly",
+    });
   }
 
   const balances = await computeDriverBalances(ownerId);
@@ -259,7 +304,8 @@ export async function runWeeklyMileageJob(
   sendMessage: (chatId: bigint, text: string) => Promise<void>,
   log: (msg: string, meta?: unknown) => void = () => {},
 ): Promise<void> {
-  const weekday = new Date().getDay();
+  const now = new Date();
+  const weekday = now.getDay();
   const owners = await prisma.owner.findMany({
     where: { status: "ACTIVE" },
     include: { reminderSettings: true },
@@ -269,21 +315,28 @@ export async function runWeeklyMileageJob(
     const settings = owner.reminderSettings ?? (await ensureReminderSettings(owner.id));
     if (!settings.weeklyMileageEnabled || settings.weeklyMileageWeekday !== weekday) continue;
 
-    const cars = await prisma.car.findMany({ where: { ownerId: owner.id } });
-    if (cars.length === 0) continue;
+    // Only list cars that haven't been logged this week. This is the same
+    // definition used by the in-app reminder list, so the two channels
+    // agree. A car that wasn't logged last week is still on the list this
+    // week — nothing suppresses the next reminder if the previous one
+    // was missed.
+    const stale = await findCarsNeedingMileage(owner.id, settings, now);
+    if (stale.length === 0) continue;
 
-    const lines = cars.map((c) => `• ${carLabel(c)}`);
+    const lines = stale.map((c) => `• ${carLabel(c)}`);
     const text = [
       "<b>Weekly mileage report</b>",
       "",
-      "Please update the odometer reading for each vehicle in TaxiCRM.",
+      stale.length === 1
+        ? "One vehicle still needs an odometer update this week:"
+        : `${stale.length} vehicles still need an odometer update this week:`,
       "",
       ...lines,
     ].join("\n");
 
     try {
       await sendMessage(owner.telegramUserId, text);
-      log(`Sent weekly mileage prompt to owner ${owner.id}`);
+      log(`Sent weekly mileage prompt to owner ${owner.id} (${stale.length} cars)`);
     } catch (err) {
       log(`Failed weekly mileage for owner ${owner.id}`, err);
     }

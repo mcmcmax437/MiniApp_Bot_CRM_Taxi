@@ -142,10 +142,14 @@ export function CarDetailPage() {
           <h1 className="crm-doc-detail-head__title">
             <span className="crm-doc-detail-head__title-line">
               <CopyOnDoubleTap value={car.plate}>{car.plate}</CopyOnDoubleTap>
-              {needsAttention ? <CarAttentionMark /> : null}
             </span>
           </h1>
           <div className="crm-car-detail-head__actions">
+            {needsAttention ? (
+              <span className="crm-car-detail-head__attention">
+                <CarAttentionMark />
+              </span>
+            ) : null}
             {!readOnly ? (
               <IconActionButton
                 icon="edit-02"
