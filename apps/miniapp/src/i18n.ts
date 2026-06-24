@@ -418,6 +418,23 @@ const en = {
     expenseTagHint: "Tag is used to group similar expenses in reports.",
     addExpenseHint: "Add a new expense for a car.",
     save: "Save",
+    // Note shown inside the Add payment modal that tells the owner what
+    // the driver is required to pay under the active rental agreement.
+    // The placeholder is replaced with the formatted rent amount and a
+    // per-period label (e.g. "700 / week"), pulled from the agreement
+    // that matches the selected driver + car.
+    contractRequires: "Contract requires {{amount}} per {{period}}",
+    contractEndsOn: "Active until {{date}}",
+    contractEnded: "Ended on {{date}}",
+    contractNoAgreement: "No active agreement for this driver + car — the amount is up to you.",
+    // Lowercase labels used inside the contract-requires sentence
+    // ("per day", "per week", "per month", "per year"). Kept separate
+    // from the capitalised reminder labels so the two contexts can use
+    // different copy without breaking each other.
+    periodDay: "day",
+    periodWeek: "week",
+    periodMonth: "month",
+    periodYear: "year",
   },
   discount: {
     title: "Give a discount to {{driver}}",
@@ -1108,6 +1125,14 @@ const uk: Resources = {
     expenseTagHint: "Тег допомагає групувати схожі витрати у звітах.",
     addExpenseHint: "Додати нову витрату для авто.",
     save: "Зберегти",
+    contractRequires: "За договором {{amount}} за {{period}}",
+    contractEndsOn: "Активний до {{date}}",
+    contractEnded: "Завершено {{date}}",
+    contractNoAgreement: "Немає активного договору для цього водія + авто — суму визначаєте ви.",
+    periodDay: "день",
+    periodWeek: "тиждень",
+    periodMonth: "місяць",
+    periodYear: "рік",
   },
   discount: {
     title: "Надати знижку {{driver}}",
@@ -1796,6 +1821,14 @@ const ru: Resources = {
     expenseTagHint: "Тег помогает группировать похожие расходы в отчётах.",
     addExpenseHint: "Добавить новый расход для авто.",
     save: "Сохранить",
+    contractRequires: "По договору {{amount}} за {{period}}",
+    contractEndsOn: "Активен до {{date}}",
+    contractEnded: "Завершён {{date}}",
+    contractNoAgreement: "Для этого водителя + авто нет активного договора — сумму определяете вы.",
+    periodDay: "день",
+    periodWeek: "неделю",
+    periodMonth: "месяц",
+    periodYear: "год",
   },
   discount: {
     title: "Дать скидку {{driver}}",

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { PAYMENT_METHODS, PaymentMethod, PaymentType, ExpenseCategory } from "@taxi/shared";
+import { PAYMENT_METHODS, PaymentMethod, PaymentType, ExpenseCategory, AgreementStatus, RentPeriod } from "@taxi/shared";
 import {
   usePayments,
   useExpenses,
@@ -959,6 +959,56 @@ function PaymentModal(props: {
   const { t } = useTranslation();
   const { form, setForm, fieldErrors } = props;
 
+  // Resolve the rental agreement that governs the currently-selected
+  // driver + car so the modal can show the owner what the driver is
+  // actually required to pay under contract. Logic:
+  //   - If both driver and car are picked, look for an agreement with
+  //     that exact pair. Prefer ACTIVE; fall back to the most recent
+  //     ENDED one so the owner still sees the previous rate.
+  //   - If only one of the two is picked, find the most recent
+  //     agreement that matches the one that *is* picked, regardless of
+  //     the other side — that way the note still appears as soon as a
+  //     driver is chosen (the car selector auto-fills the active car).
+  //   - If neither is picked, the note is hidden.
+  const contractAgreement = useMemo(() => {
+    const score = (a: Agreement) => {
+      // ACTIVE wins; within the same status, the most recent startDate
+      // wins. Ties broken by the largest rent amount so the user sees
+      // the most up-to-date rate when an old and a new agreement both
+      // match (e.g. a renewed weekly contract).
+      return (
+        (a.status === AgreementStatus.ACTIVE ? 1000 : 0) +
+        new Date(a.startDate).getTime() / 1e9 +
+        a.rentAmount / 1e6
+      );
+    };
+    const candidates = props.agreements.filter((a) => {
+      if (form.driverId && a.driverId !== form.driverId) return false;
+      if (form.carId && a.carId !== form.carId) return false;
+      return true;
+    });
+    if (candidates.length === 0) return null;
+    // Sort so the most-relevant agreement comes first.
+    const sorted = [...candidates].sort((a, b) => score(b) - score(a));
+    return sorted[0] ?? null;
+  }, [props.agreements, form.driverId, form.carId]);
+
+  const contractPeriodLabel = useMemo(() => {
+    if (!contractAgreement) return "";
+    switch (contractAgreement.period) {
+      case RentPeriod.DAILY:
+        return t("finance.periodDay");
+      case RentPeriod.WEEKLY:
+        return t("finance.periodWeek");
+      case RentPeriod.MONTHLY:
+        return t("finance.periodMonth");
+      case RentPeriod.YEARLY:
+        return t("finance.periodYear");
+      default:
+        return "";
+    }
+  }, [contractAgreement, t]);
+
   const driverOptions = useMemo(() => {
     const driverById = new Map(props.drivers.map((d) => [d.id, d]));
     const { orderedDriverIds } = rankDriversForCar(
@@ -1075,6 +1125,62 @@ function PaymentModal(props: {
       <Field label={t("finance.car")}>
         <SearchableSelect value={form.carId} onChange={onCarChange} options={carOptions} />
       </Field>
+      {form.driverId || form.carId ? (
+        <div
+          className={`crm-contract-note crm-contract-note--${contractAgreement?.status === AgreementStatus.ACTIVE ? "active" : contractAgreement ? "ended" : "none"}`}
+        >
+          {contractAgreement ? (
+            <>
+              <div className="crm-contract-note__row crm-contract-note__row--primary">
+                <Icon
+                  name="invoice-01"
+                  size={16}
+                  color="var(--taxi-accent, #ffc107)"
+                />
+                <span>
+                  {t("finance.contractRequires", {
+                    amount: formatMoney(contractAgreement.rentAmount),
+                    period: contractPeriodLabel,
+                  })}
+                </span>
+              </div>
+              <div className="crm-contract-note__row crm-contract-note__row--meta">
+                <Icon
+                  name="calendar-01"
+                  size={14}
+                  color="rgba(255, 255, 255, 0.55)"
+                />
+                <span>
+                  {(() => {
+                    if (contractAgreement.status === AgreementStatus.ACTIVE) {
+                      if (contractAgreement.endDate) {
+                        return t("finance.contractEndsOn", {
+                          date: formatDate(contractAgreement.endDate),
+                        });
+                      }
+                      return `${t("cars.startDate")}: ${formatDate(contractAgreement.startDate)}`;
+                    }
+                    return t("finance.contractEnded", {
+                      date: formatDate(
+                        contractAgreement.endDate ?? contractAgreement.startDate,
+                      ),
+                    });
+                  })()}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="crm-contract-note__row">
+              <Icon
+                name="information-circle"
+                size={16}
+                color="rgba(255, 255, 255, 0.55)"
+              />
+              <span>{t("finance.contractNoAgreement")}</span>
+            </div>
+          )}
+        </div>
+      ) : null}
       <Field
         label={t("finance.amount")}
         invalid={fieldErrors.amount}
