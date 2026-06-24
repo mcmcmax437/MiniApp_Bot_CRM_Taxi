@@ -961,36 +961,66 @@ function PaymentModal(props: {
 
   // Resolve the rental agreement that governs the currently-selected
   // driver + car so the modal can show the owner what the driver is
-  // actually required to pay under contract. Logic:
-  //   - If both driver and car are picked, look for an agreement with
-  //     that exact pair. Prefer ACTIVE; fall back to the most recent
-  //     ENDED one so the owner still sees the previous rate.
-  //   - If only one of the two is picked, find the most recent
-  //     agreement that matches the one that *is* picked, regardless of
-  //     the other side — that way the note still appears as soon as a
-  //     driver is chosen (the car selector auto-fills the active car).
-  //   - If neither is picked, the note is hidden.
+  // actually required to pay under contract. Three tiers of match,
+  // each falling back to the next when no agreement is found:
+  //   1. An agreement that matches the (driver, car) pair exactly —
+  //      the usual case once the owner has picked both.
+  //   2. If a driver is selected but no exact match exists, any
+  //      agreement that matches the driver (even on a different car).
+  //      This handles "I picked the driver first, then changed cars
+  //      to one they're not currently on" — we still want to surface
+  //      their most recent active deal.
+  //   3. If a car is selected but no exact match exists, any
+  //      agreement that matches the car (even with a different
+  //      driver). This is the headline fix for "I picked the car
+  //      first, the modal said no contract even though the car is
+  //      definitely assigned" — we now surface the car-side contract
+  //      regardless of the (possibly wrong) driver that
+  //      `onCarChange` auto-filled.
+  // Within each tier we prefer ACTIVE > ENDED, then most recent
+  // startDate, then the largest rentAmount.
   const contractAgreement = useMemo(() => {
+    if (!form.driverId && !form.carId) return null;
     const score = (a: Agreement) => {
-      // ACTIVE wins; within the same status, the most recent startDate
-      // wins. Ties broken by the largest rent amount so the user sees
-      // the most up-to-date rate when an old and a new agreement both
-      // match (e.g. a renewed weekly contract).
       return (
         (a.status === AgreementStatus.ACTIVE ? 1000 : 0) +
         new Date(a.startDate).getTime() / 1e9 +
         a.rentAmount / 1e6
       );
     };
-    const candidates = props.agreements.filter((a) => {
-      if (form.driverId && a.driverId !== form.driverId) return false;
-      if (form.carId && a.carId !== form.carId) return false;
-      return true;
-    });
-    if (candidates.length === 0) return null;
-    // Sort so the most-relevant agreement comes first.
-    const sorted = [...candidates].sort((a, b) => score(b) - score(a));
-    return sorted[0] ?? null;
+    const pickBest = (candidates: Agreement[]): Agreement | null => {
+      if (candidates.length === 0) return null;
+      const sorted = [...candidates].sort((a, b) => score(b) - score(a));
+      return sorted[0] ?? null;
+    };
+    // Tier 1: exact (driver, car) match.
+    const exact = pickBest(
+      props.agreements.filter((a) => {
+        if (form.driverId && a.driverId !== form.driverId) return false;
+        if (form.carId && a.carId !== form.carId) return false;
+        return true;
+      }),
+    );
+    if (exact) return exact;
+    // Tier 2: driver-only fallback. Useful when the user picked a
+    // driver first and then switched to a car they're not currently
+    // contracted on.
+    if (form.driverId) {
+      const byDriver = pickBest(
+        props.agreements.filter((a) => a.driverId === form.driverId),
+      );
+      if (byDriver) return byDriver;
+    }
+    // Tier 3: car-only fallback. This is the case the user was
+    // hitting — the car is assigned, the modal just didn't surface
+    // the contract because the (auto-filled) driver wasn't matched.
+    if (form.carId) {
+      const byCar = pickBest(
+        props.agreements.filter((a) => a.carId === form.carId),
+      );
+      if (byCar) return byCar;
+    }
+    return null;
   }, [props.agreements, form.driverId, form.carId]);
 
   const contractPeriodLabel = useMemo(() => {
@@ -1176,7 +1206,13 @@ function PaymentModal(props: {
                 size={16}
                 color="rgba(255, 255, 255, 0.55)"
               />
-              <span>{t("finance.contractNoAgreement")}</span>
+              <span>
+                {form.carId
+                  ? t("finance.contractNoAgreementForCar")
+                  : form.driverId
+                    ? t("finance.contractNoAgreementForDriver")
+                    : t("finance.contractNoAgreement")}
+              </span>
             </div>
           )}
         </div>

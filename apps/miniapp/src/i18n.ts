@@ -427,6 +427,8 @@ const en = {
     contractEndsOn: "Active until {{date}}",
     contractEnded: "Ended on {{date}}",
     contractNoAgreement: "No active agreement for this driver + car — the amount is up to you.",
+    contractNoAgreementForCar: "This car has no rental agreement on file — enter the amount yourself.",
+    contractNoAgreementForDriver: "This driver has no rental agreement on file — enter the amount yourself.",
     // Lowercase labels used inside the contract-requires sentence
     // ("per day", "per week", "per month", "per year"). Kept separate
     // from the capitalised reminder labels so the two contexts can use
@@ -1129,6 +1131,8 @@ const uk: Resources = {
     contractEndsOn: "Активний до {{date}}",
     contractEnded: "Завершено {{date}}",
     contractNoAgreement: "Немає активного договору для цього водія + авто — суму визначаєте ви.",
+    contractNoAgreementForCar: "Для цього авто немає договору оренди — введіть суму самі.",
+    contractNoAgreementForDriver: "Для цього водія немає договору оренди — введіть суму самі.",
     periodDay: "день",
     periodWeek: "тиждень",
     periodMonth: "місяць",
@@ -1825,6 +1829,8 @@ const ru: Resources = {
     contractEndsOn: "Активен до {{date}}",
     contractEnded: "Завершён {{date}}",
     contractNoAgreement: "Для этого водителя + авто нет активного договора — сумму определяете вы.",
+    contractNoAgreementForCar: "Для этого авто нет договора аренды — укажите сумму сами.",
+    contractNoAgreementForDriver: "Для этого водителя нет договора аренды — укажите сумму сами.",
     periodDay: "день",
     periodWeek: "неделю",
     periodMonth: "месяц",

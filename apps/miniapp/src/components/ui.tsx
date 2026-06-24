@@ -410,13 +410,15 @@ export function SearchableSelect<T extends string>(props: {
     props.onChange(value);
     setOpen(false);
     setQuery("");
-    // Defer the blur by one tick so iOS Safari doesn't hide the keyboard /
-    // shift the viewport before the state update commits. The dropdown
-    // closes anyway, so the user sees the selected label without the input
-    // stealing focus back.
-    setTimeout(() => {
-      inputRef.current?.blur();
-    }, 0);
+    // Important: do NOT blur the input on iOS Safari. When the input
+    // blurs after a selection, iOS auto-advances focus to the next
+    // focusable element (the next input in the form), which on phones
+    // re-opens the keyboard for that next field and shifts the modal
+    // away from the field the user just interacted with. Keeping
+    // focus on the (now read-only, label-displaying) input means the
+    // keyboard stays put, the user sees their selection, and they can
+    // tap the next field themselves when they're ready to move on.
+    // They can dismiss the keyboard by tapping outside the input.
   }
 
   const displayValue = open ? query : (selected?.label ?? "");
@@ -432,6 +434,13 @@ export function SearchableSelect<T extends string>(props: {
         autoComplete="off"
         autoCorrect="off"
         spellCheck={false}
+        // `enterkeyhint="done"` tells the on-screen keyboard to show a
+        // "Done" button instead of "Next". Combined with the fact that
+        // we don't blur the input after a selection (see `pick()`),
+        // this prevents iOS Safari from auto-advancing focus to the
+        // next field whenever the user picks a driver, a car, or any
+        // other option from the dropdown.
+        enterKeyHint="done"
         onFocus={() => {
           setOpen(true);
           setQuery("");
