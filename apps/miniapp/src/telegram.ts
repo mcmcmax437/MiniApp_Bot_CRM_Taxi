@@ -138,26 +138,51 @@ export function confirmAction(message: string, confirmLabel: string, cancelLabel
 
   return new Promise((resolve) => {
     let settled = false;
+    let popupActive = false;
     const finish = (ok: boolean) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(timer);
+      window.clearTimeout(activeTimer);
       resolve(ok);
     };
 
-    const timer = window.setTimeout(() => {
-      requestInAppConfirm(message, confirmLabel, cancelLabel).then(finish);
-    }, 350);
+    // The fallback fires ONLY if the native popup never shows. Telegram
+    // doesn't fire a "popupOpened" event on every platform, so we
+    // optimistically mark the popup as "active" a short tick after
+    // calling `showPopup`; if Telegram never reports back via the
+    // callback, the fallback opens the in-app modal so the user
+    // isn't stuck. This avoids the previous behaviour where the
+    // in-app modal always opened 350 ms after the native popup — even
+    // when the native popup was visible — which led to two dialogs
+    // stacking on top of each other on iOS.
+    const activeTimer = window.setTimeout(() => {
+      popupActive = true;
+    }, 50);
 
-    tg!.showPopup!(
-      {
-        message,
-        buttons: [
-          { id: "confirm", type: "destructive", text: confirmLabel },
-          { id: "cancel", type: "cancel", text: cancelLabel },
-        ],
-      },
-      (buttonId) => finish(buttonId === "confirm"),
-    );
+    const timer = window.setTimeout(() => {
+      if (popupActive) return;
+      requestInAppConfirm(message, confirmLabel, cancelLabel).then(finish);
+    }, 600);
+
+    try {
+      tg!.showPopup!(
+        {
+          message,
+          buttons: [
+            { id: "confirm", type: "destructive", text: confirmLabel },
+            { id: "cancel", type: "cancel", text: cancelLabel },
+          ],
+        },
+        (buttonId) => finish(buttonId === "confirm"),
+      );
+    } catch {
+      // `showPopup` itself failed (e.g. the WebApp API isn't wired
+      // up in this environment). Cancel the timers and fall through
+      // to the in-app modal so the user can still confirm.
+      window.clearTimeout(timer);
+      window.clearTimeout(activeTimer);
+      requestInAppConfirm(message, confirmLabel, cancelLabel).then(finish);
+    }
   });
 }
