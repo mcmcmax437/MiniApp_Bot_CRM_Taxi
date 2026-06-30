@@ -201,10 +201,20 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
   const balances = await computeDriverBalances(ownerId);
   for (const b of balances) {
     if (b.balance > 0) {
+      // Surface the active car plate(s) alongside the driver name so the
+      // owner can immediately tell *which* car the overdue balance is
+      // tied to. Most drivers have one active car; if they have
+      // multiple, join the plates with a comma. Falls back to the
+      // driver name alone when no active car is on file (shouldn't
+      // happen in practice, but keep the reminder safe).
+      const plateText = b.activeCars.map((c) => c.plate).join(", ");
+      const primaryCar = b.activeCars[0];
+      const label = plateText ? `${b.driverName} — ${plateText}` : b.driverName;
       items.push({
         kind: "OVERDUE_PAYMENT",
         refId: b.driverId,
-        label: b.driverName,
+        carId: primaryCar?.id,
+        label,
         dueDate: null,
         amount: b.balance,
       });

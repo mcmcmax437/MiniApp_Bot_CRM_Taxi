@@ -64,19 +64,37 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
 
   const [drivers, agreements, payments, fines] = await Promise.all([
     prisma.driver.findMany({ where: { ownerId }, orderBy: { fullName: "asc" } }),
-    prisma.rentalAgreement.findMany({ where: { ownerId, status: "ACTIVE" } }),
+    // Pull the car id + plate alongside each active agreement so we can
+    // build the driver's "active car" list for the balance response. The
+    // frontend uses this to render "Driver — Plate" labels in the
+    // drivers list, finance tab, and overdue-payment reminder.
+    prisma.rentalAgreement.findMany({
+      where: { ownerId, status: "ACTIVE" },
+      include: { car: { select: { id: true, plate: true } } },
+    }),
     prisma.payment.findMany({ where: { ownerId } }),
     prisma.fine.findMany({ where: { ownerId, status: "UNPAID" } }),
   ]);
 
   const rentDueByDriver = new Map<string, number>();
   const depositByDriver = new Map<string, number>();
+  const activeCarsByDriver = new Map<string, { id: string; plate: string }[]>();
   for (const a of agreements) {
     const cap = a.endDate && a.endDate.getTime() < now.getTime() ? a.endDate : now;
     const units = periodsElapsed(a.startDate, cap, a.period);
     const due = units * a.rentAmount;
     rentDueByDriver.set(a.driverId, (rentDueByDriver.get(a.driverId) ?? 0) + due);
     depositByDriver.set(a.driverId, (depositByDriver.get(a.driverId) ?? 0) + a.depositAmount);
+    if (a.car) {
+      const list = activeCarsByDriver.get(a.driverId) ?? [];
+      // Deduplicate by car id so a driver with two agreements for the
+      // same car (rare, but possible while one is being renewed) only
+      // shows the plate once.
+      if (!list.some((c) => c.id === a.car!.id)) {
+        list.push({ id: a.car.id, plate: a.car.plate });
+      }
+      activeCarsByDriver.set(a.driverId, list);
+    }
   }
 
   const rentPaidByDriver = new Map<string, number>();
@@ -122,6 +140,7 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
       unpaidFines,
       balance: round2(rentDue - rentPaid - discounts + unpaidFines),
       depositHeld: round2(depositByDriver.get(d.id) ?? 0),
+      activeCars: activeCarsByDriver.get(d.id) ?? [],
     };
   });
 }

@@ -80,6 +80,22 @@ export function DriverBalanceBreakdownModal(props: {
   const balanceTone: "good" | "bad" | "neutral" =
     !breakdown ? "neutral" : breakdown.balance > 0.005 ? "bad" : breakdown.balance < -0.005 ? "good" : "neutral";
 
+  // Per-day rent rate across all active accruals. The balance grows by
+  // this amount each day the driver has the car, until they pay rent.
+  // We surface the figure in the daily-accrual hint so the owner
+  // understands why the balance keeps moving even when nothing has
+  // changed since yesterday.
+  const perDayText = useMemo(() => {
+    if (!breakdown) return "";
+    const periodDays: Record<string, number> = { DAILY: 1, WEEKLY: 7, MONTHLY: 30, YEARLY: 365 };
+    let perDay = 0;
+    for (const a of breakdown.activeAccruals) {
+      const days = periodDays[a.period] ?? 1;
+      perDay += a.rentAmount / days;
+    }
+    return formatMoney(perDay);
+  }, [breakdown]);
+
   return (
     <Modal open={props.open} title={t("balanceBreakdown.title")} onClose={props.onClose}>
       {loading ? (
@@ -123,6 +139,19 @@ export function DriverBalanceBreakdownModal(props: {
               </div>
             </div>
           </div>
+
+          {/* Hint that explains why the balance keeps growing day-to-day.
+              Rent accrues continuously from each agreement's start, so a
+              driver who hasn't paid this week keeps accumulating rent at
+              the per-day rate until a rent payment is recorded. */}
+          {breakdown && breakdown.activeAccruals.length > 0 ? (
+            <p
+              className="crm-form-hint"
+              style={{ marginTop: -4, marginBottom: 12 }}
+            >
+              {t("balanceBreakdown.dailyAccrualHint", { perDay: perDayText })}
+            </p>
+          ) : null}
 
           {props.onGiveDiscount ? (
             // The "give a discount" CTA used to launch the standalone

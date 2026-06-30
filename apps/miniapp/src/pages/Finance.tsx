@@ -915,15 +915,22 @@ function BalancesTab() {
         />
       ) : (
         <FinanceList loading={balances.isLoading}>
-          {all.map((b) => (
-            <FinanceListItem
-              key={b.driverId}
-              title={b.driverName}
-              subtitle={`${t("reports.income")}: ${formatMoney(b.rentPaid)} • ${t("dashboard.deposit")}: ${formatMoney(b.depositHeld)}`}
-              amount={formatMoney(b.balance)}
-              amountTone={b.balance > 0 ? "expense" : "income"}
-            />
-          ))}
+          {all.map((b) => {
+            // Show the active car plate(s) next to the driver's name
+            // so the owner can immediately see which car the balance
+            // belongs to (most drivers have exactly one).
+            const plateText = b.activeCars.map((c) => c.plate).join(", ");
+            const title = plateText ? `${b.driverName} — ${plateText}` : b.driverName;
+            return (
+              <FinanceListItem
+                key={b.driverId}
+                title={title}
+                subtitle={`${t("reports.income")}: ${formatMoney(b.rentPaid)} • ${t("dashboard.deposit")}: ${formatMoney(b.depositHeld)}`}
+                amount={formatMoney(b.balance)}
+                amountTone={b.balance > 0 ? "expense" : "income"}
+              />
+            );
+          })}
         </FinanceList>
       )}
     </>

@@ -533,6 +533,14 @@ export interface DriverBalance {
   unpaidFines: number;
   balance: number; // positive => the driver owes you
   depositHeld: number;
+  /**
+   * The cars the driver is currently assigned to under an ACTIVE rental
+   * agreement. Empty if the driver isn't currently driving. Car id and
+   * plate are exposed so the UI (drivers list, finance tab, reminders)
+   * can label each balance with "Driver — Plate" instead of just the
+   * driver's name.
+   */
+  activeCars: { id: string; plate: string }[];
 }
 
 export interface ReportSummary {

@@ -36,3 +36,9 @@ Thumbs.db
 .tsbuildinfo
 *.tsbuildinfo
 .vite/
+
+# codebase-memory-mcp local index + downloaded installer artifacts
+.codebase-memory/
+tools/codebase-memory-mcp-windows-amd64.zip
+tools/codebase-memory-mcp-checksums.txt
+.codebase-memory-mcp.exe

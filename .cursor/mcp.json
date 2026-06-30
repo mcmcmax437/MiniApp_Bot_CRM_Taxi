@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "codebase-memory": {
+      "command": "${workspaceFolder}\\tools\\codebase-memory-mcp\\codebase-memory-mcp.exe",
+      "args": [],
+      "env": {
+        "CBM_LOG_LEVEL": "info"
+      }
+    }
+  }
+}
