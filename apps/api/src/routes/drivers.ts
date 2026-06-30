@@ -2,7 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import { driverCreateSchema, driverUpdateSchema, driverFullName } from "@taxi/shared";
 import { ownerId, parse } from "./helpers.js";
-import { computeDriverBalances } from "../services/balance.js";
+import {
+  computeDriverBalances,
+  computeDriverBalanceBreakdown,
+} from "../services/balance.js";
 
 const driverInclude = {
   agreements: {
@@ -93,5 +96,19 @@ export async function driversRoutes(app: FastifyInstance): Promise<void> {
     const found = balances.find((b) => b.driverId === id);
     if (!found) return reply.code(404).send({ error: "not_found" });
     return found;
+  });
+
+  // Detailed breakdown for the Driver Balance Breakdown modal. The
+  // server is the single source of truth for the figure shown on the
+  // drivers list (`/balances`) and the figures shown in the modal — if
+  // we recomputed on the client, a stale cached `agreements`/`payments`
+  // query could disagree with `/balances` (the modal opened and the
+  // driver card could briefly show different numbers for the same
+  // driver). Computing on the server avoids the divergence.
+  app.get("/drivers/:id/balance/breakdown", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const breakdown = await computeDriverBalanceBreakdown(ownerId(req), id);
+    if (!breakdown) return reply.code(404).send({ error: "not_found" });
+    return breakdown;
   });
 }

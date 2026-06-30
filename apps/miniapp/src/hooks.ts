@@ -4,6 +4,7 @@ import { apiFetch, apiUpload } from "./api";
 import type {
   MeResponse,
   DriverBalance,
+  DriverBalanceBreakdown,
   ReportSummary,
   ReminderItem,
 } from "@taxi/shared";
@@ -270,6 +271,26 @@ export function useBalances() {
   return useQuery({
     queryKey: ["balances"],
     queryFn: () => apiFetch<DriverBalance[]>("/balances"),
+  });
+}
+
+/**
+ * Detailed balance breakdown for the Driver Balance Breakdown modal.
+ * The server is the single source of truth — the modal must show the
+ * same numbers as `useBalances()` so the driver card and the modal
+ * don't disagree after a fresh agreement or payment was just recorded.
+ */
+export function useDriverBalanceBreakdown(driverId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["drivers", driverId, "balance-breakdown"],
+    queryFn: () =>
+      apiFetch<DriverBalanceBreakdown>(`/drivers/${driverId}/balance/breakdown`),
+    enabled: Boolean(driverId),
+    // Cached for a couple of seconds so opening the modal right after
+    // the drivers list rendered doesn't trigger a second network call,
+    // but the per-driver query key means it refreshes whenever the
+    // [balances] cache is invalidated by a payment / agreement change.
+    staleTime: 5_000,
   });
 }
 export function useReport(from?: string, to?: string) {

@@ -1,6 +1,12 @@
 import type { RentPeriod } from "@prisma/client";
 import { prisma } from "../prisma.js";
-import type { DriverBalance } from "@taxi/shared";
+import type {
+  DriverBalance,
+  DriverBalanceAccrual,
+  DriverBalanceBreakdown,
+  DriverBalanceFineLine,
+  DriverBalancePaymentLine,
+} from "@taxi/shared";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -147,4 +153,160 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Computes the per-driver breakdown for a single driver. Same data as
+ * `computeDriverBalances` (single source of truth) but with the full
+ * accrual/payment/fine lines that the Driver Balance Breakdown modal
+ * renders, plus the individual `rentDue`, `rentPaid`, `discounts`, and
+ * `unpaidFines` totals so the modal can show the formula in plain text.
+ *
+ * Returns `null` if the driver does not belong to this owner.
+ */
+export async function computeDriverBalanceBreakdown(
+  ownerId: string,
+  driverId: string,
+  asOf: Date = new Date(),
+): Promise<DriverBalanceBreakdown | null> {
+  const driver = await prisma.driver.findFirst({
+    where: { id: driverId, ownerId },
+  });
+  if (!driver) return null;
+
+  // We need every agreement that contributes to the balance. Active
+  // agreements still accrue rent; ended agreements don't (they were
+  // already capped to their endDate), but they still count toward
+  // `depositHeld` because the deposit was held during the rental.
+  // End-date-only filtering happens via the `cap` below.
+  const [agreements, payments, fines] = await Promise.all([
+    prisma.rentalAgreement.findMany({
+      where: { ownerId, driverId },
+      include: { car: { select: { id: true, plate: true } } },
+      orderBy: { startDate: "desc" },
+    }),
+    prisma.payment.findMany({
+      where: { ownerId, driverId },
+      include: { car: { select: { id: true, plate: true } } },
+      orderBy: [{ createdAt: "desc" }, { date: "desc" }],
+    }),
+    prisma.fine.findMany({
+      where: { ownerId, driverId, status: "UNPAID" },
+      orderBy: { date: "desc" },
+    }),
+  ]);
+
+  const activeAccruals: DriverBalanceAccrual[] = [];
+  let rentDue = 0;
+  let depositHeld = 0;
+  for (const a of agreements) {
+    // Only ACTIVE agreements accrue rent. ENDED agreements stop
+    // accruing past their endDate (which the server stored already),
+    // so we mirror the /balances math exactly.
+    if (a.status === "ACTIVE") {
+      const start = a.startDate;
+      const explicitEnd = a.endDate;
+      const cap =
+        explicitEnd && explicitEnd.getTime() < asOf.getTime() ? explicitEnd : asOf;
+      const periods = periodsElapsed(start, cap, a.period);
+      const accrued = periods * a.rentAmount;
+      rentDue += accrued;
+
+      const daysElapsed = Math.max(
+        0,
+        Math.floor((startOfDay(cap).getTime() - startOfDay(start).getTime()) / DAY_MS) + 1,
+      );
+      const plate = a.car?.plate ?? "—";
+      activeAccruals.push({
+        agreementId: a.id,
+        carPlate: plate,
+        carLabel: plate,
+        period: a.period,
+        rentAmount: a.rentAmount,
+        startDate: start.toISOString(),
+        endDate: explicitEnd ? explicitEnd.toISOString() : null,
+        daysElapsed,
+        periods,
+        accrued,
+      });
+    }
+    // Deposits are held for the entire lifetime of the agreement
+    // (active or ended) — the deposit is still owed back to the
+    // driver at the end of the rental, so it counts toward
+    // `depositHeld` even on ended rows.
+    depositHeld += a.depositAmount;
+  }
+  activeAccruals.sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+  const rentPayments: DriverBalancePaymentLine[] = [];
+  const discountPayments: DriverBalancePaymentLine[] = [];
+  const depositPayments: DriverBalancePaymentLine[] = [];
+  const refundPayments: DriverBalancePaymentLine[] = [];
+  let rentPaid = 0;
+  let discounts = 0;
+  for (const p of payments) {
+    // Strip out payments for other drivers — even though we filtered
+    // by driverId above, defensive in case the schema changes.
+    if (p.driverId !== driverId) continue;
+    const line: DriverBalancePaymentLine = {
+      id: p.id,
+      date: p.date instanceof Date ? p.date.toISOString() : String(p.date),
+      type: String(p.type),
+      amount: p.amount,
+      note: p.note ?? null,
+      carPlate: p.car?.plate ?? null,
+      method: p.method ?? null,
+    };
+    if (p.type === "RENT") {
+      rentPayments.push(line);
+      rentPaid += p.amount;
+      // Inline discount on the same rent payment row (preferred flow).
+      if (p.discountAmount && p.discountAmount > 0) {
+        discountPayments.push({ ...line, amount: p.discountAmount });
+        discounts += p.discountAmount;
+      }
+    } else if (p.type === "DISCOUNT") {
+      // Legacy DISCOUNT-type rows are still rendered for backwards
+      // compatibility — older payments predate the inline field.
+      discountPayments.push(line);
+      discounts += p.amount;
+    } else if (p.type === "DEPOSIT") {
+      depositPayments.push(line);
+    } else if (p.type === "REFUND") {
+      refundPayments.push(line);
+    }
+  }
+
+  const unpaidFines: DriverBalanceFineLine[] = [];
+  let unpaidFinesTotal = 0;
+  for (const f of fines) {
+    if (f.driverId !== driverId) continue;
+    unpaidFines.push({
+      id: f.id,
+      date: f.date instanceof Date ? f.date.toISOString() : String(f.date),
+      amount: f.amount,
+      description: f.description ?? null,
+    });
+    unpaidFinesTotal += f.amount;
+  }
+
+  const balance = rentDue - rentPaid - discounts + unpaidFinesTotal;
+
+  return {
+    driverId,
+    driverName: driver.fullName,
+    asOf: asOf.toISOString(),
+    activeAccruals,
+    rentDue: round2(rentDue),
+    rentPayments,
+    discountPayments,
+    depositPayments,
+    refundPayments,
+    rentPaid: round2(rentPaid),
+    discounts: round2(discounts),
+    unpaidFines,
+    unpaidFinesTotal: round2(unpaidFinesTotal),
+    depositHeld: round2(depositHeld),
+    balance: round2(balance),
+  };
 }

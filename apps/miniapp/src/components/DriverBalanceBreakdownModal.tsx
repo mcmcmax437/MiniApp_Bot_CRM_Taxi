@@ -1,9 +1,15 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useAgreements, useFines, usePayments } from "../hooks";
+import { useDriverBalanceBreakdown } from "../hooks";
+import type {
+  DriverBalanceAccrual,
+  DriverBalanceBreakdown,
+  DriverBalancePaymentLine,
+  DriverBalanceFineLine,
+  RentPeriod,
+} from "@taxi/shared";
 import { Modal, formatDate, formatMoney } from "./ui";
 import { Icon, SectionCard } from "./crm";
-import { buildDriverBalanceBreakdown, type DriverBalanceBreakdown } from "../balanceBreakdown";
 
 function SumRow(props: { label: string; value: string; tone?: "neutral" | "good" | "bad" }) {
   const toneColor =
@@ -52,6 +58,25 @@ function MoneyLine(props: { label: string; sublabel?: string; amount: number; to
   );
 }
 
+// The breakdown now comes straight from the server (`/drivers/:id/
+// balance/breakdown`) so the modal can't disagree with the driver
+// card after a recent payment or agreement change. The server uses
+// the same `rentDue - rentPaid - discounts + unpaidFines` formula
+// that `computeDriverBalances` uses for `/balances`, guaranteeing
+// the numbers the owner sees in two places always match.
+
+const PERIOD_DAYS: Record<string, number> = {
+  DAILY: 1,
+  WEEKLY: 7,
+  MONTHLY: 30,
+  YEARLY: 365,
+};
+
+function periodPerDay(rentAmount: number, period: RentPeriod): number {
+  const days = PERIOD_DAYS[period] ?? 1;
+  return rentAmount / days;
+}
+
 export function DriverBalanceBreakdownModal(props: {
   open: boolean;
   driverId: string | null;
@@ -60,22 +85,10 @@ export function DriverBalanceBreakdownModal(props: {
   onGiveDiscount?: () => void;
 }) {
   const { t } = useTranslation();
-  const agreements = useAgreements();
-  const payments = usePayments();
-  const fines = useFines();
+  const breakdownQuery = useDriverBalanceBreakdown(props.open ? props.driverId : null);
+  const breakdown: DriverBalanceBreakdown | null = breakdownQuery.data ?? null;
 
-  const breakdown: DriverBalanceBreakdown | null = useMemo(() => {
-    if (!props.open || !props.driverId) return null;
-    return buildDriverBalanceBreakdown({
-      driverId: props.driverId,
-      driverName: props.driverName,
-      agreements: agreements.data ?? [],
-      payments: payments.data ?? [],
-      fines: fines.data ?? [],
-    });
-  }, [props.open, props.driverId, props.driverName, agreements.data, payments.data, fines.data]);
-
-  const loading = !breakdown;
+  const loading = props.open && !breakdown;
 
   const balanceTone: "good" | "bad" | "neutral" =
     !breakdown ? "neutral" : breakdown.balance > 0.005 ? "bad" : breakdown.balance < -0.005 ? "good" : "neutral";
@@ -87,11 +100,9 @@ export function DriverBalanceBreakdownModal(props: {
   // changed since yesterday.
   const perDayText = useMemo(() => {
     if (!breakdown) return "";
-    const periodDays: Record<string, number> = { DAILY: 1, WEEKLY: 7, MONTHLY: 30, YEARLY: 365 };
     let perDay = 0;
     for (const a of breakdown.activeAccruals) {
-      const days = periodDays[a.period] ?? 1;
-      perDay += a.rentAmount / days;
+      perDay += periodPerDay(a.rentAmount, a.period);
     }
     return formatMoney(perDay);
   }, [breakdown]);
@@ -102,6 +113,10 @@ export function DriverBalanceBreakdownModal(props: {
         <div className="crm-empty-box">
           <span className="crm-spinner" />
           <p>{t("common.loading")}</p>
+        </div>
+      ) : !breakdown ? (
+        <div className="crm-empty-box">
+          <p className="crm-form-hint">{t("common.empty")}</p>
         </div>
       ) : (
         <>
@@ -122,7 +137,7 @@ export function DriverBalanceBreakdownModal(props: {
               </div>
               <div style={{ color: "rgba(255,255,255,0.95)", fontWeight: 600 }}>{breakdown.driverName}</div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 2 }}>
-                {t("balanceBreakdown.asOf", { date: formatDate(breakdown.asOf.toISOString()) })}
+                {t("balanceBreakdown.asOf", { date: formatDate(breakdown.asOf) })}
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -144,7 +159,7 @@ export function DriverBalanceBreakdownModal(props: {
               Rent accrues continuously from each agreement's start, so a
               driver who hasn't paid this week keeps accumulating rent at
               the per-day rate until a rent payment is recorded. */}
-          {breakdown && breakdown.activeAccruals.length > 0 ? (
+          {breakdown.activeAccruals.length > 0 ? (
             <p
               className="crm-form-hint"
               style={{ marginTop: -4, marginBottom: 12 }}
@@ -180,11 +195,11 @@ export function DriverBalanceBreakdownModal(props: {
               <p className="crm-form-hint">{t("balanceBreakdown.noActiveAgreements")}</p>
             ) : (
               <>
-                {breakdown.activeAccruals.map((a) => (
+                {breakdown.activeAccruals.map((a: DriverBalanceAccrual) => (
                   <MoneyLine
                     key={a.agreementId}
                     label={`${a.carPlate} · ${t(`drivers.${a.period}`)}`}
-                    sublabel={`${t("balanceBreakdown.since")} ${formatDate(a.startDate.toISOString())} · ${a.daysElapsed} ${t("balanceBreakdown.days")} · ${a.periods.toFixed(2)} × ${formatMoney(a.rentAmount)}`}
+                    sublabel={`${t("balanceBreakdown.since")} ${formatDate(a.startDate)} · ${a.daysElapsed} ${t("balanceBreakdown.days")} · ${a.periods.toFixed(2)} × ${formatMoney(a.rentAmount)}`}
                     amount={a.accrued}
                     tone="bad"
                   />
@@ -208,11 +223,11 @@ export function DriverBalanceBreakdownModal(props: {
               <p className="crm-form-hint">{t("balanceBreakdown.noRentPayments")}</p>
             ) : (
               <>
-                {breakdown.rentPayments.map((p) => (
+                {breakdown.rentPayments.map((p: DriverBalancePaymentLine) => (
                   <MoneyLine
                     key={p.id}
                     label={p.carPlate ?? "—"}
-                    sublabel={`${formatDate(p.date.toISOString())}${p.note ? ` · ${p.note}` : ""}`}
+                    sublabel={`${formatDate(p.date)}${p.note ? ` · ${p.note}` : ""}`}
                     amount={p.amount}
                     tone="good"
                   />
@@ -235,11 +250,11 @@ export function DriverBalanceBreakdownModal(props: {
               <p className="crm-form-hint">{t("balanceBreakdown.noDiscounts")}</p>
             ) : (
               <>
-                {breakdown.discountPayments.map((p) => (
+                {breakdown.discountPayments.map((p: DriverBalancePaymentLine) => (
                   <MoneyLine
                     key={p.id}
                     label={p.carPlate ?? "—"}
-                    sublabel={`${formatDate(p.date.toISOString())}${p.note ? ` · ${p.note}` : ""}`}
+                    sublabel={`${formatDate(p.date)}${p.note ? ` · ${p.note}` : ""}`}
                     amount={p.amount}
                     tone="good"
                   />
@@ -262,11 +277,11 @@ export function DriverBalanceBreakdownModal(props: {
               <p className="crm-form-hint">{t("balanceBreakdown.noFines")}</p>
             ) : (
               <>
-                {breakdown.unpaidFines.map((f) => (
+                {breakdown.unpaidFines.map((f: DriverBalanceFineLine) => (
                   <MoneyLine
                     key={f.id}
-                    label={f.description ?? formatDate(f.date.toISOString())}
-                    sublabel={formatDate(f.date.toISOString())}
+                    label={f.description ?? formatDate(f.date)}
+                    sublabel={formatDate(f.date)}
                     amount={f.amount}
                     tone="bad"
                   />

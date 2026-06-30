@@ -543,6 +543,79 @@ export interface DriverBalance {
   activeCars: { id: string; plate: string }[];
 }
 
+/**
+ * A single active agreement that is accruing rent toward the driver's
+ * outstanding balance. Returned by the breakdown endpoint and rendered
+ * in the Driver Balance Breakdown modal.
+ */
+export interface DriverBalanceAccrual {
+  agreementId: string;
+  carPlate: string;
+  carLabel: string;
+  period: RentPeriod;
+  rentAmount: number;
+  startDate: string; // ISO YYYY-MM-DD
+  endDate: string | null;
+  daysElapsed: number;
+  periods: number;
+  accrued: number;
+}
+
+/**
+ * One record on the driver's ledger — a single RENT/DEPOSIT/REFUND/FINE
+ * payment (or a discount, which can be its own row or ride inline on a
+ * RENT payment via `discountAmount`).
+ */
+export interface DriverBalancePaymentLine {
+  id: string;
+  date: string; // ISO date or full ISO timestamp
+  type: string;
+  amount: number;
+  note: string | null;
+  carPlate: string | null;
+  method: string | null;
+}
+
+/**
+ * One unpaid fine linked to the driver.
+ */
+export interface DriverBalanceFineLine {
+  id: string;
+  date: string;
+  amount: number;
+  description: string | null;
+}
+
+/**
+ * Detailed breakdown of how a driver's balance was computed. Returned by
+ * the server via GET /drivers/:id/balance/breakdown so the modal can render
+ * the same figures that appear on the drivers list (which uses /balances).
+ *
+ * The two paths must agree — if a RENT payment or new agreement has been
+ * recorded recently but the modal's cached agreements/payments aren't yet
+ * refreshed, a client-side recompute would diverge from the live balance.
+ * Computing the breakdown on the server keeps a single source of truth.
+ */
+export interface DriverBalanceBreakdown {
+  driverId: string;
+  driverName: string;
+  /** ISO timestamp the breakdown was computed at (server clock). */
+  asOf: string;
+  /** Active agreements currently accruing rent. */
+  activeAccruals: DriverBalanceAccrual[];
+  rentDue: number;
+  rentPayments: DriverBalancePaymentLine[];
+  discountPayments: DriverBalancePaymentLine[];
+  depositPayments: DriverBalancePaymentLine[];
+  refundPayments: DriverBalancePaymentLine[];
+  rentPaid: number;
+  discounts: number;
+  unpaidFines: DriverBalanceFineLine[];
+  unpaidFinesTotal: number;
+  depositHeld: number;
+  balance: number; // = rentDue - rentPaid - discounts + unpaidFines
+}
+
 export interface ReportSummary {
   from: string;
   to: string;
