@@ -1,7 +1,84 @@
-import { type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../crm";
 import { DateInput, formatDate, formatMoney } from "../ui";
+
+function useReportSectionCollapsed(storageKey: string, defaultOpen = true) {
+  const [open, setOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`crm-report-section-${storageKey}`);
+      if (saved !== null) return saved === "1";
+    } catch {
+      /* ignore */
+    }
+    return defaultOpen;
+  });
+
+  const toggle = useCallback(() => {
+    setOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(`crm-report-section-${storageKey}`, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, [storageKey]);
+
+  return { open, toggle };
+}
+
+export function ReportBlockHead(props: {
+  avatarClassName?: string;
+  icon: ReactNode;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <>
+      <div className={`crm-report-section__avatar${props.avatarClassName ? ` ${props.avatarClassName}` : ""}`}>
+        {props.icon}
+      </div>
+      <div className="crm-report-section__titles">
+        <h3 className="crm-report-section__title">{props.title}</h3>
+        {props.subtitle ? <p className="crm-report-section__subtitle">{props.subtitle}</p> : null}
+      </div>
+    </>
+  );
+}
+
+export function CollapsibleReportBlock(props: {
+  storageKey: string;
+  defaultOpen?: boolean;
+  className?: string;
+  head: ReactNode;
+  children: ReactNode;
+}) {
+  const { open, toggle } = useReportSectionCollapsed(props.storageKey, props.defaultOpen ?? true);
+
+  return (
+    <section
+      className={`crm-report-glass crm-report-section${props.className ? ` ${props.className}` : ""}${!open ? " crm-report-section--collapsed" : ""}`}
+    >
+      <button
+        type="button"
+        className="crm-report-section__head crm-report-section__head--toggle"
+        onClick={toggle}
+        aria-expanded={open}
+      >
+        {props.head}
+        <Icon
+          name="arrow-down-01"
+          size={24}
+          color="rgba(255,255,255,0.45)"
+          className={`crm-report-section__chevron crm-report-section__chevron--toggle${open ? " crm-report-section__chevron--open" : ""}`}
+        />
+      </button>
+      {open ? <div className="crm-report-section__collapsible">{props.children}</div> : null}
+    </section>
+  );
+}
 
 export function ReportFiltersCard(props: {
   from: string;
@@ -76,28 +153,41 @@ export function ReportSummaryCard(props: {
   const { t } = useTranslation();
 
   return (
-    <section className="crm-report-glass crm-report-summary">
-      <ReportSummaryItem
-        tone="income"
-        value={props.loading ? "…" : props.income}
-        label={t("reports.income")}
-        icon={<Icon name="receipt-dollar" size={26} color="#69F0AE" />}
-      />
-      <div className="crm-report-summary__divider" />
-      <ReportSummaryItem
-        tone="expense"
-        value={props.loading ? "…" : props.expenses}
-        label={t("reports.expenses")}
-        icon={<Icon name="chart-decrease" size={26} color="#FF8A80" />}
-      />
-      <div className="crm-report-summary__divider" />
-      <ReportSummaryItem
-        tone="profit"
-        value={props.loading ? "…" : props.profit}
-        label={t("reports.profit")}
-        icon={<Icon name="clock-01" size={26} color="#82B1FF" />}
-      />
-    </section>
+    <CollapsibleReportBlock
+      storageKey="reports-summary"
+      className="crm-report-summary-block"
+      head={
+        <ReportBlockHead
+          avatarClassName="crm-report-section__avatar--summary"
+          icon={<Icon name="chart-bar-line" size={28} color="#82B1FF" />}
+          title={t("reports.summaryTitle")}
+          subtitle={t("reports.summarySubtitle")}
+        />
+      }
+    >
+      <div className="crm-report-summary">
+        <ReportSummaryItem
+          tone="income"
+          value={props.loading ? "…" : props.income}
+          label={t("reports.income")}
+          icon={<Icon name="receipt-dollar" size={26} color="#69F0AE" />}
+        />
+        <div className="crm-report-summary__divider" />
+        <ReportSummaryItem
+          tone="expense"
+          value={props.loading ? "…" : props.expenses}
+          label={t("reports.expenses")}
+          icon={<Icon name="chart-decrease" size={26} color="#FF8A80" />}
+        />
+        <div className="crm-report-summary__divider" />
+        <ReportSummaryItem
+          tone="profit"
+          value={props.loading ? "…" : props.profit}
+          label={t("reports.profit")}
+          icon={<Icon name="clock-01" size={26} color="#82B1FF" />}
+        />
+      </div>
+    </CollapsibleReportBlock>
   );
 }
 
@@ -132,22 +222,23 @@ export function ReportSectionCard(props: {
   const hasRows = rows.length > 0;
 
   return (
-    <section className="crm-report-glass crm-report-section">
-      <div className="crm-report-section__head">
-        <div className={`crm-report-section__avatar crm-report-section__avatar--${props.tone}`}>
-          {props.tone === "car" ? (
-            <Icon name="car-01" size={28} color="#3B82F6" />
-          ) : (
-            <Icon name="user" size={28} color="#A855F7" />
-          )}
-        </div>
-        <div className="crm-report-section__titles">
-          <h3 className="crm-report-section__title">{props.title}</h3>
-          <p className="crm-report-section__subtitle">{props.subtitle}</p>
-        </div>
-        <Icon className="crm-report-section__chevron" name="arrow-right-01" size={28} color="rgba(255,255,255,0.45)" />
-      </div>
-
+    <CollapsibleReportBlock
+      storageKey={`reports-by-${props.tone}`}
+      head={
+        <ReportBlockHead
+          avatarClassName={`crm-report-section__avatar--${props.tone}`}
+          icon={
+            props.tone === "car" ? (
+              <Icon name="car-01" size={28} color="#3B82F6" />
+            ) : (
+              <Icon name="user" size={28} color="#A855F7" />
+            )
+          }
+          title={props.title}
+          subtitle={props.subtitle}
+        />
+      }
+    >
       <div className="crm-report-section__body">
         {props.loading ? (
           <div className="crm-report-section__empty">
@@ -187,6 +278,6 @@ export function ReportSectionCard(props: {
           </div>
         )}
       </div>
-    </section>
+    </CollapsibleReportBlock>
   );
 }

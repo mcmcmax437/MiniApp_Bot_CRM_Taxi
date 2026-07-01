@@ -6081,6 +6081,54 @@ select.crm-input option {
   padding: 24px;
 }
 
+.crm-report-section--collapsed {
+  padding-bottom: 20px;
+}
+
+.crm-report-section__head--toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.crm-report-section__chevron--toggle {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.crm-report-section__chevron--open {
+  transform: rotate(180deg);
+}
+
+.crm-report-section__collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.crm-report-section__collapsible > .crm-report-section__body {
+  margin-top: 0;
+}
+
+.crm-report-summary-block .crm-report-summary {
+  margin: 0;
+}
+
+.crm-report-section__avatar--summary {
+  background: rgba(130, 177, 255, 0.15);
+}
+
 .crm-report-section__head {
   display: flex;
   align-items: center;

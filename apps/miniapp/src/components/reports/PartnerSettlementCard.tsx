@@ -6,6 +6,7 @@ import { showAlert } from "../../telegram";
 import { Icon } from "../crm";
 import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
+import { formatDate } from "../../dates";
 import { downloadTextFile } from "./driverIncomeExport";
 import { PartnerMonthActivity } from "./PartnerMonthActivity";
 import {
@@ -13,15 +14,8 @@ import {
   filterPartnerSettlementByMonths,
 } from "./partnerSettlementExport";
 import { ReportYearMonthPicker } from "./ReportYearMonthPicker";
+import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import { useReportYearMonths } from "./useReportYearMonths";
-
-function formatShortDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-  });
-}
 
 function NetBalanceLabel({
   amount,
@@ -50,12 +44,10 @@ function NetBalanceLabel({
 function MonthBlock({
   section,
   monthLabel,
-  locale,
   t,
 }: {
   section: PartnerSettlementMonth;
   monthLabel: string;
-  locale: string;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const [open, setOpen] = useState(false);
@@ -108,7 +100,7 @@ function MonthBlock({
                 {section.payments.map((line) => (
                   <li key={line.id} className="crm-partner-settlement__line">
                     <span className="crm-partner-settlement__line-date">
-                      {formatShortDate(line.date, locale)}
+                      {formatDate(line.date)}
                     </span>
                     <span className="crm-partner-settlement__line-desc">{line.description}</span>
                     <span className="crm-partner-settlement__line-amount">{formatMoney(line.amount)}</span>
@@ -138,7 +130,7 @@ function MonthBlock({
                 {section.expenses.map((line) => (
                   <li key={line.id} className="crm-partner-settlement__line">
                     <span className="crm-partner-settlement__line-date">
-                      {formatShortDate(line.date, locale)}
+                      {formatDate(line.date)}
                     </span>
                     <span className="crm-partner-settlement__line-desc">{line.description}</span>
                     <span className="crm-partner-settlement__line-amount">{formatMoney(line.amount)}</span>
@@ -219,7 +211,7 @@ export function PartnerSettlementCard() {
       no: t("common.no"),
       grandTotal: t("reports.accountantGrandTotal"),
       monthLabel,
-      formatDate: (iso) => formatShortDate(iso, i18n.language),
+      formatDate,
     });
   }
 
@@ -244,17 +236,18 @@ export function PartnerSettlementCard() {
   }
 
   return (
-    <section className="crm-report-glass crm-report-section crm-partner-settlement">
-      <div className="crm-report-section__head">
-        <div className="crm-report-section__avatar crm-report-section__avatar--partner">
-          <Icon name="wallet-01" size={28} color="#ffb300" />
-        </div>
-        <div className="crm-report-section__titles">
-          <h3 className="crm-report-section__title">{t("reports.partnerTitle")}</h3>
-          <p className="crm-report-section__subtitle">{t("reports.partnerSubtitle")}</p>
-        </div>
-      </div>
-
+    <CollapsibleReportBlock
+      storageKey="reports-partner-settlement"
+      className="crm-partner-settlement"
+      head={
+        <ReportBlockHead
+          avatarClassName="crm-report-section__avatar--partner"
+          icon={<Icon name="wallet-01" size={28} color="#ffb300" />}
+          title={t("reports.partnerTitle")}
+          subtitle={t("reports.partnerSubtitle")}
+        />
+      }
+    >
       <ReportYearMonthPicker
         year={year}
         onYearChange={changeYear}
@@ -320,7 +313,6 @@ export function PartnerSettlementCard() {
             <PartnerMonthActivity
               selectedMonths={selectedMonths}
               monthLabel={monthLabel}
-              locale={i18n.language}
               t={t}
             />
           )
@@ -380,7 +372,6 @@ export function PartnerSettlementCard() {
                   key={section.month}
                   section={section}
                   monthLabel={monthLabel(section.month)}
-                  locale={i18n.language}
                   t={t}
                 />
               ))}
@@ -388,6 +379,6 @@ export function PartnerSettlementCard() {
           </>
         )}
       </div>
-    </section>
+    </CollapsibleReportBlock>
   );
 }

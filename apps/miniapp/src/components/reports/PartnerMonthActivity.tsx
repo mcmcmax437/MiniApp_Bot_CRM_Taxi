@@ -4,6 +4,7 @@ import type { Expense, Payment } from "../../types";
 import { Icon } from "../crm";
 import { PartnerAlertMark } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
+import { formatDate } from "../../dates";
 import {
   isIncomePayment,
   monthKeyFromIso,
@@ -13,14 +14,6 @@ import {
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-
-function formatShortDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-  });
 }
 
 type ActivityMonth = {
@@ -34,12 +27,10 @@ type ActivityMonth = {
 function ActivityMonthBlock({
   section,
   monthLabel,
-  locale,
   t,
 }: {
   section: ActivityMonth;
   monthLabel: string;
-  locale: string;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const [open, setOpen] = useState(false);
@@ -83,7 +74,7 @@ function ActivityMonthBlock({
                 {section.payments.map((line) => (
                   <li key={line.id} className="crm-partner-settlement__line">
                     <span className="crm-partner-settlement__line-date">
-                      {formatShortDate(line.date, locale)}
+                      {formatDate(line.date)}
                     </span>
                     <span className="crm-partner-settlement__line-desc">
                       <span className="crm-partner-settlement__line-desc-text">
@@ -109,7 +100,7 @@ function ActivityMonthBlock({
                 {section.expenses.map((line) => (
                   <li key={line.id} className="crm-partner-settlement__line">
                     <span className="crm-partner-settlement__line-date">
-                      {formatShortDate(line.date, locale)}
+                      {formatDate(line.date)}
                     </span>
                     <span className="crm-partner-settlement__line-desc">
                       <span className="crm-partner-settlement__line-desc-text">
@@ -136,12 +127,10 @@ function ActivityMonthBlock({
 export function PartnerMonthActivity({
   selectedMonths,
   monthLabel,
-  locale,
   t,
 }: {
   selectedMonths: Set<string>;
   monthLabel: (monthKey: string) => string;
-  locale: string;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const payments = usePayments();
@@ -238,7 +227,6 @@ export function PartnerMonthActivity({
             key={section.monthKey}
             section={section}
             monthLabel={monthLabel(section.monthKey)}
-            locale={locale}
             t={t}
           />
         ))}

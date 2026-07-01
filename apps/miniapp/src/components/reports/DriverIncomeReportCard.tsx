@@ -6,6 +6,7 @@ import { showAlert } from "../../telegram";
 import { Icon } from "../crm";
 import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
+import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import {
   buildDriverIncomeCsv,
   downloadTextFile,
@@ -101,17 +102,18 @@ export function DriverIncomeReportCard() {
   }
 
   return (
-    <section className="crm-report-glass crm-report-section crm-driver-income-report">
-      <div className="crm-report-section__head">
-        <div className="crm-report-section__avatar crm-report-section__avatar--accountant">
-          <Icon name="clipboard" size={28} color="#26A69A" />
-        </div>
-        <div className="crm-report-section__titles">
-          <h3 className="crm-report-section__title">{t("reports.accountantTitle")}</h3>
-          <p className="crm-report-section__subtitle">{t("reports.accountantSubtitle")}</p>
-        </div>
-      </div>
-
+    <CollapsibleReportBlock
+      storageKey="reports-driver-income"
+      className="crm-driver-income-report"
+      head={
+        <ReportBlockHead
+          avatarClassName="crm-report-section__avatar--accountant"
+          icon={<Icon name="clipboard" size={28} color="#26A69A" />}
+          title={t("reports.accountantTitle")}
+          subtitle={t("reports.accountantSubtitle")}
+        />
+      }
+    >
       <ReportYearMonthPicker
         year={year}
         onYearChange={changeYear}
@@ -180,7 +182,7 @@ export function DriverIncomeReportCard() {
           </div>
         )}
       </div>
-    </section>
+    </CollapsibleReportBlock>
   );
 }
 
