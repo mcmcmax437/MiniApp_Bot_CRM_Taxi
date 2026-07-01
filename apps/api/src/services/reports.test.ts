@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildDriverIncomeReportFromRows } from "./reports.js";
+import { buildDriverIncomeReportFromRows } from "./driver-income-report.js";
 
 const from = new Date("2026-05-01T00:00:00.000Z");
 const to = new Date("2026-06-30T23:59:59.999Z");
