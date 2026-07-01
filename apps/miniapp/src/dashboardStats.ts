@@ -170,11 +170,12 @@ export function computeDashboardStats(input: {
   //   - Covers the whole calendar month, not just 1st-to-today
   //   - Filters by selected car when one is picked
   let localExpenses: number | null = null;
-  if (input.statsPeriod === "month" || input.statsPeriod === "previous") {
+  const statsPeriod = input.statsPeriod;
+  if (statsPeriod === "month" || statsPeriod === "previous") {
     const list = input.expenses.filter(
       (e) =>
         e.category !== ExpenseCategory.TAX &&
-        expenseInStatsPeriod(e.date, input.statsPeriod, input.now) &&
+        expenseInStatsPeriod(e.date, statsPeriod, input.now) &&
         (!input.statsCarId || e.carId === input.statsCarId),
     );
     localExpenses = round2(list.reduce((s, e) => s + e.amount, 0));
