@@ -4,7 +4,7 @@ import {
   readReportSectionOpen,
   reportSectionStorageKey,
   writeReportSectionOpen,
-} from "./ReportSections.tsx";
+} from "./reportSectionStorage";
 
 class MemoryStorage implements Pick<Storage, "getItem" | "setItem"> {
   private values = new Map<string, string>();
