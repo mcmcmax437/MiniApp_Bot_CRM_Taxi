@@ -1,18 +1,18 @@
 import { useMemo, useState } from "react";
 import { useExpenses, usePayments } from "../../hooks";
-import type { Expense, Payment } from "../../types";
 import { Icon } from "../crm";
 import { formatMoney } from "../ui";
 import {
-  isIncomePayment,
-  monthKeyFromIso,
   partnerExpenseDescription,
   partnerPaymentDescription,
 } from "./partnerSettlementFormat";
-
-function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
+import {
+  buildPartnerActivityModel,
+  formatActivityExpenseAmount,
+  formatActivityIncomeAmount,
+  roundActivityAmount,
+  type ActivityMonth,
+} from "./partnerMonthActivityModel";
 
 function formatShortDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -21,14 +21,6 @@ function formatShortDate(iso: string, locale: string): string {
     year: "2-digit",
   });
 }
-
-type ActivityMonth = {
-  monthKey: string;
-  incomeTotal: number;
-  expenseTotal: number;
-  payments: Payment[];
-  expenses: Expense[];
-};
 
 function ActivityMonthBlock({
   section,
@@ -56,11 +48,15 @@ function ActivityMonthBlock({
         <div className="crm-partner-settlement__month-summary">
           <span className="crm-partner-settlement__col crm-partner-settlement__col--in">
             <span className="crm-partner-settlement__col-label">{t("reports.partnerActivityIncome")}</span>
-            <strong className="crm-partner-settlement__amount--in">+{formatMoney(section.incomeTotal)}</strong>
+            <strong className="crm-partner-settlement__amount--in">
+              {formatActivityIncomeAmount(section.incomeTotal, formatMoney)}
+            </strong>
           </span>
           <span className="crm-partner-settlement__col crm-partner-settlement__col--out">
             <span className="crm-partner-settlement__col-label">{t("reports.partnerActivityExpenses")}</span>
-            <strong className="crm-partner-settlement__amount--out">−{formatMoney(section.expenseTotal)}</strong>
+            <strong className="crm-partner-settlement__amount--out">
+              {formatActivityExpenseAmount(section.expenseTotal, formatMoney)}
+            </strong>
           </span>
         </div>
         {hasLines ? (
@@ -88,7 +84,7 @@ function ActivityMonthBlock({
                       {partnerPaymentDescription(line)}
                     </span>
                     <span className="crm-partner-settlement__line-amount crm-partner-settlement__line-amount--income">
-                      +{formatMoney(line.amount)}
+                      {formatActivityIncomeAmount(line.amount, formatMoney)}
                     </span>
                   </li>
                 ))}
@@ -109,7 +105,7 @@ function ActivityMonthBlock({
                       {partnerExpenseDescription(line)}
                     </span>
                     <span className="crm-partner-settlement__line-amount crm-partner-settlement__line-amount--expense">
-                      −{formatMoney(line.amount)}
+                      {formatActivityExpenseAmount(line.amount, formatMoney)}
                     </span>
                   </li>
                 ))}
@@ -136,29 +132,15 @@ export function PartnerMonthActivity({
   const payments = usePayments();
   const expenses = useExpenses();
 
-  const { months, grandIncome, grandExpenses } = useMemo(() => {
-    const sorted = [...selectedMonths].sort();
-    let grandIncome = 0;
-    let grandExpenses = 0;
-    const months = sorted.map((monthKey) => {
-      const monthPayments = (payments.data ?? [])
-        .filter((p) => isIncomePayment(p.type) && monthKeyFromIso(p.date) === monthKey)
-        .sort((a, b) => b.date.localeCompare(a.date));
-      const monthExpenses = (expenses.data ?? [])
-        .filter((e) => monthKeyFromIso(e.date) === monthKey)
-        .sort((a, b) => b.date.localeCompare(a.date));
-      const incomeTotal = round2(monthPayments.reduce((s, p) => s + p.amount, 0));
-      const expenseTotal = round2(monthExpenses.reduce((s, e) => s + e.amount, 0));
-      grandIncome += incomeTotal;
-      grandExpenses += expenseTotal;
-      return { monthKey, incomeTotal, expenseTotal, payments: monthPayments, expenses: monthExpenses };
-    });
-    return {
-      months,
-      grandIncome: round2(grandIncome),
-      grandExpenses: round2(grandExpenses),
-    };
-  }, [payments.data, expenses.data, selectedMonths]);
+  const { months, grandIncome, grandExpenses } = useMemo(
+    () =>
+      buildPartnerActivityModel({
+        selectedMonths,
+        payments: payments.data ?? [],
+        expenses: expenses.data ?? [],
+      }),
+    [payments.data, expenses.data, selectedMonths],
+  );
 
   const loading = payments.isLoading || expenses.isLoading;
   const hasData = months.some((m) => m.payments.length > 0 || m.expenses.length > 0);
@@ -191,15 +173,19 @@ export function PartnerMonthActivity({
       <div className="crm-partner-settlement__grand glass-card">
         <div className="crm-partner-settlement__grand-row">
           <span>{t("reports.partnerActivityGrandIncome")}</span>
-          <strong className="crm-partner-settlement__amount--in">+{formatMoney(grandIncome)}</strong>
+          <strong className="crm-partner-settlement__amount--in">
+            {formatActivityIncomeAmount(grandIncome, formatMoney)}
+          </strong>
         </div>
         <div className="crm-partner-settlement__grand-row">
           <span>{t("reports.partnerActivityGrandExpenses")}</span>
-          <strong className="crm-partner-settlement__amount--out">−{formatMoney(grandExpenses)}</strong>
+          <strong className="crm-partner-settlement__amount--out">
+            {formatActivityExpenseAmount(grandExpenses, formatMoney)}
+          </strong>
         </div>
         <div className="crm-partner-settlement__grand-row crm-partner-settlement__grand-row--net">
           <span>{t("dashboard.profit")}</span>
-          <strong>{formatMoney(round2(grandIncome - grandExpenses))}</strong>
+          <strong>{formatMoney(roundActivityAmount(grandIncome - grandExpenses))}</strong>
         </div>
       </div>
 
