@@ -22,13 +22,13 @@ export function filterPartnerSettlementByMonths(
   const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
   let partnerOwesYou = 0;
   let youOwePartner = 0;
-  let partnerOwesYouUnsettled = 0;
-  let youOwePartnerUnsettled = 0;
+  let partnerCollectedTotal = 0;
+  let partnerExpensesTotal = 0;
   for (const m of months) {
     partnerOwesYou += m.partnerOwesYou;
     youOwePartner += m.youOwePartner;
-    partnerOwesYouUnsettled += m.partnerOwesYouUnsettled;
-    youOwePartnerUnsettled += m.youOwePartnerUnsettled;
+    partnerCollectedTotal += m.partnerCollectedTotal;
+    partnerExpensesTotal += m.partnerExpensesTotal;
   }
 
   return {
@@ -38,8 +38,8 @@ export function filterPartnerSettlementByMonths(
       partnerOwesYou: round2(partnerOwesYou),
       youOwePartner: round2(youOwePartner),
       netBalance: round2(partnerOwesYou - youOwePartner),
-      partnerOwesYouUnsettled: round2(partnerOwesYouUnsettled),
-      youOwePartnerUnsettled: round2(youOwePartnerUnsettled),
+      partnerCollectedTotal: round2(partnerCollectedTotal),
+      partnerExpensesTotal: round2(partnerExpensesTotal),
     },
   };
 }

@@ -123,10 +123,11 @@ function MonthBlock({
                   </li>
                 ))}
               </ul>
-              {section.partnerOwesYouUnsettled > 0 ? (
+              {section.partnerCollectedTotal > section.partnerOwesYou ? (
                 <p className="crm-form-hint crm-partner-settlement__unsettled">
-                  {t("reports.partnerUnsettledPayments", {
-                    amount: formatMoney(section.partnerOwesYouUnsettled),
+                  {t("reports.partnerSettledPaymentsNote", {
+                    total: formatMoney(section.partnerCollectedTotal),
+                    settled: formatMoney(section.partnerCollectedTotal - section.partnerOwesYou),
                   })}
                 </p>
               ) : null}
@@ -152,10 +153,11 @@ function MonthBlock({
                   </li>
                 ))}
               </ul>
-              {section.youOwePartnerUnsettled > 0 ? (
+              {section.partnerExpensesTotal > section.youOwePartner ? (
                 <p className="crm-form-hint crm-partner-settlement__unsettled">
-                  {t("reports.partnerUnsettledExpenses", {
-                    amount: formatMoney(section.youOwePartnerUnsettled),
+                  {t("reports.partnerSettledExpensesNote", {
+                    total: formatMoney(section.partnerExpensesTotal),
+                    settled: formatMoney(section.partnerExpensesTotal - section.youOwePartner),
                   })}
                 </p>
               ) : null}
@@ -414,12 +416,12 @@ export function PartnerSettlementCard() {
                   balancedLabel={t("reports.partnerBalanced")}
                 />
               </div>
-              {(visibleReport.totals.partnerOwesYouUnsettled > 0 ||
-                visibleReport.totals.youOwePartnerUnsettled > 0) && (
+              {(visibleReport.totals.partnerCollectedTotal > visibleReport.totals.partnerOwesYou ||
+                visibleReport.totals.partnerExpensesTotal > visibleReport.totals.youOwePartner) && (
                 <p className="crm-form-hint crm-partner-settlement__grand-hint">
-                  {t("reports.partnerStillOpen", {
-                    partnerOwes: formatMoney(visibleReport.totals.partnerOwesYouUnsettled),
-                    youOwe: formatMoney(visibleReport.totals.youOwePartnerUnsettled),
+                  {t("reports.partnerPeriodTotals", {
+                    collected: formatMoney(visibleReport.totals.partnerCollectedTotal),
+                    expenses: formatMoney(visibleReport.totals.partnerExpensesTotal),
                   })}
                 </p>
               )}

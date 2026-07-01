@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useReminders } from "../hooks";
 import { AppHeader, Icon } from "../components/crm";
 import { ReminderList } from "../components/ReminderList";
+import { WeeklyMileageSkipBanner } from "../components/WeeklyMileageSkipBanner";
 
 export function RemindersPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const reminders = useReminders();
+  const mileageCount =
+    reminders.data?.filter((r) => r.kind === "MILEAGE_REPORT").length ?? 0;
 
   return (
     <div className="crm-page">
@@ -25,6 +28,8 @@ export function RemindersPage() {
           <p className="crm-page-head__subtitle">{t("reminders.pageSubtitle")}</p>
         </div>
       </div>
+
+      <WeeklyMileageSkipBanner mileageReminderCount={mileageCount} />
 
       {reminders.isLoading ? (
         <div className="crm-empty-box">

@@ -667,14 +667,16 @@ export interface PartnerSettlementLine {
 export interface PartnerSettlementMonth {
   /** YYYY-MM */
   month: string;
-  /** Payments collected by the partner (they owe you this). */
+  /** Outstanding — partner collected but has not settled back to you. */
   partnerOwesYou: number;
-  /** Expenses the partner paid on your behalf (you owe them this). */
+  /** Outstanding — partner paid on your behalf and you have not reimbursed yet. */
   youOwePartner: number;
   /** partnerOwesYou − youOwePartner; positive = partner pays you. */
   netBalance: number;
-  partnerOwesYouUnsettled: number;
-  youOwePartnerUnsettled: number;
+  /** All partner-collected payments in this month (including already settled). */
+  partnerCollectedTotal: number;
+  /** All partner-paid expenses in this month (including already settled). */
+  partnerExpensesTotal: number;
   payments: PartnerSettlementLine[];
   expenses: PartnerSettlementLine[];
 }
@@ -683,8 +685,8 @@ export interface PartnerSettlementTotals {
   partnerOwesYou: number;
   youOwePartner: number;
   netBalance: number;
-  partnerOwesYouUnsettled: number;
-  youOwePartnerUnsettled: number;
+  partnerCollectedTotal: number;
+  partnerExpensesTotal: number;
 }
 
 /**
@@ -751,6 +753,9 @@ export interface ReminderSettings {
   inspectionMileageIntervalKm: number | null;
   weeklyMileageEnabled: boolean;
   weeklyMileageWeekday: number;
+  weeklyMileageSkippedWeekStart: string | null;
+  /** True when the owner skipped mileage check-in for the current weekly window. */
+  weeklyMileageSkippedThisWeek: boolean;
 }
 
 export {

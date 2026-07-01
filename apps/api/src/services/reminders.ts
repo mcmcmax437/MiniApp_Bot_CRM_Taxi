@@ -12,6 +12,26 @@ function carLabel(c: { plate: string; make: string | null; model: string | null 
   return m ? `${c.plate} (${m})` : c.plate;
 }
 
+function startOfCurrentWeek(now: Date, weekday: number): Date {
+  const day = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
+  const diff = (day - weekday + 7) % 7;
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - diff);
+  return start;
+}
+
+export function isWeeklyMileageSkipped(
+  settings: { weeklyMileageSkippedWeekStart?: Date | null; weeklyMileageWeekday: number },
+  now: Date = new Date(),
+): boolean {
+  if (!settings.weeklyMileageSkippedWeekStart) return false;
+  return (
+    settings.weeklyMileageSkippedWeekStart.getTime() ===
+    startOfCurrentWeek(now, settings.weeklyMileageWeekday).getTime()
+  );
+}
+
 /**
  * Start of the current "weekly mileage" window, anchored to the configured
  * weekday (e.g. Monday at 00:00). Anchoring to a fixed weekday — instead of
@@ -26,14 +46,6 @@ function carLabel(c: { plate: string; make: string | null; model: string | null 
  *  - The same definition is shared between the in-app reminder builder and
  *    the weekly Telegram job so the two channels can never disagree.
  */
-function startOfCurrentWeek(now: Date, weekday: number): Date {
-  const day = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
-  const diff = (day - weekday + 7) % 7;
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - diff);
-  return start;
-}
 
 /**
  * Return the cars in the owner's fleet that don't have a mileage log
@@ -42,12 +54,17 @@ function startOfCurrentWeek(now: Date, weekday: number): Date {
  */
 async function findCarsNeedingMileage(
   ownerId: string,
-  settings: { weeklyMileageEnabled: boolean; weeklyMileageWeekday: number },
+  settings: {
+    weeklyMileageEnabled: boolean;
+    weeklyMileageWeekday: number;
+    weeklyMileageSkippedWeekStart?: Date | null;
+  },
   now: Date = new Date(),
 ): Promise<
   Array<{ id: string; plate: string; make: string | null; model: string | null }>
 > {
   if (!settings.weeklyMileageEnabled) return [];
+  if (isWeeklyMileageSkipped(settings, now)) return [];
   const cars = await prisma.car.findMany({
     where: { ownerId },
     select: { id: true, plate: true, make: true, model: true },
@@ -266,6 +283,24 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
   });
 
   return items;
+}
+
+/** Skip the weekly mileage report for the owner's current weekly window. */
+export async function skipWeeklyMileageReport(ownerId: string): Promise<void> {
+  const settings = await ensureReminderSettings(ownerId);
+  const weekStart = startOfCurrentWeek(new Date(), settings.weeklyMileageWeekday);
+  await prisma.ownerReminderSettings.update({
+    where: { ownerId },
+    data: { weeklyMileageSkippedWeekStart: weekStart },
+  });
+}
+
+/** Clear a weekly mileage skip (e.g. owner changed their mind). */
+export async function unskipWeeklyMileageReport(ownerId: string): Promise<void> {
+  await prisma.ownerReminderSettings.update({
+    where: { ownerId },
+    data: { weeklyMileageSkippedWeekStart: null },
+  });
 }
 
 function formatReminderLine(item: ReminderItem): string {

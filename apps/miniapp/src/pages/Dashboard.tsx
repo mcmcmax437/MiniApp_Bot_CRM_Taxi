@@ -18,6 +18,7 @@ import { formatMoney } from "../components/ui";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
 import { useReadOnly } from "../readOnly";
 import { ReminderList } from "../components/ReminderList";
+import { WeeklyMileageSkipBanner } from "../components/WeeklyMileageSkipBanner";
 import { RecentActivitySection } from "../components/RecentActivitySection";
 import { StatsChart } from "../components/dashboard/StatsChart";
 import { financeInPeriod } from "../components/finance/FinanceUi";
@@ -393,13 +394,24 @@ export function Dashboard() {
             <p>{t("common.loading")}</p>
           </div>
         ) : reminders.data && reminders.data.length === 0 ? (
-          <div className="crm-empty-box">
-            <Icon name="calendar-01" size={42} color="var(--taxi-text-muted)" />
-            <p className="crm-empty-box__title">{t("dashboard.noReminders")}</p>
-            <p className="crm-empty-box__subtitle">{t("dashboard.caughtUp")}</p>
-          </div>
+          <>
+            <WeeklyMileageSkipBanner compact mileageReminderCount={0} />
+            <div className="crm-empty-box">
+              <Icon name="calendar-01" size={42} color="var(--taxi-text-muted)" />
+              <p className="crm-empty-box__title">{t("dashboard.noReminders")}</p>
+              <p className="crm-empty-box__subtitle">{t("dashboard.caughtUp")}</p>
+            </div>
+          </>
         ) : (
-          <ReminderList items={reminders.data ?? []} limit={20} />
+          <>
+            <WeeklyMileageSkipBanner
+              compact
+              mileageReminderCount={
+                reminders.data?.filter((r) => r.kind === "MILEAGE_REPORT").length ?? 0
+              }
+            />
+            <ReminderList items={reminders.data ?? []} limit={20} />
+          </>
         )}
       </SectionCard>
 

@@ -415,12 +415,12 @@ export async function buildPartnerSettlementReport(
   const months: PartnerSettlementMonth[] = [...byMonth.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, bucket]) => {
-      const partnerOwesYou = round2(bucket.payments.reduce((s, l) => s + l.amount, 0));
-      const youOwePartner = round2(bucket.expenses.reduce((s, l) => s + l.amount, 0));
-      const partnerOwesYouUnsettled = round2(
+      const partnerCollectedTotal = round2(bucket.payments.reduce((s, l) => s + l.amount, 0));
+      const partnerExpensesTotal = round2(bucket.expenses.reduce((s, l) => s + l.amount, 0));
+      const partnerOwesYou = round2(
         bucket.payments.filter((l) => !l.settled).reduce((s, l) => s + l.amount, 0),
       );
-      const youOwePartnerUnsettled = round2(
+      const youOwePartner = round2(
         bucket.expenses.filter((l) => !l.settled).reduce((s, l) => s + l.amount, 0),
       );
       return {
@@ -428,8 +428,8 @@ export async function buildPartnerSettlementReport(
         partnerOwesYou,
         youOwePartner,
         netBalance: round2(partnerOwesYou - youOwePartner),
-        partnerOwesYouUnsettled,
-        youOwePartnerUnsettled,
+        partnerCollectedTotal,
+        partnerExpensesTotal,
         payments: bucket.payments,
         expenses: bucket.expenses,
       };
@@ -437,13 +437,13 @@ export async function buildPartnerSettlementReport(
 
   let tPartnerOwes = 0;
   let tYouOwe = 0;
-  let tPartnerUnsettled = 0;
-  let tYouUnsettled = 0;
+  let tCollected = 0;
+  let tExpenses = 0;
   for (const m of months) {
     tPartnerOwes += m.partnerOwesYou;
     tYouOwe += m.youOwePartner;
-    tPartnerUnsettled += m.partnerOwesYouUnsettled;
-    tYouUnsettled += m.youOwePartnerUnsettled;
+    tCollected += m.partnerCollectedTotal;
+    tExpenses += m.partnerExpensesTotal;
   }
 
   return {
@@ -454,8 +454,8 @@ export async function buildPartnerSettlementReport(
       partnerOwesYou: round2(tPartnerOwes),
       youOwePartner: round2(tYouOwe),
       netBalance: round2(tPartnerOwes - tYouOwe),
-      partnerOwesYouUnsettled: round2(tPartnerUnsettled),
-      youOwePartnerUnsettled: round2(tYouUnsettled),
+      partnerCollectedTotal: round2(tCollected),
+      partnerExpensesTotal: round2(tExpenses),
     },
   };
 }

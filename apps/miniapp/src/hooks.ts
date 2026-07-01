@@ -492,6 +492,20 @@ export function useSaveReminderSettings() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["reminder-settings"] }),
   });
 }
+export function useSkipWeeklyMileage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (skip: boolean) =>
+      apiFetch<import("@taxi/shared").ReminderSettings>(
+        skip ? "/reminder-settings/skip-weekly-mileage" : "/reminder-settings/unskip-weekly-mileage",
+        { method: "POST" },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["reminder-settings"] });
+      void qc.invalidateQueries({ queryKey: ["reminders"] });
+    },
+  });
+}
 
 // --- Documents --------------------------------------------------------------
 export function useAllDocuments() {

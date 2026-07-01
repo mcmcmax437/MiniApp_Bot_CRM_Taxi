@@ -204,6 +204,8 @@ model OwnerReminderSettings {
   inspectionMileageIntervalKm Int?
   weeklyMileageEnabled  Boolean @default(true)
   weeklyMileageWeekday  Int     @default(1)
+  /** When set to the start of a weekly window, mileage reminders are suppressed for that week. */
+  weeklyMileageSkippedWeekStart DateTime?
   updatedAt             DateTime @updatedAt
 }
 

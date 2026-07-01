@@ -6600,6 +6600,54 @@ select.crm-input option {
   margin: 8px 0 0;
 }
 
+.crm-weekly-mileage-skip {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.crm-weekly-mileage-skip--compact {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+}
+
+.crm-weekly-mileage-skip__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.crm-weekly-mileage-skip__title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.crm-weekly-mileage-skip__text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.45;
+}
+
+.crm-weekly-mileage-skip__btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  padding: 8px 12px;
+}
+
+@media (max-width: 520px) {
+  .crm-weekly-mileage-skip {
+    flex-wrap: wrap;
+  }
+
+  .crm-weekly-mileage-skip__btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .crm-partner-settlement__month-summary {
     grid-template-columns: 1fr;
