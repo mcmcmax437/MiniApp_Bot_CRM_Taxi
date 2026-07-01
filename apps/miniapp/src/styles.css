@@ -6286,6 +6286,48 @@ select.crm-input option {
   gap: 12px;
 }
 
+.crm-report-year-month-picker {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crm-report-year-month-picker__year {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-report-year-month-picker__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crm-report-year-month-picker__select {
+  width: 100%;
+  max-width: 200px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 17, 31, 0.65);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  color-scheme: dark;
+}
+
+.crm-report-year-month-picker__months {
+  margin-top: 0;
+}
+
+.crm-report-year-month-picker__empty {
+  margin: 0;
+  padding: 8px 2px;
+}
+
 .crm-driver-income-report__range-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;

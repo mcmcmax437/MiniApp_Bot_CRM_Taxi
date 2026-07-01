@@ -164,3 +164,26 @@ export function monthKeyToToDate(monthKey: string): string {
   const cap = last.getTime() > today.getTime() ? today : last;
   return cap.toISOString().slice(0, 10);
 }
+
+export function currentYear(): number {
+  return new Date().getFullYear();
+}
+
+export function yearToFromDate(year: number): string {
+  return `${year}-01-01`;
+}
+
+export function yearToToDate(year: number): string {
+  const now = new Date();
+  if (year < now.getFullYear()) return `${year}-12-31`;
+  if (year > now.getFullYear()) return `${year}-01-01`;
+  return monthKeyToToDate(currentMonthKey());
+}
+
+/** Years from `firstYear` through the current year, newest first. */
+export function selectableYears(firstYear = 2020): number[] {
+  const end = currentYear();
+  const years: number[] = [];
+  for (let y = end; y >= firstYear; y--) years.push(y);
+  return years;
+}

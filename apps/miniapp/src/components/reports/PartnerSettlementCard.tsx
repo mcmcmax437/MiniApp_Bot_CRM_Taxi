@@ -6,17 +6,13 @@ import { showAlert } from "../../telegram";
 import { Icon } from "../crm";
 import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
-import {
-  currentMonthKey,
-  downloadTextFile,
-  monthKeyMonthsAgo,
-  monthKeyToFromDate,
-  monthKeyToToDate,
-} from "./driverIncomeExport";
+import { downloadTextFile } from "./driverIncomeExport";
 import {
   buildPartnerSettlementCsv,
   filterPartnerSettlementByMonths,
 } from "./partnerSettlementExport";
+import { ReportYearMonthPicker } from "./ReportYearMonthPicker";
+import { useReportYearMonths } from "./useReportYearMonths";
 
 function formatShortDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -171,20 +167,26 @@ function MonthBlock({
 
 export function PartnerSettlementCard() {
   const { t, i18n } = useTranslation();
-  const [fromMonth, setFromMonth] = useState(() => monthKeyMonthsAgo(2));
-  const [toMonth, setToMonth] = useState(() => currentMonthKey());
-  const [applied, setApplied] = useState(() => ({
-    from: monthKeyToFromDate(monthKeyMonthsAgo(2)),
-    to: monthKeyToToDate(currentMonthKey()),
-  }));
-  const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
+  const {
+    year,
+    changeYear,
+    applied,
+    selectedMonths,
+    syncAvailableMonths,
+    toggleMonth,
+    selectAllMonths,
+  } = useReportYearMonths();
 
   const report = usePartnerSettlementReport(applied.from, applied.to);
   const data = report.data;
+  const monthKeys = useMemo(
+    () => data?.months.map((m) => m.month) ?? [],
+    [data?.from, data?.to],
+  );
 
   useEffect(() => {
     if (!data) return;
-    setSelectedMonths(new Set(data.months.map((m) => m.month)));
+    syncAvailableMonths(monthKeys);
   }, [data?.from, data?.to]);
 
   const visibleReport = useMemo(
@@ -194,39 +196,6 @@ export function PartnerSettlementCard() {
 
   const monthLabel = (monthKey: string) =>
     formatFinanceMonthLabel(monthKey, i18n.language);
-
-  function applyRange() {
-    if (fromMonth > toMonth) {
-      showAlert(t("reports.accountantInvalidRange"));
-      return;
-    }
-    setApplied({
-      from: monthKeyToFromDate(fromMonth),
-      to: monthKeyToToDate(toMonth),
-    });
-  }
-
-  function applyPreset(monthsBack: number) {
-    const from = monthKeyMonthsAgo(monthsBack);
-    const to = currentMonthKey();
-    setFromMonth(from);
-    setToMonth(to);
-    setApplied({ from: monthKeyToFromDate(from), to: monthKeyToToDate(to) });
-  }
-
-  function toggleMonth(month: string) {
-    setSelectedMonths((prev) => {
-      const next = new Set(prev);
-      if (next.has(month)) next.delete(month);
-      else next.add(month);
-      return next;
-    });
-  }
-
-  function selectAllMonths() {
-    if (!data) return;
-    setSelectedMonths(new Set(data.months.map((m) => m.month)));
-  }
 
   function buildCsv(): string | null {
     if (!visibleReport || visibleReport.months.length === 0) return null;
@@ -265,12 +234,10 @@ export function PartnerSettlementCard() {
     const csv = buildCsv();
     if (!csv) return;
     const months = [...selectedMonths].sort();
-    const from = months[0] ?? fromMonth;
-    const to = months[months.length - 1] ?? toMonth;
+    const from = months[0] ?? `${year}-01`;
+    const to = months[months.length - 1] ?? `${year}-12`;
     downloadTextFile(`partner-settlement_${from}_${to}.csv`, csv);
   }
-
-  const availableMonths = data?.months ?? [];
 
   return (
     <section className="crm-report-glass crm-report-section crm-partner-settlement">
@@ -284,76 +251,16 @@ export function PartnerSettlementCard() {
         </div>
       </div>
 
-      <div className="crm-driver-income-report__range">
-        <div className="crm-driver-income-report__range-fields">
-          <label className="crm-month-field">
-            <span className="crm-month-field__label">{t("reports.accountantFromMonth")}</span>
-            <input
-              type="month"
-              className="crm-month-field__input"
-              value={fromMonth}
-              onChange={(e) => setFromMonth(e.target.value)}
-            />
-          </label>
-          <label className="crm-month-field">
-            <span className="crm-month-field__label">{t("reports.accountantToMonth")}</span>
-            <input
-              type="month"
-              className="crm-month-field__input"
-              value={toMonth}
-              onChange={(e) => setToMonth(e.target.value)}
-            />
-          </label>
-        </div>
-        <div className="crm-report-filters__presets crm-driver-income-report__presets">
-          <button type="button" className="crm-report-preset" onClick={() => applyPreset(0)}>
-            {t("reports.presetThisMonth")}
-          </button>
-          <button type="button" className="crm-report-preset" onClick={() => applyPreset(2)}>
-            {t("reports.preset3Months")}
-          </button>
-          <button type="button" className="crm-report-preset" onClick={() => applyPreset(5)}>
-            {t("reports.preset6Months")}
-          </button>
-        </div>
-        <button
-          type="button"
-          className="crm-report-apply crm-driver-income-report__apply"
-          onClick={applyRange}
-          disabled={report.isFetching}
-        >
-          <Icon name="chart-bar-line" size={20} color="#fff" />
-          <span>{t("reports.partnerCalculate")}</span>
-        </button>
-      </div>
-
-      {availableMonths.length > 0 ? (
-        <div className="crm-driver-income-report__month-pick">
-          <div className="crm-driver-income-report__month-pick-head">
-            <span className="crm-driver-income-report__month-pick-label">
-              {t("reports.accountantPickMonths")}
-            </span>
-            <button type="button" className="crm-driver-income-report__select-all" onClick={selectAllMonths}>
-              {t("reports.accountantSelectAllMonths")}
-            </button>
-          </div>
-          <div className="crm-driver-income-report__month-chips">
-            {availableMonths.map((section) => {
-              const active = selectedMonths.has(section.month);
-              return (
-                <button
-                  key={section.month}
-                  type="button"
-                  className={`crm-driver-income-report__month-chip${active ? " crm-driver-income-report__month-chip--active" : ""}`}
-                  onClick={() => toggleMonth(section.month)}
-                >
-                  {monthLabel(section.month)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      <ReportYearMonthPicker
+        year={year}
+        onYearChange={changeYear}
+        monthKeys={monthKeys}
+        selectedMonths={selectedMonths}
+        onToggleMonth={toggleMonth}
+        onSelectAllMonths={() => selectAllMonths(monthKeys)}
+        monthLabel={monthLabel}
+        loading={report.isFetching}
+      />
 
       <div className="crm-driver-income-report__actions">
         <button
