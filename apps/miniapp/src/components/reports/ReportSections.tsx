@@ -3,25 +3,46 @@ import { useTranslation } from "react-i18next";
 import { Icon } from "../crm";
 import { DateInput, formatDate, formatMoney } from "../ui";
 
+type ReportSectionReadableStorage = Pick<Storage, "getItem">;
+type ReportSectionWritableStorage = Pick<Storage, "setItem">;
+
+export function reportSectionStorageKey(storageKey: string): string {
+  return `crm-report-section-${storageKey}`;
+}
+
+export function readReportSectionOpen(
+  storageKey: string,
+  defaultOpen = true,
+  storage?: ReportSectionReadableStorage,
+): boolean {
+  try {
+    const saved = (storage ?? localStorage).getItem(reportSectionStorageKey(storageKey));
+    if (saved !== null) return saved === "1";
+  } catch {
+    /* ignore */
+  }
+  return defaultOpen;
+}
+
+export function writeReportSectionOpen(
+  storageKey: string,
+  open: boolean,
+  storage?: ReportSectionWritableStorage,
+): void {
+  try {
+    (storage ?? localStorage).setItem(reportSectionStorageKey(storageKey), open ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
 function useReportSectionCollapsed(storageKey: string, defaultOpen = true) {
-  const [open, setOpen] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`crm-report-section-${storageKey}`);
-      if (saved !== null) return saved === "1";
-    } catch {
-      /* ignore */
-    }
-    return defaultOpen;
-  });
+  const [open, setOpen] = useState(() => readReportSectionOpen(storageKey, defaultOpen));
 
   const toggle = useCallback(() => {
     setOpen((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem(`crm-report-section-${storageKey}`, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
+      writeReportSectionOpen(storageKey, next);
       return next;
     });
   }, [storageKey]);
