@@ -620,6 +620,11 @@ export interface DriverBalanceBreakdown {
 export interface DriverIncomeMonthDriverRow {
   driverId: string;
   driverName: string;
+  pesel: string | null;
+  passportNumber: string | null;
+  /** PESEL when set, otherwise passport number — for accountant exports. */
+  idDocument: string;
+  address: string;
   cash: number;
   bank: number;
   total: number;

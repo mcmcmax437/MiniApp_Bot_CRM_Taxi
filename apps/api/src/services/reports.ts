@@ -1,5 +1,5 @@
 import { prisma } from "../prisma.js";
-import type { DriverIncomeReport, ReportSummary } from "@taxi/shared";
+import type { DriverIncomeMonthDriverRow, DriverIncomeReport, ReportSummary } from "@taxi/shared";
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -13,6 +13,71 @@ function monthKeyFromDate(d: Date): string {
 }
 
 const UNASSIGNED_DRIVER_ID = "";
+
+function formatDriverAddress(d: {
+  addressCity: string | null;
+  addressPostalCode: string | null;
+  addressStreet: string | null;
+  addressHouse: string | null;
+  addressFlat: string | null;
+}): string {
+  return [d.addressCity, d.addressPostalCode, d.addressStreet, d.addressHouse, d.addressFlat]
+    .filter((part) => part && part.trim())
+    .join(", ");
+}
+
+function driverIdDocument(d: {
+  pesel: string | null;
+  passportNumber: string | null;
+}): string {
+  const pesel = d.pesel?.trim();
+  if (pesel) return pesel;
+  return d.passportNumber?.trim() ?? "";
+}
+
+type DriverProfile = {
+  id: string;
+  fullName: string;
+  pesel: string | null;
+  passportNumber: string | null;
+  addressCity: string | null;
+  addressPostalCode: string | null;
+  addressStreet: string | null;
+  addressHouse: string | null;
+  addressFlat: string | null;
+};
+
+function driverRowMeta(
+  driverId: string,
+  profiles: Map<string, DriverProfile>,
+): Pick<DriverIncomeMonthDriverRow, "driverName" | "pesel" | "passportNumber" | "idDocument" | "address"> {
+  if (driverId === UNASSIGNED_DRIVER_ID) {
+    return {
+      driverName: "",
+      pesel: null,
+      passportNumber: null,
+      idDocument: "",
+      address: "",
+    };
+  }
+  const d = profiles.get(driverId);
+  if (!d) {
+    return {
+      driverName: "",
+      pesel: null,
+      passportNumber: null,
+      idDocument: "",
+      address: "",
+    };
+  }
+  return {
+    driverName: d.fullName,
+    pesel: d.pesel,
+    passportNumber: d.passportNumber,
+    idDocument: driverIdDocument(d),
+    address: formatDriverAddress(d),
+  };
+}
 
 /**
  * Rent + fine income per driver per calendar month, split cash vs bank.
@@ -39,11 +104,21 @@ export async function buildDriverIncomeReport(
     }),
     prisma.driver.findMany({
       where: { ownerId },
-      select: { id: true, fullName: true },
+      select: {
+        id: true,
+        fullName: true,
+        pesel: true,
+        passportNumber: true,
+        addressCity: true,
+        addressPostalCode: true,
+        addressStreet: true,
+        addressHouse: true,
+        addressFlat: true,
+      },
     }),
   ]);
 
-  const driverNames = new Map(drivers.map((d) => [d.id, d.fullName] as const));
+  const driverProfiles = new Map(drivers.map((d) => [d.id, d] as const));
 
   type Cell = { cash: number; bank: number };
   const grid = new Map<string, Map<string, Cell>>();
@@ -83,12 +158,10 @@ export async function buildDriverIncomeReport(
       .map(([driverId, c]) => {
         const cash = round2(c.cash);
         const bank = round2(c.bank);
+        const meta = driverRowMeta(driverId, driverProfiles);
         return {
           driverId,
-          driverName:
-            driverId === UNASSIGNED_DRIVER_ID
-              ? ""
-              : (driverNames.get(driverId) ?? ""),
+          ...meta,
           cash,
           bank,
           total: round2(cash + bank),

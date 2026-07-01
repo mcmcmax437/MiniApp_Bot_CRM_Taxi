@@ -72,7 +72,7 @@ export function ReportsPage() {
         loading={report.isLoading}
       />
 
-      <DriverIncomeReportCard from={applied.from} to={applied.to} />
+      <DriverIncomeReportCard />
     </div>
   );
 }

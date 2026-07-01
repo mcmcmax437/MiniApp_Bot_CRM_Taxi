@@ -6278,3 +6278,142 @@ select.crm-input option {
 .crm-driver-income-report__grand-total {
   color: rgba(255, 255, 255, 0.85);
 }
+
+.crm-driver-income-report__range {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crm-driver-income-report__range-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.crm-month-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-month-field__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crm-month-field__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 17, 31, 0.65);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  color-scheme: dark;
+}
+
+.crm-driver-income-report__presets {
+  margin-bottom: 0;
+}
+
+.crm-driver-income-report__apply {
+  margin-top: 0;
+}
+
+.crm-driver-income-report__month-pick {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 17, 31, 0.45);
+}
+
+.crm-driver-income-report__month-pick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.crm-driver-income-report__month-pick-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.crm-driver-income-report__select-all {
+  border: none;
+  background: none;
+  color: #82b1ff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.crm-driver-income-report__month-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crm-driver-income-report__month-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.crm-driver-income-report__month-chip--active {
+  border-color: rgba(38, 166, 154, 0.55);
+  background: rgba(38, 166, 154, 0.18);
+  color: #80cbc4;
+}
+
+.crm-driver-income-report__driver-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 120px;
+}
+
+.crm-driver-income-report__driver-name {
+  font-weight: 600;
+}
+
+.crm-driver-income-report__driver-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.crm-driver-income-report__id-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.crm-driver-income-report__id-kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+@media (max-width: 520px) {
+  .crm-driver-income-report__range-fields {
+    grid-template-columns: 1fr;
+  }
+}

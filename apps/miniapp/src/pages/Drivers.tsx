@@ -84,8 +84,13 @@ const emptyForm: DriverForm = {
   notes: "",
 };
 
-type StatusFilter = "ALL" | DriverStatus;
+type DriverListFilter = "ALL" | "WITH_CAR" | "WITHOUT_CAR";
 type NameSort = "AZ" | "ZA";
+
+/** True when the driver is currently assigned under an ACTIVE rental agreement. */
+function driverHasActiveCar(d: Driver): boolean {
+  return (d.agreements ?? []).some((a) => a.status === AgreementStatus.ACTIVE);
+}
 
 function driverToForm(d: Driver): DriverForm {
   return {
@@ -139,7 +144,7 @@ export function DriversPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<DriverForm>(emptyForm);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<DriverListFilter>("ALL");
   const [nameSort, setNameSort] = useState<NameSort>("AZ");
   const [filterOpen, setFilterOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Set<DriverFormField>>(new Set());
@@ -175,7 +180,8 @@ export function DriversPage() {
   const filteredDrivers = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = (drivers.data ?? []).filter((d) => {
-      if (statusFilter !== "ALL" && d.status !== statusFilter) return false;
+      if (statusFilter === "WITH_CAR" && !driverHasActiveCar(d)) return false;
+      if (statusFilter === "WITHOUT_CAR" && driverHasActiveCar(d)) return false;
       if (!q) return true;
       const hay = [
         d.fullName,
@@ -350,14 +356,18 @@ export function DriversPage() {
           {filterOpen ? (
             <div className="crm-filter-menu">
               <div className="crm-filter-menu__heading">{t("drivers.filterStatus")}</div>
-              {(["ALL", DriverStatus.ACTIVE, DriverStatus.INACTIVE] as const).map((value) => (
+              {(["ALL", "WITH_CAR", "WITHOUT_CAR"] as const).map((value) => (
                 <button
                   key={value}
                   type="button"
                   className={`crm-filter-menu__item${statusFilter === value ? " crm-filter-menu__item--active" : ""}`}
                   onClick={() => setStatusFilter(value)}
                 >
-                  {value === "ALL" ? t("common.all") : t(`drivers.${value}`)}
+                  {value === "ALL"
+                    ? t("common.all")
+                    : value === "WITH_CAR"
+                      ? t("drivers.filterWithCar")
+                      : t("drivers.filterWithoutCar")}
                 </button>
               ))}
               <div className="crm-filter-menu__divider" />

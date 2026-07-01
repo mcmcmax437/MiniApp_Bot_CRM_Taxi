@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DriverIncomeReport } from "@taxi/shared";
 import { useDriverIncomeReport } from "../../hooks";
@@ -6,7 +6,15 @@ import { showAlert } from "../../telegram";
 import { Icon } from "../crm";
 import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
-import { buildDriverIncomeCsv, downloadTextFile } from "./driverIncomeExport";
+import {
+  buildDriverIncomeCsv,
+  currentMonthKey,
+  downloadTextFile,
+  filterDriverIncomeByMonths,
+  monthKeyMonthsAgo,
+  monthKeyToFromDate,
+  monthKeyToToDate,
+} from "./driverIncomeExport";
 
 function driverDisplayName(
   name: string,
@@ -17,10 +25,29 @@ function driverDisplayName(
   return name || "—";
 }
 
-export function DriverIncomeReportCard(props: { from: string; to: string }) {
+export function DriverIncomeReportCard() {
   const { t, i18n } = useTranslation();
-  const report = useDriverIncomeReport(props.from, props.to);
+  const [fromMonth, setFromMonth] = useState(() => monthKeyMonthsAgo(5));
+  const [toMonth, setToMonth] = useState(() => currentMonthKey());
+  const [applied, setApplied] = useState(() => ({
+    from: monthKeyToFromDate(monthKeyMonthsAgo(5)),
+    to: monthKeyToToDate(currentMonthKey()),
+  }));
+  const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
+
+  const report = useDriverIncomeReport(applied.from, applied.to);
   const data = report.data;
+
+  // When a new range is loaded, select every month that has data.
+  useEffect(() => {
+    if (!data) return;
+    setSelectedMonths(new Set(data.months.map((m) => m.month)));
+  }, [data?.from, data?.to]);
+
+  const visibleReport = useMemo(
+    () => (data ? filterDriverIncomeByMonths(data, selectedMonths) : null),
+    [data, selectedMonths],
+  );
 
   const monthLabel = (monthKey: string) =>
     formatFinanceMonthLabel(monthKey, i18n.language);
@@ -29,6 +56,9 @@ export function DriverIncomeReportCard(props: { from: string; to: string }) {
     () => ({
       month: t("reports.accountantMonth"),
       driver: t("reports.accountantDriver"),
+      pesel: t("drivers.pesel"),
+      passport: t("drivers.passportNumber"),
+      address: t("reports.accountantAddress"),
       cash: t("finance.CASH"),
       bank: t("finance.BANK"),
       total: t("reports.accountantTotal"),
@@ -42,9 +72,42 @@ export function DriverIncomeReportCard(props: { from: string; to: string }) {
     [t, i18n.language],
   );
 
+  function applyRange() {
+    if (fromMonth > toMonth) {
+      showAlert(t("reports.accountantInvalidRange"));
+      return;
+    }
+    setApplied({
+      from: monthKeyToFromDate(fromMonth),
+      to: monthKeyToToDate(toMonth),
+    });
+  }
+
+  function applyPreset(monthsBack: number) {
+    const from = monthKeyMonthsAgo(monthsBack);
+    const to = currentMonthKey();
+    setFromMonth(from);
+    setToMonth(to);
+    setApplied({ from: monthKeyToFromDate(from), to: monthKeyToToDate(to) });
+  }
+
+  function toggleMonth(month: string) {
+    setSelectedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(month)) next.delete(month);
+      else next.add(month);
+      return next;
+    });
+  }
+
+  function selectAllMonths() {
+    if (!data) return;
+    setSelectedMonths(new Set(data.months.map((m) => m.month)));
+  }
+
   function buildCsv(): string | null {
-    if (!data || data.months.length === 0) return null;
-    return buildDriverIncomeCsv(data, csvLabels);
+    if (!visibleReport || visibleReport.months.length === 0) return null;
+    return buildDriverIncomeCsv(visibleReport, csvLabels);
   }
 
   async function copyCsv() {
@@ -61,10 +124,13 @@ export function DriverIncomeReportCard(props: { from: string; to: string }) {
   function downloadCsv() {
     const csv = buildCsv();
     if (!csv) return;
-    const from = props.from.slice(0, 7);
-    const to = props.to.slice(0, 7);
+    const months = [...selectedMonths].sort();
+    const from = months[0] ?? fromMonth;
+    const to = months[months.length - 1] ?? toMonth;
     downloadTextFile(`driver-income_${from}_${to}.csv`, csv);
   }
+
+  const availableMonths = data?.months ?? [];
 
   return (
     <section className="crm-report-glass crm-report-section crm-driver-income-report">
@@ -78,12 +144,86 @@ export function DriverIncomeReportCard(props: { from: string; to: string }) {
         </div>
       </div>
 
+      <div className="crm-driver-income-report__range">
+        <div className="crm-driver-income-report__range-fields">
+          <label className="crm-month-field">
+            <span className="crm-month-field__label">{t("reports.accountantFromMonth")}</span>
+            <input
+              type="month"
+              className="crm-month-field__input"
+              value={fromMonth}
+              onChange={(e) => setFromMonth(e.target.value)}
+            />
+          </label>
+          <label className="crm-month-field">
+            <span className="crm-month-field__label">{t("reports.accountantToMonth")}</span>
+            <input
+              type="month"
+              className="crm-month-field__input"
+              value={toMonth}
+              onChange={(e) => setToMonth(e.target.value)}
+            />
+          </label>
+        </div>
+        <div className="crm-report-filters__presets crm-driver-income-report__presets">
+          <button type="button" className="crm-report-preset" onClick={() => applyPreset(0)}>
+            {t("reports.presetThisMonth")}
+          </button>
+          <button type="button" className="crm-report-preset" onClick={() => applyPreset(2)}>
+            {t("reports.preset3Months")}
+          </button>
+          <button type="button" className="crm-report-preset" onClick={() => applyPreset(5)}>
+            {t("reports.preset6Months")}
+          </button>
+          <button type="button" className="crm-report-preset" onClick={() => applyPreset(11)}>
+            {t("reports.preset12Months")}
+          </button>
+        </div>
+        <button
+          type="button"
+          className="crm-report-apply crm-driver-income-report__apply"
+          onClick={applyRange}
+          disabled={report.isFetching}
+        >
+          <Icon name="chart-bar-line" size={20} color="#fff" />
+          <span>{t("reports.accountantLoadMonths")}</span>
+        </button>
+      </div>
+
+      {availableMonths.length > 0 ? (
+        <div className="crm-driver-income-report__month-pick">
+          <div className="crm-driver-income-report__month-pick-head">
+            <span className="crm-driver-income-report__month-pick-label">
+              {t("reports.accountantPickMonths")}
+            </span>
+            <button type="button" className="crm-driver-income-report__select-all" onClick={selectAllMonths}>
+              {t("reports.accountantSelectAllMonths")}
+            </button>
+          </div>
+          <div className="crm-driver-income-report__month-chips">
+            {availableMonths.map((section) => {
+              const active = selectedMonths.has(section.month);
+              return (
+                <button
+                  key={section.month}
+                  type="button"
+                  className={`crm-driver-income-report__month-chip${active ? " crm-driver-income-report__month-chip--active" : ""}`}
+                  onClick={() => toggleMonth(section.month)}
+                >
+                  {monthLabel(section.month)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="crm-driver-income-report__actions">
         <button
           type="button"
           className="crm-btn-outline crm-driver-income-report__btn"
           onClick={() => void copyCsv()}
-          disabled={!data || data.months.length === 0 || report.isFetching}
+          disabled={!visibleReport || visibleReport.months.length === 0 || report.isFetching}
         >
           <Icon name="clipboard" size={16} color="#ffc107" />
           <span>{t("reports.accountantCopy")}</span>
@@ -92,7 +232,7 @@ export function DriverIncomeReportCard(props: { from: string; to: string }) {
           type="button"
           className="crm-btn-outline crm-driver-income-report__btn"
           onClick={downloadCsv}
-          disabled={!data || data.months.length === 0 || report.isFetching}
+          disabled={!visibleReport || visibleReport.months.length === 0 || report.isFetching}
         >
           <Icon name="download-01" size={16} color="#82b1ff" />
           <span>{t("reports.accountantDownload")}</span>
@@ -117,9 +257,13 @@ export function DriverIncomeReportCard(props: { from: string; to: string }) {
               </div>
             </div>
           </div>
+        ) : !visibleReport || visibleReport.months.length === 0 ? (
+          <div className="crm-report-section__empty">
+            <p className="crm-form-hint">{t("reports.accountantNoMonthsSelected")}</p>
+          </div>
         ) : (
           <div className="crm-driver-income-report__months">
-            {data.months.map((section) => (
+            {visibleReport.months.map((section) => (
               <MonthBlock
                 key={section.month}
                 section={section}
@@ -127,7 +271,7 @@ export function DriverIncomeReportCard(props: { from: string; to: string }) {
                 unassignedLabel={t("reports.unassignedDriver")}
               />
             ))}
-            <GrandTotalRow totals={data.grandTotals} label={t("reports.accountantGrandTotal")} />
+            <GrandTotalRow totals={visibleReport.grandTotals} label={t("reports.accountantGrandTotal")} />
           </div>
         )}
       </div>
@@ -150,24 +294,49 @@ function MonthBlock(props: {
           <thead>
             <tr>
               <th>{t("reports.accountantDriver")}</th>
+              <th>{t("drivers.pesel")}</th>
               <th>{t("finance.CASH")}</th>
               <th>{t("finance.BANK")}</th>
               <th>{t("reports.accountantTotal")}</th>
             </tr>
           </thead>
           <tbody>
-            {props.section.drivers.map((row, idx) => (
-              <tr key={`${props.section.month}-${row.driverId || `row-${idx}`}`}>
-                <td>{driverDisplayName(row.driverName, row.driverId, props.unassignedLabel)}</td>
-                <td>{formatMoney(row.cash)}</td>
-                <td>{formatMoney(row.bank)}</td>
-                <td className="crm-driver-income-report__total-cell">{formatMoney(row.total)}</td>
-              </tr>
-            ))}
+            {props.section.drivers.map((row, idx) => {
+              const name = driverDisplayName(row.driverName, row.driverId, props.unassignedLabel);
+              const idDoc = row.pesel?.trim() || row.passportNumber?.trim() || "—";
+              const idLabel = row.pesel?.trim()
+                ? t("drivers.pesel")
+                : row.passportNumber?.trim()
+                  ? t("drivers.passportNumber")
+                  : "";
+              return (
+                <tr key={`${props.section.month}-${row.driverId || `row-${idx}`}`}>
+                  <td>
+                    <div className="crm-driver-income-report__driver-cell">
+                      <span className="crm-driver-income-report__driver-name">{name}</span>
+                      {row.address ? (
+                        <span className="crm-driver-income-report__driver-meta">{row.address}</span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="crm-driver-income-report__id-cell">
+                      {idLabel ? (
+                        <span className="crm-driver-income-report__id-kind">{idLabel}</span>
+                      ) : null}
+                      <span>{idDoc}</span>
+                    </div>
+                  </td>
+                  <td>{formatMoney(row.cash)}</td>
+                  <td>{formatMoney(row.bank)}</td>
+                  <td className="crm-driver-income-report__total-cell">{formatMoney(row.total)}</td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             <tr>
-              <td>{t("reports.accountantMonthTotal")}</td>
+              <td colSpan={2}>{t("reports.accountantMonthTotal")}</td>
               <td>{formatMoney(props.section.totals.cash)}</td>
               <td>{formatMoney(props.section.totals.bank)}</td>
               <td className="crm-driver-income-report__total-cell">

@@ -131,7 +131,7 @@ function PaymentsTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<PaymentType | "ALL">("ALL");
+  const [methodFilter, setMethodFilter] = useState<PaymentMethod | "ALL">("ALL");
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean; discount?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -233,13 +233,13 @@ function PaymentsTab() {
     const q = search.trim().toLowerCase();
     const list = all.filter((p) => {
       if (!financeInPeriod(p.date, period)) return false;
-      if (typeFilter !== "ALL" && p.type !== typeFilter) return false;
+      if (methodFilter !== "ALL" && p.method !== methodFilter) return false;
       if (!q) return true;
       const hay = `${p.driver?.fullName ?? ""} ${p.note ?? ""} ${p.amount}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (p) => p.date);
-  }, [all, period, search, typeFilter, dateSort]);
+  }, [all, period, search, methodFilter, dateSort]);
 
   function openCreate() {
     setEditId(null);
@@ -393,34 +393,33 @@ function PaymentsTab() {
         onDateSortChange={setDateSort}
         sortOpen={sortOpen}
         onSortOpenChange={setSortOpen}
-        filterActive={typeFilter !== "ALL"}
+        filterActive={methodFilter !== "ALL"}
         onFilterClick={() => setFilterOpen((v) => !v)}
         filterMenu={
           filterOpen ? (
             <div className="crm-filter-menu crm-finance-filter-menu">
+              <div className="crm-filter-menu__heading">{t("finance.filterByMethod")}</div>
               <button
                 type="button"
-                className={`crm-filter-menu__item${typeFilter === "ALL" ? " crm-filter-menu__item--active" : ""}`}
+                className={`crm-filter-menu__item${methodFilter === "ALL" ? " crm-filter-menu__item--active" : ""}`}
                 onClick={() => {
-                  setTypeFilter("ALL");
+                  setMethodFilter("ALL");
                   setFilterOpen(false);
                 }}
               >
                 {t("common.all")}
               </button>
-              {/* Match the Payment Type dropdown in the modal: only show
-                  categories the user actually adds through that form. */}
-              {[PaymentType.RENT, PaymentType.DEPOSIT].map((pt) => (
+              {[PaymentMethod.CASH, PaymentMethod.BANK].map((method) => (
                 <button
-                  key={pt}
+                  key={method}
                   type="button"
-                  className={`crm-filter-menu__item${typeFilter === pt ? " crm-filter-menu__item--active" : ""}`}
+                  className={`crm-filter-menu__item${methodFilter === method ? " crm-filter-menu__item--active" : ""}`}
                   onClick={() => {
-                    setTypeFilter(pt);
+                    setMethodFilter(method);
                     setFilterOpen(false);
                   }}
                 >
-                  {t(`finance.${pt}`)}
+                  {t(`finance.${method}`)}
                 </button>
               ))}
             </div>
@@ -1195,7 +1194,9 @@ function PaymentModal(props: {
                           date: formatDate(contractAgreement.endDate),
                         });
                       }
-                      return `${t("cars.startDate")}: ${formatDate(contractAgreement.startDate)}`;
+                      return t("finance.contractStartsOn", {
+                        date: formatDate(contractAgreement.startDate),
+                      });
                     }
                     return t("finance.contractEnded", {
                       date: formatDate(
