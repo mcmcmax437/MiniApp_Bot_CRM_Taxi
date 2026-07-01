@@ -235,7 +235,7 @@ function PaymentsTab() {
       if (!financeInPeriod(p.date, period)) return false;
       if (methodFilter !== "ALL" && p.method !== methodFilter) return false;
       if (!q) return true;
-      const hay = `${p.driver?.fullName ?? ""} ${p.note ?? ""} ${p.amount}`.toLowerCase();
+      const hay = `${p.driver?.fullName ?? ""} ${p.car?.plate ?? ""} ${p.note ?? ""} ${p.amount}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (p) => p.date);

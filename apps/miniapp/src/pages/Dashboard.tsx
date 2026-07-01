@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { ExpenseCategory } from "@taxi/shared";
 import {
   useBalances,
   useCars,
@@ -82,8 +81,8 @@ function formatRoi(percent: number | null | undefined): string {
  * and returned), and DISCOUNT entries reduce what we owe back to drivers,
  * not money we received.
  *
- * "Expenses" excludes TAX, matching the Finance page's Expenses tab and
- * the existing monthly-expenses logic below.
+ * "Expenses" includes all money spent to run the fleet — operating costs
+ * and taxes (taxes are recorded separately in Finance but still reduce profit).
  *
  * Returns null when expenses are zero so we can render "—" instead of a
  * misleading "Infinity%".
@@ -149,9 +148,8 @@ export function Dashboard() {
   const reportRange = useMemo(() => reportDateRange(statsPeriod), [statsPeriod]);
   const report = useReport(reportRange.from, reportRange.to);
   const cars = useCars();
-  // Pull all expenses so we can compute the monthly expenses stat locally
-  // and match the Finance page's "This month" card exactly (which excludes
-  // TAX and uses the entire calendar month, not 1st-to-today).
+  // Pull all expenses so we can compute month/previous totals locally using
+  // the full calendar month (not 1st-to-today) and the selected car filter.
   const expensesQuery = useExpenses();
   const reminders = useReminders();
   const balances = useBalances();
@@ -169,16 +167,12 @@ export function Dashboard() {
       };
     }
 
-    // For the "month" view, recompute expenses locally so the number
-    // matches the Finance page's Expenses tab:
-    //   - Excludes TAX (which has its own tab there)
-    //   - Covers the whole calendar month, not just 1st-to-today
-    //   - Filters by selected car when one is picked
+    // For month/previous, recompute expenses locally so the number covers the
+    // whole calendar month and respects the car filter (including taxes).
     let localExpenses: number | null = null;
     if (statsPeriod === "month" || statsPeriod === "previous") {
       const list = (expensesQuery.data ?? []).filter(
         (e) =>
-          e.category !== ExpenseCategory.TAX &&
           expenseInStatsPeriod(e.date, statsPeriod) &&
           (!statsCarId || e.carId === statsCarId),
       );
@@ -199,8 +193,7 @@ export function Dashboard() {
 
     const carRow = report.data.byCar.find((row) => row.carId === statsCarId);
     const income = carRow?.income ?? 0;
-    // When a car is selected, prefer the locally-computed monthly number
-    // (excludes TAX) over the server-side per-car total.
+    // When a car is selected, prefer the locally-computed period total.
     const expenses =
       localExpenses != null ? localExpenses : (carRow?.expenses ?? 0);
     const profit = round2(income - expenses);
