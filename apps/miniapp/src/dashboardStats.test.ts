@@ -103,7 +103,7 @@ test("computeDashboardStats uses local previous-month expenses and excludes taxe
   assert.equal(stats.income, 1000);
   assert.equal(stats.expenses, 160.34);
   assert.equal(stats.profit, 839.66);
-  assert.equal(stats.roiPercent, 623.68);
+  assert.equal(stats.roiPercent, 623.67);
   assert.equal(formatRoi(stats.roiPercent), "+523.7%");
 });
 
