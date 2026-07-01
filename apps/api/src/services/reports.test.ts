@@ -1,98 +1,103 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it, mock } from "node:test";
+import { describe, it } from "node:test";
 
 process.env.DATABASE_URL ??= "mysql://taxi:taxi@localhost:3306/taxi_test";
 
-const { prisma } = await import("../prisma.js");
-const { buildPartnerSettlementReport } = await import("./reports.js");
-
-afterEach(() => {
-  mock.restoreAll();
-});
+const { buildPartnerSettlementReportWithClient } = await import("./reports.js");
 
 describe("buildPartnerSettlementReport", () => {
   it("groups partner cashflow by month and tracks unsettled balances", async () => {
     let paymentQuery: unknown;
     let expenseQuery: unknown;
 
-    mock.method(prisma.payment, "findMany", async (query: unknown) => {
-      paymentQuery = query;
-      return [
-        {
-          id: "pay-jan-open",
-          amount: 100.105,
-          date: new Date("2026-01-15T12:00:00.000Z"),
-          partnerSettled: false,
-          driverId: "driver-1",
-          type: "RENT",
-          note: "weekly rent",
+    const db = {
+      payment: {
+        findMany: async (query: unknown) => {
+          paymentQuery = query;
+          return [
+            {
+              id: "pay-jan-open",
+              amount: 100.105,
+              date: new Date("2026-01-15T12:00:00.000Z"),
+              partnerSettled: false,
+              driverId: "driver-1",
+              type: "RENT",
+              note: "weekly rent",
+            },
+            {
+              id: "pay-jan-settled",
+              amount: 50,
+              date: new Date("2026-01-20T12:00:00.000Z"),
+              partnerSettled: true,
+              driverId: null,
+              type: "FINE",
+              note: " ",
+            },
+            {
+              id: "pay-feb-open",
+              amount: 200,
+              date: new Date("2026-02-01T12:00:00.000Z"),
+              partnerSettled: false,
+              driverId: "missing-driver",
+              type: "RENT",
+              note: null,
+            },
+          ];
         },
-        {
-          id: "pay-jan-settled",
-          amount: 50,
-          date: new Date("2026-01-20T12:00:00.000Z"),
-          partnerSettled: true,
-          driverId: null,
-          type: "FINE",
-          note: " ",
+      },
+      expense: {
+        findMany: async (query: unknown) => {
+          expenseQuery = query;
+          return [
+            {
+              id: "expense-jan-open",
+              amount: 30.335,
+              date: new Date("2026-01-18T12:00:00.000Z"),
+              partnerSettled: false,
+              category: "REPAIR",
+              tag: " Tires ",
+              note: " ",
+              carId: "car-1",
+            },
+            {
+              id: "expense-jan-settled",
+              amount: 10,
+              date: new Date("2026-01-21T12:00:00.000Z"),
+              partnerSettled: true,
+              category: "FUEL",
+              tag: null,
+              note: "Gas",
+              carId: null,
+            },
+            {
+              id: "expense-feb-open",
+              amount: 75.5,
+              date: new Date("2026-02-10T12:00:00.000Z"),
+              partnerSettled: false,
+              category: "OTHER",
+              tag: null,
+              note: null,
+              carId: "missing-car",
+            },
+          ];
         },
-        {
-          id: "pay-feb-open",
-          amount: 200,
-          date: new Date("2026-02-01T12:00:00.000Z"),
-          partnerSettled: false,
-          driverId: "missing-driver",
-          type: "RENT",
-          note: null,
-        },
-      ];
-    });
-    mock.method(prisma.expense, "findMany", async (query: unknown) => {
-      expenseQuery = query;
-      return [
-        {
-          id: "expense-jan-open",
-          amount: 30.335,
-          date: new Date("2026-01-18T12:00:00.000Z"),
-          partnerSettled: false,
-          category: "REPAIR",
-          tag: " Tires ",
-          note: " ",
-          carId: "car-1",
-        },
-        {
-          id: "expense-jan-settled",
-          amount: 10,
-          date: new Date("2026-01-21T12:00:00.000Z"),
-          partnerSettled: true,
-          category: "FUEL",
-          tag: null,
-          note: "Gas",
-          carId: null,
-        },
-        {
-          id: "expense-feb-open",
-          amount: 75.5,
-          date: new Date("2026-02-10T12:00:00.000Z"),
-          partnerSettled: false,
-          category: "OTHER",
-          tag: null,
-          note: null,
-          carId: "missing-car",
-        },
-      ];
-    });
-    mock.method(prisma.driver, "findMany", async () => [
-      { id: "driver-1", fullName: "Ada Driver" },
-    ]);
-    mock.method(prisma.car, "findMany", async () => [
-      { id: "car-1", plate: "ABC-123", make: "Toyota", model: "Prius" },
-    ]);
+      },
+      driver: {
+        findMany: async () => [
+          { id: "driver-1", fullName: "Ada Driver" },
+        ],
+      },
+      car: {
+        findMany: async () => [
+          { id: "car-1", plate: "ABC-123", make: "Toyota", model: "Prius" },
+        ],
+      },
+    };
 
     const from = new Date("2026-01-01T00:00:00.000Z");
     const to = new Date("2026-02-28T23:59:59.999Z");
 
-    const report = await buildPartnerSettlementReport("owner-1", from, to);
+    const report = await buildPartnerSettlementReportWithClient(db, "owner-1", from, to);
 
     assert.deepEqual(paymentQuery, {
       where: {
