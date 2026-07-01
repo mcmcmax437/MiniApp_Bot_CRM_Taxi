@@ -21,6 +21,7 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
+    "pretest": "npm run prisma:generate -w @taxi/api",
     "test": "tsx --test apps/api/src/services/*.test.ts apps/miniapp/src/components/reports/*.test.ts",
     "prisma:generate": "npm run prisma:generate -w @taxi/api",
     "prisma:migrate": "npm run prisma:migrate -w @taxi/api",

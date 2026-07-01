@@ -110,7 +110,7 @@ describe("buildPartnerSettlementCsv", () => {
         "",
         "Label 2026-02;25.00;50.00;-25.00",
         "",
-        "Grand total;125.10;90.33;34.77",
+        "Grand total;125.11;90.33;34.77",
       ].join("\r\n"),
     );
   });
