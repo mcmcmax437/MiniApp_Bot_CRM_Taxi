@@ -655,6 +655,49 @@ export interface DriverIncomeReport {
   grandTotals: DriverIncomeMonthTotals;
 }
 
+/** One partner-related payment or expense line in the settlement report. */
+export interface PartnerSettlementLine {
+  id: string;
+  date: string;
+  amount: number;
+  description: string;
+  settled: boolean;
+}
+
+export interface PartnerSettlementMonth {
+  /** YYYY-MM */
+  month: string;
+  /** Payments collected by the partner (they owe you this). */
+  partnerOwesYou: number;
+  /** Expenses the partner paid on your behalf (you owe them this). */
+  youOwePartner: number;
+  /** partnerOwesYou − youOwePartner; positive = partner pays you. */
+  netBalance: number;
+  partnerOwesYouUnsettled: number;
+  youOwePartnerUnsettled: number;
+  payments: PartnerSettlementLine[];
+  expenses: PartnerSettlementLine[];
+}
+
+export interface PartnerSettlementTotals {
+  partnerOwesYou: number;
+  youOwePartner: number;
+  netBalance: number;
+  partnerOwesYouUnsettled: number;
+  youOwePartnerUnsettled: number;
+}
+
+/**
+ * Monthly partner settlement: income the partner collected vs expenses they
+ * paid on your behalf, with a net balance for end-of-month reconciliation.
+ */
+export interface PartnerSettlementReport {
+  from: string;
+  to: string;
+  months: PartnerSettlementMonth[];
+  totals: PartnerSettlementTotals;
+}
+
 export interface ReportSummary {
   from: string;
   to: string;

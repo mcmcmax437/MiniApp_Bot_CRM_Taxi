@@ -6417,3 +6417,198 @@ select.crm-input option {
     grid-template-columns: 1fr;
   }
 }
+
+.crm-report-section__avatar--partner {
+  background: rgba(255, 179, 0, 0.12);
+  border-color: rgba(255, 179, 0, 0.35);
+}
+
+.crm-partner-settlement__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.crm-partner-settlement__grand {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crm-partner-settlement__grand-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.crm-partner-settlement__grand-row strong {
+  font-weight: 700;
+}
+
+.crm-partner-settlement__grand-row--net {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 1rem;
+}
+
+.crm-partner-settlement__grand-hint {
+  margin: 4px 0 0;
+}
+
+.crm-partner-settlement__net--positive {
+  color: #66bb6a;
+  font-weight: 700;
+}
+
+.crm-partner-settlement__net--negative {
+  color: #ef5350;
+  font-weight: 700;
+}
+
+.crm-partner-settlement__net--zero {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.crm-partner-settlement__months {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crm-partner-settlement__month {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.crm-partner-settlement__month-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crm-partner-settlement__month-head:disabled {
+  cursor: default;
+}
+
+.crm-partner-settlement__chevron--open {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
+.crm-partner-settlement__month-title {
+  grid-column: 1 / -1;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.crm-partner-settlement__month-summary {
+  grid-column: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.crm-partner-settlement__col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.crm-partner-settlement__col-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.crm-partner-settlement__col strong {
+  font-size: 0.9rem;
+}
+
+.crm-partner-settlement__details {
+  padding: 0 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.crm-partner-settlement__group + .crm-partner-settlement__group {
+  margin-top: 12px;
+}
+
+.crm-partner-settlement__group-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 12px 0 8px;
+}
+
+.crm-partner-settlement__lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-partner-settlement__line {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.crm-partner-settlement__line-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-partner-settlement__line-amount {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.crm-partner-settlement__line-status {
+  font-size: 0.72rem;
+  color: #ffb300;
+  white-space: nowrap;
+}
+
+.crm-partner-settlement__line-status--settled {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.crm-partner-settlement__unsettled {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 640px) {
+  .crm-partner-settlement__month-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-partner-settlement__line {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { ownerId } from "./helpers.js";
-import { buildDriverIncomeReport, buildReportSummary } from "../services/reports.js";
+import { buildDriverIncomeReport, buildPartnerSettlementReport, buildReportSummary } from "../services/reports.js";
 import { buildReminders } from "../services/reminders.js";
 
 function parseRange(query: Record<string, unknown>): { from: Date; to: Date } {
@@ -22,6 +22,11 @@ export async function reportsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/reports/driver-income", async (req) => {
     const { from, to } = parseRange(req.query as Record<string, unknown>);
     return buildDriverIncomeReport(ownerId(req), from, to);
+  });
+
+  app.get("/reports/partner-settlement", async (req) => {
+    const { from, to } = parseRange(req.query as Record<string, unknown>);
+    return buildPartnerSettlementReport(ownerId(req), from, to);
   });
 
   app.get("/reminders", async (req) => {

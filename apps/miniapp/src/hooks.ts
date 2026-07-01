@@ -6,6 +6,7 @@ import type {
   DriverBalance,
   DriverBalanceBreakdown,
   DriverIncomeReport,
+  PartnerSettlementReport,
   ReportSummary,
   ReminderItem,
 } from "@taxi/shared";
@@ -305,6 +306,14 @@ export function useDriverIncomeReport(from?: string, to?: string) {
     queryKey: ["report", "driver-income", from, to],
     queryFn: () =>
       apiFetch<DriverIncomeReport>("/reports/driver-income", { query: { from, to } }),
+    enabled: Boolean(from && to),
+  });
+}
+export function usePartnerSettlementReport(from?: string, to?: string) {
+  return useQuery({
+    queryKey: ["report", "partner-settlement", from, to],
+    queryFn: () =>
+      apiFetch<PartnerSettlementReport>("/reports/partner-settlement", { query: { from, to } }),
     enabled: Boolean(from && to),
   });
 }

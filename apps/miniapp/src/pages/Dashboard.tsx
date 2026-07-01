@@ -332,13 +332,13 @@ export function Dashboard() {
         report.data.partnerUnsettled.expensesUnsettled > 0) ? (
         <div
           className="crm-partner-banner glass-card"
-          onClick={() => navigate("/finance")}
+          onClick={() => navigate("/reports")}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              navigate("/finance");
+              navigate("/reports");
             }
           }}
         >
@@ -346,15 +346,27 @@ export function Dashboard() {
           <div>
             <div className="crm-partner-banner__title">{t("dashboard.partnerStatus")}</div>
             <div className="crm-partner-banner__subtitle">
-              {report.data.partnerUnsettled.paymentsUnsettled > 0
-                ? t("dashboard.partnerOwesYou", {
-                    amount: formatMoney(report.data.partnerUnsettled.paymentsUnsettled),
+              {(() => {
+                const owesYou = report.data.partnerUnsettled.paymentsUnsettled;
+                const youOwe = report.data.partnerUnsettled.expensesUnsettled;
+                const net = owesYou - youOwe;
+                if (net > 0) {
+                  return t("dashboard.partnerNetOwesYou", { amount: formatMoney(net) });
+                }
+                if (net < 0) {
+                  return t("dashboard.partnerNetYouOwe", { amount: formatMoney(Math.abs(net)) });
+                }
+                if (owesYou > 0) {
+                  return t("dashboard.partnerOwesYou", {
+                    amount: formatMoney(owesYou),
                     count: report.data.partnerUnsettled.paymentsUnsettledCount,
-                  })
-                : t("dashboard.partnerReimburse", {
-                    amount: formatMoney(report.data.partnerUnsettled.expensesUnsettled),
-                    count: report.data.partnerUnsettled.expensesUnsettledCount,
-                  })}
+                  });
+                }
+                return t("dashboard.partnerReimburse", {
+                  amount: formatMoney(youOwe),
+                  count: report.data.partnerUnsettled.expensesUnsettledCount,
+                });
+              })()}
             </div>
           </div>
         </div>

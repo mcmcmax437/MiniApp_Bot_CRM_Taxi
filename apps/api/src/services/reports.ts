@@ -1,5 +1,12 @@
 import { prisma } from "../prisma.js";
-import type { DriverIncomeMonthDriverRow, DriverIncomeReport, ReportSummary } from "@taxi/shared";
+import type {
+  DriverIncomeMonthDriverRow,
+  DriverIncomeReport,
+  PartnerSettlementLine,
+  PartnerSettlementMonth,
+  PartnerSettlementReport,
+  ReportSummary,
+} from "@taxi/shared";
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -289,6 +296,166 @@ export async function buildReportSummary(
       paymentsUnsettledCount: unsettledPayments.length,
       expensesUnsettled: round2(unsettledExpenses.reduce((s, e) => s + e.amount, 0)),
       expensesUnsettledCount: unsettledExpenses.length,
+    },
+  };
+}
+
+function expenseDescription(e: {
+  category: string;
+  tag: string | null;
+  note: string | null;
+  carId: string | null;
+}, carLabel: Map<string, string>): string {
+  const parts = [
+    e.tag?.trim(),
+    e.note?.trim(),
+    e.carId ? carLabel.get(e.carId) : null,
+    e.category,
+  ].filter((p) => p && String(p).trim());
+  return parts.join(" · ") || "—";
+}
+
+/**
+ * Partner settlement by calendar month: payments the partner collected and
+ * expenses they paid on the owner's behalf, with net balance per month.
+ */
+export async function buildPartnerSettlementReport(
+  ownerId: string,
+  from: Date,
+  to: Date,
+): Promise<PartnerSettlementReport> {
+  const [payments, expenses, drivers, cars] = await Promise.all([
+    prisma.payment.findMany({
+      where: {
+        ownerId,
+        date: { gte: from, lte: to },
+        receivedByPartner: true,
+      },
+      select: {
+        id: true,
+        amount: true,
+        date: true,
+        partnerSettled: true,
+        driverId: true,
+        type: true,
+        note: true,
+      },
+      orderBy: { date: "asc" },
+    }),
+    prisma.expense.findMany({
+      where: {
+        ownerId,
+        date: { gte: from, lte: to },
+        paidByPartner: true,
+      },
+      select: {
+        id: true,
+        amount: true,
+        date: true,
+        partnerSettled: true,
+        category: true,
+        tag: true,
+        note: true,
+        carId: true,
+      },
+      orderBy: { date: "asc" },
+    }),
+    prisma.driver.findMany({ where: { ownerId }, select: { id: true, fullName: true } }),
+    prisma.car.findMany({
+      where: { ownerId },
+      select: { id: true, plate: true, make: true, model: true },
+    }),
+  ]);
+
+  const driverLabel = new Map(drivers.map((d) => [d.id, d.fullName] as const));
+  const carLabel = new Map<string, string>();
+  for (const c of cars) {
+    carLabel.set(c.id, [c.plate, [c.make, c.model].filter(Boolean).join(" ")].filter(Boolean).join(" - "));
+  }
+
+  type MonthAcc = {
+    payments: PartnerSettlementLine[];
+    expenses: PartnerSettlementLine[];
+  };
+  const byMonth = new Map<string, MonthAcc>();
+
+  function monthBucket(key: string): MonthAcc {
+    let b = byMonth.get(key);
+    if (!b) {
+      b = { payments: [], expenses: [] };
+      byMonth.set(key, b);
+    }
+    return b;
+  }
+
+  for (const p of payments) {
+    const key = monthKeyFromDate(p.date);
+    const driver = p.driverId ? driverLabel.get(p.driverId) : null;
+    const desc = [driver, p.note?.trim()].filter(Boolean).join(" — ") || p.type;
+    monthBucket(key).payments.push({
+      id: p.id,
+      date: p.date.toISOString(),
+      amount: round2(p.amount),
+      description: desc,
+      settled: p.partnerSettled,
+    });
+  }
+
+  for (const e of expenses) {
+    const key = monthKeyFromDate(e.date);
+    monthBucket(key).expenses.push({
+      id: e.id,
+      date: e.date.toISOString(),
+      amount: round2(e.amount),
+      description: expenseDescription(e, carLabel),
+      settled: e.partnerSettled,
+    });
+  }
+
+  const months: PartnerSettlementMonth[] = [...byMonth.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, bucket]) => {
+      const partnerOwesYou = round2(bucket.payments.reduce((s, l) => s + l.amount, 0));
+      const youOwePartner = round2(bucket.expenses.reduce((s, l) => s + l.amount, 0));
+      const partnerOwesYouUnsettled = round2(
+        bucket.payments.filter((l) => !l.settled).reduce((s, l) => s + l.amount, 0),
+      );
+      const youOwePartnerUnsettled = round2(
+        bucket.expenses.filter((l) => !l.settled).reduce((s, l) => s + l.amount, 0),
+      );
+      return {
+        month,
+        partnerOwesYou,
+        youOwePartner,
+        netBalance: round2(partnerOwesYou - youOwePartner),
+        partnerOwesYouUnsettled,
+        youOwePartnerUnsettled,
+        payments: bucket.payments,
+        expenses: bucket.expenses,
+      };
+    });
+
+  let tPartnerOwes = 0;
+  let tYouOwe = 0;
+  let tPartnerUnsettled = 0;
+  let tYouUnsettled = 0;
+  for (const m of months) {
+    tPartnerOwes += m.partnerOwesYou;
+    tYouOwe += m.youOwePartner;
+    tPartnerUnsettled += m.partnerOwesYouUnsettled;
+    tYouUnsettled += m.youOwePartnerUnsettled;
+  }
+
+  return {
+    from: from.toISOString(),
+    to: to.toISOString(),
+    months,
+    totals: {
+      partnerOwesYou: round2(tPartnerOwes),
+      youOwePartner: round2(tYouOwe),
+      netBalance: round2(tPartnerOwes - tYouOwe),
+      partnerOwesYouUnsettled: round2(tPartnerUnsettled),
+      youOwePartnerUnsettled: round2(tYouUnsettled),
     },
   };
 }
