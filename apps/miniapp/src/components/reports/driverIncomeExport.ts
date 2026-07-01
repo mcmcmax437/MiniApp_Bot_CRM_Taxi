@@ -151,16 +151,23 @@ export function currentMonthKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function localDateKey(d: Date): string {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 export function monthKeyToFromDate(monthKey: string): string {
   return `${monthKey}-01`;
 }
 
 export function monthKeyToToDate(monthKey: string): string {
   const [y, m] = monthKey.split("-").map(Number);
-  if (!y || !m) return monthKey;
-  const last = new Date(y, m, 0);
+  if (!y || !m || m < 1 || m > 12) return monthKey;
   const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const cap = last.getTime() > today.getTime() ? today : last;
-  return cap.toISOString().slice(0, 10);
+  if (monthKey >= currentMonthKey()) return localDateKey(today);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${monthKey}-${String(lastDay).padStart(2, "0")}`;
 }
