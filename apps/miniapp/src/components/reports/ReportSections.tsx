@@ -10,6 +10,8 @@ export function ReportFiltersCard(props: {
   onToChange: (v: string) => void;
   onApply: () => void;
   applying?: boolean;
+  /** Months back from today (0 = current month only). Applies range immediately. */
+  onPreset?: (monthsBack: number) => void;
 }) {
   const { t } = useTranslation();
 
@@ -19,6 +21,23 @@ export function ReportFiltersCard(props: {
         {t("reports.from")} / {t("reports.to")}
       </h2>
       <p className="crm-report-filters__subtitle">{t("reports.pageSubtitle")}</p>
+
+      {props.onPreset ? (
+        <div className="crm-report-filters__presets">
+          <button type="button" className="crm-report-preset" onClick={() => props.onPreset!(0)}>
+            {t("reports.presetThisMonth")}
+          </button>
+          <button type="button" className="crm-report-preset" onClick={() => props.onPreset!(2)}>
+            {t("reports.preset3Months")}
+          </button>
+          <button type="button" className="crm-report-preset" onClick={() => props.onPreset!(5)}>
+            {t("reports.preset6Months")}
+          </button>
+          <button type="button" className="crm-report-preset" onClick={() => props.onPreset!(11)}>
+            {t("reports.preset12Months")}
+          </button>
+        </div>
+      ) : null}
 
       <div className="crm-report-filters__dates">
         <label className="crm-report-date-field">

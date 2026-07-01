@@ -5,6 +5,7 @@ import type {
   MeResponse,
   DriverBalance,
   DriverBalanceBreakdown,
+  DriverIncomeReport,
   ReportSummary,
   ReminderItem,
 } from "@taxi/shared";
@@ -297,6 +298,14 @@ export function useReport(from?: string, to?: string) {
   return useQuery({
     queryKey: ["report", from, to],
     queryFn: () => apiFetch<ReportSummary>("/reports/summary", { query: { from, to } }),
+  });
+}
+export function useDriverIncomeReport(from?: string, to?: string) {
+  return useQuery({
+    queryKey: ["report", "driver-income", from, to],
+    queryFn: () =>
+      apiFetch<DriverIncomeReport>("/reports/driver-income", { query: { from, to } }),
+    enabled: Boolean(from && to),
   });
 }
 export function useReminders() {

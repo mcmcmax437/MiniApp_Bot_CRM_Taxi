@@ -616,6 +616,40 @@ export interface DriverBalanceBreakdown {
   balance: number; // = rentDue - rentPaid - discounts + unpaidFines
 }
 
+/** Per-driver income in one calendar month, split by payment method. */
+export interface DriverIncomeMonthDriverRow {
+  driverId: string;
+  driverName: string;
+  cash: number;
+  bank: number;
+  total: number;
+}
+
+export interface DriverIncomeMonthTotals {
+  cash: number;
+  bank: number;
+  total: number;
+}
+
+/** One calendar month of driver income (cash vs bank). */
+export interface DriverIncomeMonthSection {
+  /** YYYY-MM */
+  month: string;
+  drivers: DriverIncomeMonthDriverRow[];
+  totals: DriverIncomeMonthTotals;
+}
+
+/**
+ * Driver income report for accountants: rent + fine payments grouped by
+ * calendar month and driver, with cash and bank columns.
+ */
+export interface DriverIncomeReport {
+  from: string;
+  to: string;
+  months: DriverIncomeMonthSection[];
+  grandTotals: DriverIncomeMonthTotals;
+}
+
 export interface ReportSummary {
   from: string;
   to: string;

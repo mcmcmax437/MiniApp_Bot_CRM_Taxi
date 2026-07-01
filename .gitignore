@@ -41,4 +41,4 @@ Thumbs.db
 .codebase-memory/
 tools/codebase-memory-mcp-windows-amd64.zip
 tools/codebase-memory-mcp-checksums.txt
-.codebase-memory-mcp
+codebase-memory-mcp.exe

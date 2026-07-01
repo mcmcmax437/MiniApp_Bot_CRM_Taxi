@@ -8,10 +8,13 @@ import {
   ReportSummaryCard,
   ReportSectionCard,
 } from "../components/reports/ReportSections";
+import { DriverIncomeReportCard } from "../components/reports/DriverIncomeReportCard";
 
-function firstOfMonth(): string {
+function firstOfMonthsAgo(months: number): string {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+  d.setMonth(d.getMonth() - months);
+  d.setDate(1);
+  return d.toISOString().slice(0, 10);
 }
 
 function today(): string {
@@ -20,14 +23,20 @@ function today(): string {
 
 export function ReportsPage() {
   const { t } = useTranslation();
-  const [from, setFrom] = useState(firstOfMonth());
+  const [from, setFrom] = useState(firstOfMonthsAgo(5));
   const [to, setTo] = useState(today());
-  const [applied, setApplied] = useState({ from: firstOfMonth(), to: today() });
+  const [applied, setApplied] = useState({ from: firstOfMonthsAgo(5), to: today() });
   const report = useReport(applied.from, applied.to);
 
   const income = report.data ? formatMoney(report.data.income) : formatMoney(0);
   const expenses = report.data ? formatMoney(report.data.expenses) : formatMoney(0);
   const profit = report.data ? formatMoney(report.data.profit) : formatMoney(0);
+
+  function applyRange(nextFrom: string, nextTo: string) {
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setApplied({ from: nextFrom, to: nextTo });
+  }
 
   return (
     <div className="crm-page crm-page--reports">
@@ -42,6 +51,7 @@ export function ReportsPage() {
         onToChange={setTo}
         onApply={() => setApplied({ from, to })}
         applying={report.isFetching}
+        onPreset={(months) => applyRange(firstOfMonthsAgo(months), today())}
       />
 
       <ReportSummaryCard income={income} expenses={expenses} profit={profit} loading={report.isLoading} />
@@ -61,6 +71,8 @@ export function ReportsPage() {
         driverRows={report.data?.byDriver}
         loading={report.isLoading}
       />
+
+      <DriverIncomeReportCard from={applied.from} to={applied.to} />
     </div>
   );
 }
