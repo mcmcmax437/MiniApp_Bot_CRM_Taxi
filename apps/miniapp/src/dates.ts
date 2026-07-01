@@ -25,6 +25,14 @@ export function isoDateOnly(iso: string | null | undefined): string {
   return `${String(parts.y).padStart(4, "0")}-${String(parts.m).padStart(2, "0")}-${String(parts.d).padStart(2, "0")}`;
 }
 
+export function dateInputValue(date = new Date()): string {
+  return [
+    String(date.getFullYear()).padStart(4, "0"),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 export function todayInput(): string {
-  return new Date().toISOString().slice(0, 10);
+  return dateInputValue();
 }

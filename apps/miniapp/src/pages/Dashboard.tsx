@@ -15,6 +15,7 @@ import {
 import { CURRENCY_OPTIONS } from "../currency";
 import type { Currency } from "@taxi/shared";
 import { formatMoney } from "../components/ui";
+import { dateInputValue, isoDateOnly } from "../dates";
 import { ReminderSettingsCard } from "../components/ReminderSettingsCard";
 import { useReadOnly } from "../readOnly";
 import { ReminderList } from "../components/ReminderList";
@@ -97,32 +98,33 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+function monthKey(date: Date): string {
+  return dateInputValue(date).slice(0, 7);
 }
 
 function reportDateRange(period: DashboardStatsPeriod): { from: string; to: string } {
   const now = new Date();
   if (period === "month") {
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    return { from, to: todayIso() };
+    const from = dateInputValue(new Date(now.getFullYear(), now.getMonth(), 1));
+    return { from, to: dateInputValue(now) };
   }
   if (period === "previous") {
-    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-    const to = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
+    const from = dateInputValue(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const to = dateInputValue(new Date(now.getFullYear(), now.getMonth(), 0));
     return { from, to };
   }
-  return { from: "2000-01-01", to: todayIso() };
+  return { from: "2000-01-01", to: dateInputValue(now) };
 }
 
 function expenseInStatsPeriod(dateStr: string, period: "month" | "previous"): boolean {
-  const d = new Date(dateStr);
+  const expenseMonth = isoDateOnly(dateStr).slice(0, 7);
+  if (!expenseMonth) return false;
   const now = new Date();
   if (period === "month") {
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    return expenseMonth === monthKey(now);
   }
   const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return d.getFullYear() === prevMonth.getFullYear() && d.getMonth() === prevMonth.getMonth();
+  return expenseMonth === monthKey(prevMonth);
 }
 
 function loadStatsPeriod(): DashboardStatsPeriod {
