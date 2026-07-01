@@ -86,7 +86,7 @@ function reportFixture(): DriverIncomeReport {
             idDocument: 'PC-"77"',
             address: 'Gdansk, "Port"',
             cash: 30,
-            bank: 40.555,
+            bank: 40.56,
             total: 70.56,
           },
         ],
