@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useExpenses, usePayments } from "../../hooks";
 import type { Expense, Payment } from "../../types";
 import { Icon } from "../crm";
+import { PartnerAlertMark } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
 import {
   isIncomePayment,
@@ -85,7 +86,12 @@ function ActivityMonthBlock({
                       {formatShortDate(line.date, locale)}
                     </span>
                     <span className="crm-partner-settlement__line-desc">
-                      {partnerPaymentDescription(line)}
+                      <span className="crm-partner-settlement__line-desc-text">
+                        {partnerPaymentDescription(line)}
+                      </span>
+                      {line.receivedByPartner ? (
+                        <PartnerAlertMark label={t("finance.receivedByPartner")} />
+                      ) : null}
                     </span>
                     <span className="crm-partner-settlement__line-amount crm-partner-settlement__line-amount--income">
                       +{formatMoney(line.amount)}
@@ -106,7 +112,12 @@ function ActivityMonthBlock({
                       {formatShortDate(line.date, locale)}
                     </span>
                     <span className="crm-partner-settlement__line-desc">
-                      {partnerExpenseDescription(line)}
+                      <span className="crm-partner-settlement__line-desc-text">
+                        {partnerExpenseDescription(line)}
+                      </span>
+                      {line.paidByPartner ? (
+                        <PartnerAlertMark label={t("finance.paidByPartner")} />
+                      ) : null}
                     </span>
                     <span className="crm-partner-settlement__line-amount crm-partner-settlement__line-amount--expense">
                       −{formatMoney(line.amount)}
@@ -136,10 +147,11 @@ export function PartnerMonthActivity({
   const payments = usePayments();
   const expenses = useExpenses();
 
-  const { months, grandIncome, grandExpenses } = useMemo(() => {
+  const { months, grandIncome, grandExpenses, hasPartnerMarkers } = useMemo(() => {
     const sorted = [...selectedMonths].sort();
     let grandIncome = 0;
     let grandExpenses = 0;
+    let hasPartnerMarkers = false;
     const months = sorted.map((monthKey) => {
       const monthPayments = (payments.data ?? [])
         .filter((p) => isIncomePayment(p.type) && monthKeyFromIso(p.date) === monthKey)
@@ -147,6 +159,9 @@ export function PartnerMonthActivity({
       const monthExpenses = (expenses.data ?? [])
         .filter((e) => monthKeyFromIso(e.date) === monthKey)
         .sort((a, b) => b.date.localeCompare(a.date));
+      if (monthPayments.some((p) => p.receivedByPartner) || monthExpenses.some((e) => e.paidByPartner)) {
+        hasPartnerMarkers = true;
+      }
       const incomeTotal = round2(monthPayments.reduce((s, p) => s + p.amount, 0));
       const expenseTotal = round2(monthExpenses.reduce((s, e) => s + e.amount, 0));
       grandIncome += incomeTotal;
@@ -157,6 +172,7 @@ export function PartnerMonthActivity({
       months,
       grandIncome: round2(grandIncome),
       grandExpenses: round2(grandExpenses),
+      hasPartnerMarkers,
     };
   }, [payments.data, expenses.data, selectedMonths]);
 
@@ -202,6 +218,19 @@ export function PartnerMonthActivity({
           <strong>{formatMoney(round2(grandIncome - grandExpenses))}</strong>
         </div>
       </div>
+
+      {hasPartnerMarkers ? (
+        <div className="crm-partner-activity-legend">
+          <span className="crm-partner-activity-legend__item">
+            <PartnerAlertMark label={t("finance.receivedByPartner")} />
+            <span>{t("finance.receivedByPartner")}</span>
+          </span>
+          <span className="crm-partner-activity-legend__item">
+            <PartnerAlertMark label={t("finance.paidByPartner")} />
+            <span>{t("finance.paidByPartner")}</span>
+          </span>
+        </div>
+      ) : null}
 
       <div className="crm-partner-settlement__months">
         {months.map((section) => (
