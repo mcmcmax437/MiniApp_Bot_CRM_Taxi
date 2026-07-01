@@ -1,4 +1,7 @@
 import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
+import type { DashboardStatsPeriod } from "../dashboardStats";
+
+export type { DashboardStatsPeriod };
 
 /** Hugeicons Stroke Rounded — class suffix without `hgi-` prefix (see icons.css CDN). */
 export type IconName =
@@ -186,8 +189,6 @@ export function SectionCard(props: {
     </section>
   );
 }
-
-export type DashboardStatsPeriod = "all" | "previous" | "month";
 
 export function StatPeriodToggle(props: {
   value: DashboardStatsPeriod;

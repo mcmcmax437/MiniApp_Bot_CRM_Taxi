@@ -19,6 +19,7 @@
     "dev:bot": "npm run dev -w @taxi/bot",
     "dev:miniapp": "npm run dev -w @taxi/miniapp",
     "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "prisma:generate": "npm run prisma:generate -w @taxi/api",

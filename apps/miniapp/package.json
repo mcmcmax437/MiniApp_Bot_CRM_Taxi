@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
@@ -22,9 +23,11 @@
     "react-router-dom": "^6.28.1"
   },
   "devDependencies": {
+    "@types/node": "^26.1.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.22.4",
     "typescript": "^5.7.3",
     "vite": "^6.0.7"
   }
