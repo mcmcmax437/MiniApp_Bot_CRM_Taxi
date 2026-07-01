@@ -14,35 +14,24 @@ function monthKeyFromDate(d: Date): string {
 
 const UNASSIGNED_DRIVER_ID = "";
 
-/**
- * Rent + fine income per driver per calendar month, split cash vs bank.
- * Intended for accountant exports on the Reports page.
- */
-export async function buildDriverIncomeReport(
-  ownerId: string,
+interface DriverIncomePaymentRow {
+  driverId: string | null;
+  amount: number;
+  method: string;
+  date: Date;
+}
+
+interface DriverIncomeDriverRow {
+  id: string;
+  fullName: string;
+}
+
+export function buildDriverIncomeReportFromRows(
+  payments: DriverIncomePaymentRow[],
+  drivers: DriverIncomeDriverRow[],
   from: Date,
   to: Date,
-): Promise<DriverIncomeReport> {
-  const [payments, drivers] = await Promise.all([
-    prisma.payment.findMany({
-      where: {
-        ownerId,
-        date: { gte: from, lte: to },
-        type: { in: ["RENT", "FINE"] },
-      },
-      select: {
-        driverId: true,
-        amount: true,
-        method: true,
-        date: true,
-      },
-    }),
-    prisma.driver.findMany({
-      where: { ownerId },
-      select: { id: true, fullName: true },
-    }),
-  ]);
-
+): DriverIncomeReport {
   const driverNames = new Map(drivers.map((d) => [d.id, d.fullName] as const));
 
   type Cell = { cash: number; bank: number };
@@ -121,6 +110,38 @@ export async function buildDriverIncomeReport(
       total: round2(grandCash + grandBank),
     },
   };
+}
+
+/**
+ * Rent + fine income per driver per calendar month, split cash vs bank.
+ * Intended for accountant exports on the Reports page.
+ */
+export async function buildDriverIncomeReport(
+  ownerId: string,
+  from: Date,
+  to: Date,
+): Promise<DriverIncomeReport> {
+  const [payments, drivers] = await Promise.all([
+    prisma.payment.findMany({
+      where: {
+        ownerId,
+        date: { gte: from, lte: to },
+        type: { in: ["RENT", "FINE"] },
+      },
+      select: {
+        driverId: true,
+        amount: true,
+        method: true,
+        date: true,
+      },
+    }),
+    prisma.driver.findMany({
+      where: { ownerId },
+      select: { id: true, fullName: true },
+    }),
+  ]);
+
+  return buildDriverIncomeReportFromRows(payments, drivers, from, to);
 }
 
 export async function buildReportSummary(
