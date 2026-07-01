@@ -6727,6 +6727,15 @@ select.crm-input option {
 .crm-partner-settlement__line-amount {
   font-weight: 600;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.crm-partner-settlement__line-amount--income {
+  color: var(--taxi-income);
+}
+
+.crm-partner-settlement__line-amount--expense {
+  color: var(--taxi-expense);
 }
 
 .crm-partner-settlement__line-status {

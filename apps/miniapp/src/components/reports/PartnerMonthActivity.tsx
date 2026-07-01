@@ -56,11 +56,11 @@ function ActivityMonthBlock({
         <div className="crm-partner-settlement__month-summary">
           <span className="crm-partner-settlement__col crm-partner-settlement__col--in">
             <span className="crm-partner-settlement__col-label">{t("reports.partnerActivityIncome")}</span>
-            <strong>{formatMoney(section.incomeTotal)}</strong>
+            <strong className="crm-partner-settlement__amount--in">+{formatMoney(section.incomeTotal)}</strong>
           </span>
           <span className="crm-partner-settlement__col crm-partner-settlement__col--out">
             <span className="crm-partner-settlement__col-label">{t("reports.partnerActivityExpenses")}</span>
-            <strong>{formatMoney(section.expenseTotal)}</strong>
+            <strong className="crm-partner-settlement__amount--out">−{formatMoney(section.expenseTotal)}</strong>
           </span>
         </div>
         {hasLines ? (
@@ -87,7 +87,9 @@ function ActivityMonthBlock({
                     <span className="crm-partner-settlement__line-desc">
                       {partnerPaymentDescription(line)}
                     </span>
-                    <span className="crm-partner-settlement__line-amount">{formatMoney(line.amount)}</span>
+                    <span className="crm-partner-settlement__line-amount crm-partner-settlement__line-amount--income">
+                      +{formatMoney(line.amount)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -106,7 +108,9 @@ function ActivityMonthBlock({
                     <span className="crm-partner-settlement__line-desc">
                       {partnerExpenseDescription(line)}
                     </span>
-                    <span className="crm-partner-settlement__line-amount">{formatMoney(line.amount)}</span>
+                    <span className="crm-partner-settlement__line-amount crm-partner-settlement__line-amount--expense">
+                      −{formatMoney(line.amount)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -187,11 +191,11 @@ export function PartnerMonthActivity({
       <div className="crm-partner-settlement__grand glass-card">
         <div className="crm-partner-settlement__grand-row">
           <span>{t("reports.partnerActivityGrandIncome")}</span>
-          <strong className="crm-partner-settlement__amount--in">{formatMoney(grandIncome)}</strong>
+          <strong className="crm-partner-settlement__amount--in">+{formatMoney(grandIncome)}</strong>
         </div>
         <div className="crm-partner-settlement__grand-row">
           <span>{t("reports.partnerActivityGrandExpenses")}</span>
-          <strong className="crm-partner-settlement__amount--out">{formatMoney(grandExpenses)}</strong>
+          <strong className="crm-partner-settlement__amount--out">−{formatMoney(grandExpenses)}</strong>
         </div>
         <div className="crm-partner-settlement__grand-row crm-partner-settlement__grand-row--net">
           <span>{t("dashboard.profit")}</span>
