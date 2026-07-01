@@ -21,6 +21,7 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
+    "test": "tsx --test apps/api/src/services/*.test.ts apps/miniapp/src/components/reports/*.test.ts",
     "prisma:generate": "npm run prisma:generate -w @taxi/api",
     "prisma:migrate": "npm run prisma:migrate -w @taxi/api",
     "prisma:deploy": "npm run prisma:deploy -w @taxi/api",
@@ -36,12 +37,13 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "dotenv": "^16.4.7",
     "@eslint/js": "^9.18.0",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
+    "dotenv": "^16.4.7",
     "eslint": "^9.18.0",
     "prettier": "^3.4.2",
+    "tsx": "^4.22.4",
     "typescript": "^5.7.3"
   }
 }
