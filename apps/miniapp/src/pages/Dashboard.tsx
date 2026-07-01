@@ -26,11 +26,15 @@ import {
   SectionCard,
   StatCard,
   StatPeriodToggle,
-  type DashboardStatsPeriod,
 } from "../components/crm";
 import i18n from "../i18n";
 import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
 import { closeTelegramApp } from "../telegram";
+import {
+  calculateDashboardStats,
+  round2,
+  type DashboardStatsPeriod,
+} from "../dashboardStats";
 
 const STATS_PERIOD_KEY = "dashboard-stats-period";
 const STATS_CAR_KEY = "dashboard-stats-car";
@@ -87,15 +91,6 @@ function formatRoi(percent: number | null | undefined): string {
  * Returns null when expenses are zero so we can render "—" instead of a
  * misleading "Infinity%".
  */
-function calcRoi(income: number, expenses: number): number | null {
-  if (!(expenses > 0)) return null;
-  return round2((income / expenses) * 100);
-}
-
-function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -112,16 +107,6 @@ function reportDateRange(period: DashboardStatsPeriod): { from: string; to: stri
     return { from, to };
   }
   return { from: "2000-01-01", to: todayIso() };
-}
-
-function expenseInStatsPeriod(dateStr: string, period: "month" | "previous"): boolean {
-  const d = new Date(dateStr);
-  const now = new Date();
-  if (period === "month") {
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }
-  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return d.getFullYear() === prevMonth.getFullYear() && d.getMonth() === prevMonth.getMonth();
 }
 
 function loadStatsPeriod(): DashboardStatsPeriod {
@@ -157,54 +142,10 @@ export function Dashboard() {
   const setLocale = useSetLocale();
   const setCurrency = useSetCurrency();
 
-  const stats = useMemo(() => {
-    if (!report.data) {
-      return {
-        income: 0,
-        expenses: 0,
-        profit: 0,
-        roiPercent: null as number | null,
-      };
-    }
-
-    // For month/previous, recompute expenses locally so the number covers the
-    // whole calendar month and respects the car filter (including taxes).
-    let localExpenses: number | null = null;
-    if (statsPeriod === "month" || statsPeriod === "previous") {
-      const list = (expensesQuery.data ?? []).filter(
-        (e) =>
-          expenseInStatsPeriod(e.date, statsPeriod) &&
-          (!statsCarId || e.carId === statsCarId),
-      );
-      localExpenses = round2(list.reduce((s, e) => s + e.amount, 0));
-    }
-
-    if (!statsCarId) {
-      const expensesValue =
-        localExpenses != null ? localExpenses : report.data.expenses;
-      const profitValue = round2(report.data.income - expensesValue);
-      return {
-        income: report.data.income,
-        expenses: expensesValue,
-        profit: profitValue,
-        roiPercent: calcRoi(report.data.income, expensesValue),
-      };
-    }
-
-    const carRow = report.data.byCar.find((row) => row.carId === statsCarId);
-    const income = carRow?.income ?? 0;
-    // When a car is selected, prefer the locally-computed period total.
-    const expenses =
-      localExpenses != null ? localExpenses : (carRow?.expenses ?? 0);
-    const profit = round2(income - expenses);
-
-    return {
-      income,
-      expenses,
-      profit,
-      roiPercent: calcRoi(income, expenses),
-    };
-  }, [report.data, statsCarId, expensesQuery.data, statsPeriod]);
+  const stats = useMemo(
+    () => calculateDashboardStats(report.data, expensesQuery.data, statsPeriod, statsCarId),
+    [report.data, statsCarId, expensesQuery.data, statsPeriod],
+  );
 
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
   const income = formatMoney(stats.income);
