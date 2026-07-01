@@ -21,7 +21,6 @@ import { ReminderList } from "../components/ReminderList";
 import { WeeklyMileageSkipBanner } from "../components/WeeklyMileageSkipBanner";
 import { RecentActivitySection } from "../components/RecentActivitySection";
 import { StatsChart } from "../components/dashboard/StatsChart";
-import { financeInPeriod } from "../components/finance/FinanceUi";
 import {
   AppHeader,
   Icon,
@@ -103,18 +102,33 @@ function todayIso(): string {
 }
 
 function reportDateRange(period: DashboardStatsPeriod): { from: string; to: string } {
-  const to = todayIso();
+  const now = new Date();
   if (period === "month") {
-    const d = new Date();
-    const from = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    return { from, to: todayIso() };
+  }
+  if (period === "previous") {
+    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
+    const to = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
     return { from, to };
   }
-  return { from: "2000-01-01", to };
+  return { from: "2000-01-01", to: todayIso() };
+}
+
+function expenseInStatsPeriod(dateStr: string, period: "month" | "previous"): boolean {
+  const d = new Date(dateStr);
+  const now = new Date();
+  if (period === "month") {
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return d.getFullYear() === prevMonth.getFullYear() && d.getMonth() === prevMonth.getMonth();
 }
 
 function loadStatsPeriod(): DashboardStatsPeriod {
   const stored = localStorage.getItem(STATS_PERIOD_KEY);
-  return stored === "month" ? "month" : "all";
+  if (stored === "month" || stored === "previous" || stored === "all") return stored;
+  return "all";
 }
 
 function loadStatsCarId(): string {
@@ -161,11 +175,11 @@ export function Dashboard() {
     //   - Covers the whole calendar month, not just 1st-to-today
     //   - Filters by selected car when one is picked
     let localExpenses: number | null = null;
-    if (statsPeriod === "month") {
+    if (statsPeriod === "month" || statsPeriod === "previous") {
       const list = (expensesQuery.data ?? []).filter(
         (e) =>
           e.category !== ExpenseCategory.TAX &&
-          financeInPeriod(e.date, "month") &&
+          expenseInStatsPeriod(e.date, statsPeriod) &&
           (!statsCarId || e.carId === statsCarId),
       );
       localExpenses = round2(list.reduce((s, e) => s + e.amount, 0));
@@ -215,7 +229,11 @@ export function Dashboard() {
           ? "expense"
           : "roi";
   const periodSuffix =
-    statsPeriod === "month" ? t("dashboard.monthSuffix") : t("dashboard.allTimeSuffix");
+    statsPeriod === "month"
+      ? t("dashboard.monthSuffix")
+      : statsPeriod === "previous"
+        ? t("dashboard.previousMonthSuffix")
+        : t("dashboard.allTimeSuffix");
   // ROI hint describes what the percentage means and shows the absolute
   // numbers used in the calculation so the user can verify the figure.
   //   - When there are no expenses yet, we show a "no expenses" message.
@@ -271,6 +289,7 @@ export function Dashboard() {
           value={statsPeriod}
           onChange={onStatsPeriodChange}
           allLabel={t("dashboard.periodAll")}
+          previousLabel={t("dashboard.periodPrevious")}
           monthLabel={t("dashboard.periodMonth")}
         />
       </div>

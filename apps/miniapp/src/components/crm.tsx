@@ -187,22 +187,30 @@ export function SectionCard(props: {
   );
 }
 
-export type DashboardStatsPeriod = "all" | "month";
+export type DashboardStatsPeriod = "all" | "previous" | "month";
 
 export function StatPeriodToggle(props: {
   value: DashboardStatsPeriod;
   onChange: (value: DashboardStatsPeriod) => void;
   allLabel: string;
+  previousLabel: string;
   monthLabel: string;
 }) {
   return (
-    <div className="crm-period-toggle" role="group" aria-label={props.allLabel}>
+    <div className="crm-period-toggle crm-period-toggle--triple" role="group" aria-label={props.allLabel}>
       <button
         type="button"
         className={`crm-period-toggle__btn${props.value === "all" ? " crm-period-toggle__btn--active" : ""}`}
         onClick={() => props.onChange("all")}
       >
         {props.allLabel}
+      </button>
+      <button
+        type="button"
+        className={`crm-period-toggle__btn${props.value === "previous" ? " crm-period-toggle__btn--active" : ""}`}
+        onClick={() => props.onChange("previous")}
+      >
+        {props.previousLabel}
       </button>
       <button
         type="button"
