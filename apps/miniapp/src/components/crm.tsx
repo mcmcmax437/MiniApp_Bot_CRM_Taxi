@@ -229,15 +229,25 @@ export function StatCard(props: {
   suffix: string;
   tone: "income" | "expense" | "profit" | "roi";
   icon: ReactNode;
+  onClick?: () => void;
 }) {
-  return (
-    <div className={`crm-stat glass-card crm-stat--${props.tone}`}>
+  const className = `crm-stat glass-card crm-stat--${props.tone}${props.onClick ? " crm-stat--link" : ""}`;
+  const body = (
+    <>
       <div className="crm-stat__icon">{props.icon}</div>
       <div className="crm-stat__label">{props.label}</div>
       <div className="crm-stat__value">{props.value}</div>
       <div className="crm-stat__suffix">{props.suffix}</div>
-    </div>
+    </>
   );
+  if (props.onClick) {
+    return (
+      <button type="button" className={className} onClick={props.onClick}>
+        {body}
+      </button>
+    );
+  }
+  return <div className={className}>{body}</div>;
 }
 
 export function GlassButton(props: {

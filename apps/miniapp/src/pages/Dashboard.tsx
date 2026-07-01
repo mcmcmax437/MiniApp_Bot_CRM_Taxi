@@ -31,6 +31,7 @@ import {
 import i18n from "../i18n";
 import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
 import { closeTelegramApp } from "../telegram";
+import { dateInStatsPeriod, reportDateRange } from "../utils/dashboardStats";
 
 const STATS_PERIOD_KEY = "dashboard-stats-period";
 const STATS_CAR_KEY = "dashboard-stats-car";
@@ -96,34 +97,6 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function reportDateRange(period: DashboardStatsPeriod): { from: string; to: string } {
-  const now = new Date();
-  if (period === "month") {
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    return { from, to: todayIso() };
-  }
-  if (period === "previous") {
-    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-    const to = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
-    return { from, to };
-  }
-  return { from: "2000-01-01", to: todayIso() };
-}
-
-function expenseInStatsPeriod(dateStr: string, period: "month" | "previous"): boolean {
-  const d = new Date(dateStr);
-  const now = new Date();
-  if (period === "month") {
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }
-  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return d.getFullYear() === prevMonth.getFullYear() && d.getMonth() === prevMonth.getMonth();
-}
-
 function loadStatsPeriod(): DashboardStatsPeriod {
   const stored = localStorage.getItem(STATS_PERIOD_KEY);
   if (stored === "month" || stored === "previous" || stored === "all") return stored;
@@ -173,7 +146,7 @@ export function Dashboard() {
     if (statsPeriod === "month" || statsPeriod === "previous") {
       const list = (expensesQuery.data ?? []).filter(
         (e) =>
-          expenseInStatsPeriod(e.date, statsPeriod) &&
+          dateInStatsPeriod(e.date, statsPeriod) &&
           (!statsCarId || e.carId === statsCarId),
       );
       localExpenses = round2(list.reduce((s, e) => s + e.amount, 0));
@@ -252,6 +225,12 @@ export function Dashboard() {
     else localStorage.removeItem(STATS_CAR_KEY);
   }
 
+  function goToStatBreakdown(kind: "income" | "expenses") {
+    const params = new URLSearchParams({ kind, period: statsPeriod });
+    if (statsCarId) params.set("carId", statsCarId);
+    navigate(`/stats?${params.toString()}`);
+  }
+
   const currentLocale =
     LOCALE_OPTIONS.find((o) => o.value === normalizeLocale(i18n.language))?.label ?? "English";
   const activeCurrency = me.data?.currency ?? "UAH";
@@ -294,6 +273,7 @@ export function Dashboard() {
           suffix={periodSuffix}
           tone="income"
           icon={<Icon name="credit-card" size={24} color="var(--taxi-income)" />}
+          onClick={() => goToStatBreakdown("income")}
         />
         <StatCard
           label={t("dashboard.expenses")}
@@ -301,6 +281,7 @@ export function Dashboard() {
           suffix={periodSuffix}
           tone="expense"
           icon={<Icon name="chart-decrease" size={24} color="var(--taxi-expense)" />}
+          onClick={() => goToStatBreakdown("expenses")}
         />
         <StatCard
           label={t("dashboard.profit")}

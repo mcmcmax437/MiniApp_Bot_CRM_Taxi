@@ -19,6 +19,7 @@ import { ReportsPage } from "./pages/Reports";
 import { DocumentsPage } from "./pages/Documents";
 import { AdminPage } from "./pages/Admin";
 import { RemindersPage } from "./pages/Reminders";
+import { StatBreakdownPage } from "./pages/StatBreakdownPage";
 
 export function App() {
   const { t } = useTranslation();
@@ -100,6 +101,7 @@ export function App() {
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="finance" element={<FinancePage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="stats" element={<StatBreakdownPage />} />
           {!account.isViewer ? (
             <Route path="admin" element={<AdminPage isSuperAdmin={account.isSuperAdmin} />} />
           ) : null}

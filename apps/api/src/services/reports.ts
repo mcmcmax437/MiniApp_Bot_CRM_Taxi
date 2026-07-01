@@ -300,19 +300,19 @@ export async function buildReportSummary(
   };
 }
 
-function expenseDescription(e: {
-  category: string;
-  tag: string | null;
-  note: string | null;
-  carId: string | null;
-}, carLabel: Map<string, string>): string {
-  const parts = [
-    e.tag?.trim(),
-    e.note?.trim(),
-    e.carId ? carLabel.get(e.carId) : null,
-    e.category,
-  ].filter((p) => p && String(p).trim());
-  return parts.join(" · ") || "—";
+function partnerSettlementExpenseDescription(
+  e: {
+    note: string | null;
+    carId: string | null;
+  },
+  carPlate: Map<string, string>,
+): string {
+  const plate = e.carId ? carPlate.get(e.carId) : null;
+  const note = e.note?.trim();
+  if (plate && note) return `${plate} · ${note}`;
+  if (note) return note;
+  if (plate) return plate;
+  return "—";
 }
 
 /**
@@ -353,8 +353,6 @@ export async function buildPartnerSettlementReport(
         amount: true,
         date: true,
         partnerSettled: true,
-        category: true,
-        tag: true,
         note: true,
         carId: true,
       },
@@ -368,10 +366,7 @@ export async function buildPartnerSettlementReport(
   ]);
 
   const driverLabel = new Map(drivers.map((d) => [d.id, d.fullName] as const));
-  const carLabel = new Map<string, string>();
-  for (const c of cars) {
-    carLabel.set(c.id, [c.plate, [c.make, c.model].filter(Boolean).join(" ")].filter(Boolean).join(" - "));
-  }
+  const carPlate = new Map(cars.map((c) => [c.id, c.plate] as const));
 
   type MonthAcc = {
     payments: PartnerSettlementLine[];
@@ -407,7 +402,7 @@ export async function buildPartnerSettlementReport(
       id: e.id,
       date: e.date.toISOString(),
       amount: round2(e.amount),
-      description: expenseDescription(e, carLabel),
+      description: partnerSettlementExpenseDescription(e, carPlate),
       settled: e.partnerSettled,
     });
   }

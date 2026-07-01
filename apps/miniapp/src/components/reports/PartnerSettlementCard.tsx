@@ -7,6 +7,7 @@ import { Icon } from "../crm";
 import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
 import { downloadTextFile } from "./driverIncomeExport";
+import { PartnerMonthActivity } from "./PartnerMonthActivity";
 import {
   buildPartnerSettlementCsv,
   filterPartnerSettlementByMonths,
@@ -165,8 +166,11 @@ function MonthBlock({
   );
 }
 
+type PartnerViewTab = "settlement" | "activity";
+
 export function PartnerSettlementCard() {
   const { t, i18n } = useTranslation();
+  const [viewTab, setViewTab] = useState<PartnerViewTab>("settlement");
   const {
     year,
     changeYear,
@@ -262,6 +266,28 @@ export function PartnerSettlementCard() {
         loading={report.isFetching}
       />
 
+      <div className="crm-partner-settlement__tabs crm-period-toggle" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={viewTab === "settlement"}
+          className={`crm-period-toggle__btn${viewTab === "settlement" ? " crm-period-toggle__btn--active" : ""}`}
+          onClick={() => setViewTab("settlement")}
+        >
+          {t("reports.partnerTabSettlement")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={viewTab === "activity"}
+          className={`crm-period-toggle__btn${viewTab === "activity" ? " crm-period-toggle__btn--active" : ""}`}
+          onClick={() => setViewTab("activity")}
+        >
+          {t("reports.partnerTabActivity")}
+        </button>
+      </div>
+
+      {viewTab === "settlement" ? (
       <div className="crm-driver-income-report__actions">
         <button
           type="button"
@@ -282,9 +308,23 @@ export function PartnerSettlementCard() {
           <span>{t("reports.accountantDownload")}</span>
         </button>
       </div>
+      ) : null}
 
       <div className="crm-report-section__body crm-partner-settlement__body">
-        {report.isLoading ? (
+        {viewTab === "activity" ? (
+          selectedMonths.size === 0 ? (
+            <div className="crm-report-section__empty">
+              <p className="crm-form-hint">{t("reports.accountantNoMonthsSelected")}</p>
+            </div>
+          ) : (
+            <PartnerMonthActivity
+              selectedMonths={selectedMonths}
+              monthLabel={monthLabel}
+              locale={i18n.language}
+              t={t}
+            />
+          )
+        ) : report.isLoading ? (
           <div className="crm-report-section__empty">
             <span className="crm-spinner" />
             <p>{t("common.loading")}</p>

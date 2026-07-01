@@ -628,6 +628,74 @@ body {
   color: var(--taxi-accent);
 }
 
+button.crm-stat {
+  width: 100%;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.crm-stat--link {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.crm-stat--link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.crm-stat--link:active {
+  transform: translateY(0);
+}
+
+.crm-stat--link:focus-visible {
+  outline: 2px solid var(--taxi-accent, #ffc107);
+  outline-offset: 2px;
+}
+
+.crm-stat-breakdown-total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.crm-stat-breakdown-total__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--taxi-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crm-stat-breakdown-total__value {
+  font-size: clamp(24px, 6vw, 32px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.crm-stat-breakdown-total--income .crm-stat-breakdown-total__value {
+  color: var(--taxi-income);
+}
+
+.crm-stat-breakdown-total--expenses .crm-stat-breakdown-total__value {
+  color: var(--taxi-expense);
+}
+
+.crm-stat-breakdown-total__meta {
+  font-size: 12px;
+  color: var(--taxi-text-subtle);
+}
+
+.crm-stat-breakdown-list {
+  margin-top: 0;
+}
+
 /* Sections */
 .crm-section {
   padding: 14px 16px;
@@ -6482,6 +6550,26 @@ select.crm-input option {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.crm-partner-settlement__tabs {
+  margin-top: 4px;
+}
+
+.crm-partner-settlement__tabs .crm-period-toggle__btn {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.25;
+  padding: 10px 8px;
+}
+
+.crm-partner-settlement__amount--in {
+  color: var(--taxi-income);
+}
+
+.crm-partner-settlement__amount--out {
+  color: var(--taxi-expense);
 }
 
 .crm-partner-settlement__grand {
