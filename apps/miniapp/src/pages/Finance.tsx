@@ -29,7 +29,6 @@ import {
   Modal,
   Field,
   TextArea,
-  NumberInput,
   DateInput,
   SelectInput,
   SearchableSelect,
@@ -63,6 +62,7 @@ import {
   paymentDisplaySubtitle,
   paymentDisplayTitle,
 } from "../components/finance/financeLabels";
+import { paymentMatchesSearch } from "../components/finance/paymentFilters";
 import { useReadOnly } from "../readOnly";
 import { ApiError } from "../api";
 import { showAlert } from "../telegram";
@@ -234,9 +234,7 @@ function PaymentsTab() {
     const list = all.filter((p) => {
       if (!financeInPeriod(p.date, period)) return false;
       if (methodFilter !== "ALL" && p.method !== methodFilter) return false;
-      if (!q) return true;
-      const hay = `${p.driver?.fullName ?? ""} ${p.car?.plate ?? ""} ${p.note ?? ""} ${p.amount}`.toLowerCase();
-      return hay.includes(q);
+      return paymentMatchesSearch(p, q);
     });
     return sortFinanceByDate(list, dateSort, (p) => p.date);
   }, [all, period, search, methodFilter, dateSort]);
