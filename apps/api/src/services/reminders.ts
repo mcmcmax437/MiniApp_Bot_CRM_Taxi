@@ -6,30 +6,16 @@ import {
   parseDaysBeforeList,
 } from "./maintenance.js";
 import { ensureReminderSettings } from "./reminder-settings.js";
+import {
+  isWeeklyMileageSkipped,
+  startOfCurrentWeeklyMileageWindow,
+} from "./weekly-mileage-window.js";
+
+export { isWeeklyMileageSkipped } from "./weekly-mileage-window.js";
 
 function carLabel(c: { plate: string; make: string | null; model: string | null }): string {
   const m = [c.make, c.model].filter(Boolean).join(" ");
   return m ? `${c.plate} (${m})` : c.plate;
-}
-
-function startOfCurrentWeek(now: Date, weekday: number): Date {
-  const day = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
-  const diff = (day - weekday + 7) % 7;
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - diff);
-  return start;
-}
-
-export function isWeeklyMileageSkipped(
-  settings: { weeklyMileageSkippedWeekStart?: Date | null; weeklyMileageWeekday: number },
-  now: Date = new Date(),
-): boolean {
-  if (!settings.weeklyMileageSkippedWeekStart) return false;
-  return (
-    settings.weeklyMileageSkippedWeekStart.getTime() ===
-    startOfCurrentWeek(now, settings.weeklyMileageWeekday).getTime()
-  );
 }
 
 /**
@@ -70,7 +56,7 @@ async function findCarsNeedingMileage(
     select: { id: true, plate: true, make: true, model: true },
   });
   if (cars.length === 0) return [];
-  const windowStart = startOfCurrentWeek(now, settings.weeklyMileageWeekday);
+  const windowStart = startOfCurrentWeeklyMileageWindow(now, settings.weeklyMileageWeekday);
   const stale = await prisma.mileageLog.findMany({
     where: { ownerId, recordedAt: { gte: windowStart } },
     select: { carId: true },
@@ -288,7 +274,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
 /** Skip the weekly mileage report for the owner's current weekly window. */
 export async function skipWeeklyMileageReport(ownerId: string): Promise<void> {
   const settings = await ensureReminderSettings(ownerId);
-  const weekStart = startOfCurrentWeek(new Date(), settings.weeklyMileageWeekday);
+  const weekStart = startOfCurrentWeeklyMileageWindow(new Date(), settings.weeklyMileageWeekday);
   await prisma.ownerReminderSettings.update({
     where: { ownerId },
     data: { weeklyMileageSkippedWeekStart: weekStart },

@@ -18,6 +18,7 @@
     "dev:api": "npm run dev -w @taxi/api",
     "dev:bot": "npm run dev -w @taxi/bot",
     "dev:miniapp": "npm run dev -w @taxi/miniapp",
+    "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
