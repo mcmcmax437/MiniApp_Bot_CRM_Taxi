@@ -29,7 +29,6 @@ import {
   Modal,
   Field,
   TextArea,
-  NumberInput,
   DateInput,
   SelectInput,
   SearchableSelect,
