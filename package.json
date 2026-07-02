@@ -27,6 +27,7 @@
     "seed": "npm run seed -w @taxi/api",
     "db:vps:test": "node scripts/vps-db.mjs test",
     "db:vps:sync": "node scripts/vps-db.mjs sync",
+    "db:vps:fix-expense-payer": "node scripts/vps-db.mjs fix-expense-payer",
     "db:vps:tunnel": "node scripts/vps-db.mjs tunnel",
     "deploy:vps": "node scripts/deploy-vps.mjs",
     "deploy:vps:app": "node scripts/deploy-vps.mjs app",

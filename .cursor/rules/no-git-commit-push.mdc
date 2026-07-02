@@ -1,0 +1,13 @@
+---
+description: Do not commit or push — user reviews and publishes via GitHub themselves
+alwaysApply: true
+---
+
+# Git: local changes only
+
+- Make code changes locally in the workspace.
+- **Do not** run `git commit`, `git push`, or create/update pull requests unless the user explicitly asks in the current message.
+- **Do not** amend, rebase, or force-push without explicit user request.
+- After completing work, summarize what changed so the user can review and commit/push when ready.
+
+The user publishes to GitHub after their own review.

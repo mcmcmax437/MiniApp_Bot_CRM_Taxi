@@ -1,0 +1,30 @@
+---
+description: Forbid destructive database operations — never drop or reset user data
+alwaysApply: true
+---
+
+# Database safety
+
+Never run destructive database commands unless the user explicitly requests a specific command by name in the current message.
+
+## Forbidden without explicit user request
+
+- `prisma migrate reset`
+- `DROP DATABASE` / `DROP TABLE` / `TRUNCATE TABLE`
+- `prisma db push --force-reset`
+- Any script or SQL whose primary effect is wiping or replacing the whole database
+- Deleting migration history to “fix” drift when that risks data loss
+
+## Allowed for schema updates (non-destructive)
+
+- `prisma migrate deploy` — applies pending `ALTER TABLE` / `ADD COLUMN` migrations only
+- `prisma migrate dev` — only when the user explicitly asks for a new local migration
+- Targeted `ALTER TABLE ... ADD COLUMN` with safe defaults
+- `prisma db pull` / read-only inspection queries
+
+## When schema and DB are out of sync
+
+1. Diagnose with `prisma migrate status` and read-only checks (e.g. `DESCRIBE Expense`).
+2. Prefer `prisma migrate deploy` or a single additive `ALTER TABLE`.
+3. Explain clearly; do not reset the database to “fix” the issue.
+4. If data seems missing, investigate connection target (local vs VPS/tunnel) before assuming data was deleted.

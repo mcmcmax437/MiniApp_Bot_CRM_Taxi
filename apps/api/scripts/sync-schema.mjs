@@ -22,6 +22,15 @@ const ALL_MIGRATIONS = [
   "20250612000000_tire_front_rear",
   "20250613000000_inspection_mileage_interval",
   "20250614000000_tracker_sim_number",
+  "20250615000000_fleet_members",
+  "20250615000000_payment_discount",
+  "20250616000000_rent_period_yearly",
+  "20250617000000_fleet_member_locale",
+  "20250618000000_payment_received_by_partner",
+  "20250619000000_note_medium_text",
+  "20250620000000_weekly_mileage_skip",
+  "20250622000000_payment_discount_amount",
+  "20250701000000_expense_payer",
 ];
 
 function failedMigrationName(output) {
@@ -29,7 +38,7 @@ function failedMigrationName(output) {
   return match?.[1] ?? null;
 }
 
-function reconcileAfterPush() {
+async function reconcileAfterPush() {
   const push = runPrisma(["db", "push", "--skip-generate"]);
   if (push.code !== 0) {
     if (isMysqlAuthPluginError(push.output)) failAuthPlugin();
@@ -45,12 +54,7 @@ function reconcileAfterPush() {
     runPrisma(["migrate", "resolve", "--applied", name]);
   }
 
-  const gen = runPrisma(["generate"]);
-  if (gen.code !== 0) {
-    fail("Prisma client generation failed.");
-  }
-  console.log("Database schema is up to date.\n");
-  process.exit(0);
+  await finishSync();
 }
 
 function runPrisma(args) {
@@ -73,8 +77,7 @@ function fail(message, hint) {
   console.error(`\n❌ ${message}`);
   if (hint) console.error(hint);
   console.error(
-    "   Docker reset: `docker compose down -v` then `npm run dev`.\n" +
-      "   Auth help: `npm run db:auth-help -w @taxi/api`\n",
+    "   Auth help: `npm run db:auth-help -w @taxi/api`\n",
   );
   process.exit(1);
 }
@@ -85,18 +88,42 @@ function failAuthPlugin() {
   process.exit(2);
 }
 
-ensureDatabaseUrl();
+/** Additive repairs when migration history says applied but a column is missing. */
+async function repairKnownDrift() {
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  try {
+    const columns = await prisma.$queryRaw`SHOW COLUMNS FROM Expense`;
+    const colNames = columns.map((c) => c.Field);
+    if (!colNames.includes("paidByFather")) {
+      console.log("Repairing drift: adding missing Expense.paidByFather column…");
+      await prisma.$executeRawUnsafe(
+        "ALTER TABLE `Expense` ADD COLUMN `paidByFather` BOOLEAN NOT NULL DEFAULT false",
+      );
+      console.log("Added Expense.paidByFather.");
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
 
-console.log("Syncing database schema…");
-
-const deploy = runPrisma(["migrate", "deploy"]);
-if (deploy.code === 0) {
+async function finishSync() {
+  await repairKnownDrift();
   const gen = runPrisma(["generate"]);
   if (gen.code !== 0) {
     fail("Prisma client generation failed.");
   }
   console.log("Database schema is up to date.\n");
   process.exit(0);
+}
+
+ensureDatabaseUrl();
+
+console.log("Syncing database schema…");
+
+const deploy = runPrisma(["migrate", "deploy"]);
+if (deploy.code === 0) {
+  await finishSync();
 }
 
 const deployOutput = deploy.output;
@@ -136,14 +163,11 @@ if (
     runPrisma(["migrate", "resolve", "--rolled-back", failed]);
     const retry = runPrisma(["migrate", "deploy"]);
     if (retry.code === 0) {
-      const gen = runPrisma(["generate"]);
-      if (gen.code !== 0) fail("Prisma client generation failed.");
-      console.log("Database schema is up to date.\n");
-      process.exit(0);
+      await finishSync();
     }
   }
 
-  reconcileAfterPush();
+  await reconcileAfterPush();
 }
 
 // Fresh database: tables do not exist yet — bootstrap with db push, then record migration.
@@ -165,12 +189,7 @@ if (looksLikeFreshDb) {
     }
   }
 
-  const gen = runPrisma(["generate"]);
-  if (gen.code !== 0) {
-    fail("Prisma client generation failed.");
-  }
-  console.log("Database schema is up to date.\n");
-  process.exit(0);
+  await finishSync();
 }
 
 fail(

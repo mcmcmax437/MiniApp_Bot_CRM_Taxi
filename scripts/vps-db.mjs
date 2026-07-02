@@ -12,6 +12,7 @@
  * Usage:
  *   npm run db:vps:test
  *   npm run db:vps:sync
+ *   npm run db:vps:fix-expense-payer
  *   npm run db:vps:tunnel
  */
 import { spawn, spawnSync } from "node:child_process";
@@ -114,10 +115,17 @@ async function withTunnel(run) {
 }
 
 function tunnelEnv() {
+  const user = process.env.VPS_MYSQL_USER?.trim() || process.env.MYSQL_USER || "taxi";
+  const password = process.env.VPS_MYSQL_PASSWORD?.trim() || process.env.MYSQL_PASSWORD || "";
+  const database = process.env.VPS_MYSQL_DATABASE?.trim() || process.env.MYSQL_DATABASE || "taxi";
+
   return {
     ...process.env,
     MYSQL_HOST: "127.0.0.1",
     LOCAL_DB_PORT: localPort,
+    MYSQL_USER: user,
+    MYSQL_PASSWORD: password,
+    MYSQL_DATABASE: database,
     DATABASE_URL: undefined,
   };
 }
@@ -148,6 +156,19 @@ async function runSync() {
   });
 }
 
+async function runFixExpensePayer() {
+  await withTunnel(() => {
+    console.log("Adding missing Expense.paidByFather on VPS (additive only)…");
+    const res = spawnSync("npm", ["run", "db:fix:expense-payer", "-w", "@taxi/api"], {
+      cwd: rootDir,
+      env: { ...tunnelEnv(), USE_VPS_TUNNEL: "1" },
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+    process.exit(res.status ?? 1);
+  });
+}
+
 function runTunnelForeground() {
   console.log(`SSH tunnel via "${sshTarget}": 127.0.0.1:${localPort} → remote:${remoteMysqlPort}`);
   console.log("Press Ctrl+C to close.\n");
@@ -159,9 +180,11 @@ if (mode === "tunnel") {
   runTunnelForeground();
 } else if (mode === "sync") {
   await runSync();
+} else if (mode === "fix-expense-payer") {
+  await runFixExpensePayer();
 } else if (mode === "test") {
   await runTest();
 } else {
-  console.error("Usage: node scripts/vps-db.mjs [test|sync|tunnel]");
+  console.error("Usage: node scripts/vps-db.mjs [test|sync|fix-expense-payer|tunnel]");
   process.exit(1);
 }
