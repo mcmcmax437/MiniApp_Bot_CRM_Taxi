@@ -6,6 +6,7 @@ import {
   useCars,
   useExpenses,
   useMe,
+  usePayments,
   useReminders,
   useReport,
   useSetCurrency,
@@ -31,7 +32,7 @@ import {
 import i18n from "../i18n";
 import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
 import { closeTelegramApp } from "../telegram";
-import { dateInStatsPeriod, reportDateRange } from "../utils/dashboardStats";
+import { buildDashboardByCar, dateInStatsPeriod, reportDateRange } from "../utils/dashboardStats";
 
 const STATS_PERIOD_KEY = "dashboard-stats-period";
 const STATS_CAR_KEY = "dashboard-stats-car";
@@ -124,6 +125,7 @@ export function Dashboard() {
   // Pull all expenses so we can compute month/previous totals locally using
   // the full calendar month (not 1st-to-today) and the selected car filter.
   const expensesQuery = useExpenses();
+  const paymentsQuery = usePayments();
   const reminders = useReminders();
   const balances = useBalances();
   const me = useMe();
@@ -178,6 +180,17 @@ export function Dashboard() {
       roiPercent: calcRoi(income, expenses),
     };
   }, [report.data, statsCarId, expensesQuery.data, statsPeriod]);
+
+  const chartByCar = useMemo(
+    () =>
+      buildDashboardByCar(
+        paymentsQuery.data ?? [],
+        expensesQuery.data ?? [],
+        cars.data ?? [],
+        statsPeriod,
+      ),
+    [paymentsQuery.data, expensesQuery.data, cars.data, statsPeriod],
+  );
 
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
   const income = formatMoney(stats.income);
@@ -307,17 +320,15 @@ export function Dashboard() {
         subtitle={t("dashboard.chartSubtitle")}
         icon={<Icon name="chart-increase" size={24} color="var(--taxi-accent)" />}
       >
-        {report.isLoading ? (
+        {report.isLoading || paymentsQuery.isLoading || expensesQuery.isLoading ? (
           <div className="crm-empty-box">
             <span className="crm-spinner" />
             <p>{t("common.loading")}</p>
           </div>
         ) : (
-          // Pass `byCar` regardless of the active car filter — the chart is
-          // meant to compare cars, so showing only the selected car would be
-          // a single bar and pointless. When `statsCarId` is set we keep
-          // the totals (the stat grid above) but chart the whole fleet.
-          <StatsChart rows={report.data?.byCar ?? []} />
+          // Same period filters as the stat cards — not the raw report `byCar`,
+          // which can disagree on expense months (e.g. one-time purchase costs).
+          <StatsChart rows={chartByCar} />
         )}
       </SectionCard>
 
