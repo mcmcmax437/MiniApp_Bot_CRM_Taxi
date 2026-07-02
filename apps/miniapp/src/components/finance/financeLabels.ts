@@ -27,7 +27,8 @@ export function expenseDisplaySubtitle(
   expense: {
     note?: string | null;
     tag?: string | null;
-    payer?: string | null;
+    paidByPartner?: boolean;
+    paidByFather?: boolean;
     category: ExpenseCategory;
     car?: { plate: string } | null;
   },
@@ -36,11 +37,11 @@ export function expenseDisplaySubtitle(
   noneLabel: string,
 ): string {
   const hasCustomTitle = Boolean(expense.note?.trim() || expense.tag?.trim());
-  const payer = expense.payer?.trim();
   return [
     dateLabel,
     expense.car?.plate ?? noneLabel,
-    payer ? t("finance.paidByPerson", { name: payer }) : null,
+    expense.paidByFather ? t("finance.paidByFather") : null,
+    expense.paidByPartner ? t("finance.paidByPartner") : null,
     hasCustomTitle ? t(`finance.${expense.category}`) : null,
   ]
     .filter(Boolean)

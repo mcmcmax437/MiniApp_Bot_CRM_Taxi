@@ -290,9 +290,13 @@ export function FinanceList(props: { loading?: boolean; className?: string; chil
   return <div className={rootClass}>{props.children}</div>;
 }
 
-export function PartnerAlertMark(props: { label: string }) {
+export function PartnerAlertMark(props: { label: string; className?: string }) {
   return (
-    <span className="crm-partner-alert" title={props.label} aria-label={props.label}>
+    <span
+      className={`crm-partner-alert${props.className ? ` ${props.className}` : ""}`}
+      title={props.label}
+      aria-label={props.label}
+    >
       !
     </span>
   );
@@ -303,6 +307,8 @@ export function FinanceListItem(props: {
   subtitle?: string;
   partnerAlert?: boolean;
   partnerAlertLabel?: string;
+  fatherAlert?: boolean;
+  fatherAlertLabel?: string;
   amount?: string;
   amountTone?: "income" | "expense" | "neutral";
   className?: string;
@@ -325,6 +331,12 @@ export function FinanceListItem(props: {
         <div className="crm-finance-item__title-line">
           <div className="crm-finance-item__title">{props.title}</div>
           {props.partnerAlert ? <PartnerAlertMark label={props.partnerAlertLabel ?? "!"} /> : null}
+          {props.fatherAlert ? (
+            <PartnerAlertMark
+              className="crm-payer-mark--father"
+              label={props.fatherAlertLabel ?? "!"}
+            />
+          ) : null}
         </div>
         {props.subtitle ? <div className="crm-finance-item__subtitle">{props.subtitle}</div> : null}
         {props.noteExpandable && props.onShowNote ? (

@@ -546,9 +546,9 @@ function ExpensesTab() {
     date: string;
     note: string;
     tag: string;
-    payer: string;
     paidByPartner: boolean;
     partnerSettled: boolean;
+    paidByFather: boolean;
   }>({
     carId: "",
     category: ExpenseCategory.FUEL,
@@ -556,9 +556,9 @@ function ExpensesTab() {
     date: todayInput(),
     note: "",
     tag: "",
-    payer: "",
     paidByPartner: false,
     partnerSettled: false,
+    paidByFather: false,
   });
 
   const all = (expenses.data ?? []).filter((e) => e.category !== ExpenseCategory.TAX);
@@ -569,14 +569,6 @@ function ExpensesTab() {
       if (tag) tags.add(tag);
     }
     return [...tags].sort((a, b) => a.localeCompare(b));
-  }, [all]);
-  const expensePayerSuggestions = useMemo(() => {
-    const payers = new Set<string>();
-    for (const e of all) {
-      const payer = e.payer?.trim();
-      if (payer) payers.add(payer);
-    }
-    return [...payers].sort((a, b) => a.localeCompare(b));
   }, [all]);
   const total = all.reduce((s, e) => s + e.amount, 0);
   const monthItems = all.filter((e) => financeInPeriod(e.date, "month"));
@@ -589,7 +581,7 @@ function ExpensesTab() {
     const list = all.filter((e) => {
       if (!financeInPeriod(e.date, period)) return false;
       if (!q) return true;
-      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.payer ?? ""} ${e.note ?? ""}`.toLowerCase();
+      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.paidByFather ? t("finance.paidByFather") : ""} ${e.paidByPartner ? t("finance.paidByPartner") : ""} ${e.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (e) => e.date);
@@ -605,9 +597,9 @@ function ExpensesTab() {
       date: todayInput(),
       note: "",
       tag: "",
-      payer: "",
       paidByPartner: false,
       partnerSettled: false,
+      paidByFather: false,
     });
     setOpen(true);
   }
@@ -629,9 +621,9 @@ function ExpensesTab() {
           date: form.date,
           note: form.note || null,
           tag: form.tag.trim() || null,
-          payer: form.payer.trim() || null,
           paidByPartner: form.paidByPartner,
           partnerSettled: form.paidByPartner ? form.partnerSettled : false,
+          paidByFather: form.paidByFather,
         },
       },
       {
@@ -728,6 +720,8 @@ function ExpensesTab() {
                   subtitle={expenseDisplaySubtitle(e, formatDate(e.date), t, t("common.none"))}
                   partnerAlert={partnerOpen}
                   partnerAlertLabel={t("finance.partnerUnsettledTitle")}
+                  fatherAlert={e.paidByFather}
+                  fatherAlertLabel={t("finance.paidByFather")}
                   amount={formatMoney(e.amount)}
                   amountTone="expense"
                   noteExpandable={isLongNote}
@@ -762,9 +756,9 @@ function ExpensesTab() {
                             date: e.date.slice(0, 10),
                             note: e.note ?? "",
                             tag: e.tag ?? "",
-                            payer: e.payer ?? "",
                             paidByPartner: e.paidByPartner,
                             partnerSettled: e.partnerSettled,
+                            paidByFather: e.paidByFather,
                           });
                           setOpen(true);
                         }
@@ -851,16 +845,6 @@ function ExpensesTab() {
             onChange={(v) => setForm({ ...form, tag: v })}
           />
         </Field>
-        <Field label={t("finance.expensePayer")}>
-          <ExpenseTagInput
-            value={form.payer}
-            suggestions={expensePayerSuggestions}
-            onChange={(v) => setForm({ ...form, payer: v })}
-            listId="expense-payer-suggestions"
-            placeholder={t("finance.expensePayerPlaceholder")}
-            hint={t("finance.expensePayerHint")}
-          />
-        </Field>
         <Field label={t("finance.note")}>
           <TextArea
             value={form.note}
@@ -880,6 +864,7 @@ function ExpensesTab() {
                 ...form,
                 paidByPartner: e.target.checked,
                 partnerSettled: e.target.checked ? form.partnerSettled : false,
+                paidByFather: e.target.checked ? false : form.paidByFather,
               })
             }
           />
@@ -895,6 +880,22 @@ function ExpensesTab() {
             <span>{t("finance.partnerSettled")}</span>
           </label>
         ) : null}
+        <label className="crm-checkbox-field">
+          <input
+            type="checkbox"
+            checked={form.paidByFather}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                paidByFather: e.target.checked,
+                paidByPartner: e.target.checked ? false : form.paidByPartner,
+                partnerSettled: e.target.checked ? false : form.partnerSettled,
+              })
+            }
+          />
+          <span>{t("finance.paidByFather")}</span>
+        </label>
+        <p className="crm-field-hint">{t("finance.paidByFatherHint")}</p>
       </Modal>
       <NoteViewerModal
         open={Boolean(noteView)}

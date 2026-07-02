@@ -303,16 +303,16 @@ export async function buildReportSummary(
 function partnerSettlementExpenseDescription(
   e: {
     note: string | null;
-    payer: string | null;
     carId: string | null;
   },
   carPlate: Map<string, string>,
 ): string {
   const plate = e.carId ? carPlate.get(e.carId) : null;
   const note = e.note?.trim();
-  const payer = e.payer?.trim();
-  const parts = [plate, note, payer].filter((p) => p && String(p).trim());
-  return parts.length > 0 ? parts.join(" · ") : "—";
+  if (plate && note) return `${plate} · ${note}`;
+  if (note) return note;
+  if (plate) return plate;
+  return "—";
 }
 
 /**
@@ -354,7 +354,6 @@ export async function buildPartnerSettlementReport(
         date: true,
         partnerSettled: true,
         note: true,
-        payer: true,
         carId: true,
       },
       orderBy: { date: "asc" },

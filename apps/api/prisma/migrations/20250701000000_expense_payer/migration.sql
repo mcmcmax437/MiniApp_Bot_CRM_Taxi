@@ -1,2 +1,2 @@
--- AlterTable
-ALTER TABLE `Expense` ADD COLUMN `payer` VARCHAR(191) NULL;
+-- Replace optional payer text with a paid-by-father flag (informational only, no settlement).
+ALTER TABLE `Expense` ADD COLUMN `paidByFather` BOOLEAN NOT NULL DEFAULT false;

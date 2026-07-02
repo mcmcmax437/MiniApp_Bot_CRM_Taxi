@@ -109,6 +109,12 @@ function ActivityMonthBlock({
                       {line.paidByPartner ? (
                         <PartnerAlertMark label={t("finance.paidByPartner")} />
                       ) : null}
+                      {line.paidByFather ? (
+                        <PartnerAlertMark
+                          className="crm-payer-mark--father"
+                          label={t("finance.paidByFather")}
+                        />
+                      ) : null}
                     </span>
                     <span className="crm-partner-settlement__line-amount crm-partner-settlement__line-amount--expense">
                       −{formatMoney(line.amount)}
@@ -148,7 +154,10 @@ export function PartnerMonthActivity({
       const monthExpenses = (expenses.data ?? [])
         .filter((e) => monthKeyFromIso(e.date) === monthKey)
         .sort((a, b) => b.date.localeCompare(a.date));
-      if (monthPayments.some((p) => p.receivedByPartner) || monthExpenses.some((e) => e.paidByPartner)) {
+      if (
+        monthPayments.some((p) => p.receivedByPartner) ||
+        monthExpenses.some((e) => e.paidByPartner || e.paidByFather)
+      ) {
         hasPartnerMarkers = true;
       }
       const incomeTotal = round2(monthPayments.reduce((s, p) => s + p.amount, 0));
@@ -217,6 +226,10 @@ export function PartnerMonthActivity({
           <span className="crm-partner-activity-legend__item">
             <PartnerAlertMark label={t("finance.paidByPartner")} />
             <span>{t("finance.paidByPartner")}</span>
+          </span>
+          <span className="crm-partner-activity-legend__item">
+            <PartnerAlertMark className="crm-payer-mark--father" label={t("finance.paidByFather")} />
+            <span>{t("finance.paidByFather")}</span>
           </span>
         </div>
       ) : null}

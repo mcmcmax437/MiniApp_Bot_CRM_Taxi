@@ -3939,6 +3939,12 @@ div.crm-finance-item {
   border: 1px solid rgba(255, 183, 77, 0.45);
 }
 
+.crm-payer-mark--father {
+  background: rgba(129, 212, 250, 0.2);
+  color: #81d4fa;
+  border-color: rgba(129, 212, 250, 0.45);
+}
+
 .crm-car-attention {
   display: inline-grid;
   place-items: center;
