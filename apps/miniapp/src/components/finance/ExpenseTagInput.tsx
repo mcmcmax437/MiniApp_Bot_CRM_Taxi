@@ -5,16 +5,20 @@ export function ExpenseTagInput(props: {
   value: string;
   onChange: (v: string) => void;
   suggestions: string[];
+  placeholder?: string;
+  hint?: string;
+  listId?: string;
+  showHint?: boolean;
 }) {
   const { t } = useTranslation();
-  const listId = "expense-tag-suggestions";
+  const listId = props.listId ?? "expense-tag-suggestions";
 
   return (
     <div className="crm-expense-tag-field">
       <TextInput
         value={props.value}
         onChange={props.onChange}
-        placeholder={t("finance.expenseTagPlaceholder")}
+        placeholder={props.placeholder ?? t("finance.expenseTagPlaceholder")}
         list={listId}
       />
       <datalist id={listId}>
@@ -36,7 +40,9 @@ export function ExpenseTagInput(props: {
           ))}
         </div>
       ) : null}
-      <p className="crm-form-hint">{t("finance.expenseTagHint")}</p>
+      {props.showHint !== false ? (
+        <p className="crm-form-hint">{props.hint ?? t("finance.expenseTagHint")}</p>
+      ) : null}
     </div>
   );
 }

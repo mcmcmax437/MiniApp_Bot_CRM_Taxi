@@ -546,6 +546,7 @@ function ExpensesTab() {
     date: string;
     note: string;
     tag: string;
+    payer: string;
     paidByPartner: boolean;
     partnerSettled: boolean;
   }>({
@@ -555,6 +556,7 @@ function ExpensesTab() {
     date: todayInput(),
     note: "",
     tag: "",
+    payer: "",
     paidByPartner: false,
     partnerSettled: false,
   });
@@ -568,6 +570,14 @@ function ExpensesTab() {
     }
     return [...tags].sort((a, b) => a.localeCompare(b));
   }, [all]);
+  const expensePayerSuggestions = useMemo(() => {
+    const payers = new Set<string>();
+    for (const e of all) {
+      const payer = e.payer?.trim();
+      if (payer) payers.add(payer);
+    }
+    return [...payers].sort((a, b) => a.localeCompare(b));
+  }, [all]);
   const total = all.reduce((s, e) => s + e.amount, 0);
   const monthItems = all.filter((e) => financeInPeriod(e.date, "month"));
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
@@ -579,7 +589,7 @@ function ExpensesTab() {
     const list = all.filter((e) => {
       if (!financeInPeriod(e.date, period)) return false;
       if (!q) return true;
-      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.note ?? ""}`.toLowerCase();
+      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.payer ?? ""} ${e.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (e) => e.date);
@@ -595,6 +605,7 @@ function ExpensesTab() {
       date: todayInput(),
       note: "",
       tag: "",
+      payer: "",
       paidByPartner: false,
       partnerSettled: false,
     });
@@ -618,6 +629,7 @@ function ExpensesTab() {
           date: form.date,
           note: form.note || null,
           tag: form.tag.trim() || null,
+          payer: form.payer.trim() || null,
           paidByPartner: form.paidByPartner,
           partnerSettled: form.paidByPartner ? form.partnerSettled : false,
         },
@@ -750,6 +762,7 @@ function ExpensesTab() {
                             date: e.date.slice(0, 10),
                             note: e.note ?? "",
                             tag: e.tag ?? "",
+                            payer: e.payer ?? "",
                             paidByPartner: e.paidByPartner,
                             partnerSettled: e.partnerSettled,
                           });
@@ -836,6 +849,16 @@ function ExpensesTab() {
             value={form.tag}
             suggestions={expenseTagSuggestions}
             onChange={(v) => setForm({ ...form, tag: v })}
+          />
+        </Field>
+        <Field label={t("finance.expensePayer")}>
+          <ExpenseTagInput
+            value={form.payer}
+            suggestions={expensePayerSuggestions}
+            onChange={(v) => setForm({ ...form, payer: v })}
+            listId="expense-payer-suggestions"
+            placeholder={t("finance.expensePayerPlaceholder")}
+            hint={t("finance.expensePayerHint")}
           />
         </Field>
         <Field label={t("finance.note")}>

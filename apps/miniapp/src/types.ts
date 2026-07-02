@@ -183,6 +183,7 @@ export interface Expense {
   date: string;
   note: string | null;
   tag: string | null;
+  payer: string | null;
   paidByPartner: boolean;
   partnerSettled: boolean;
   createdAt?: string;

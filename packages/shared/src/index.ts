@@ -390,6 +390,7 @@ export const expenseCreateSchema = z.object({
   date: isoDate,
   note: z.string().trim().max(12000).optional().nullable(),
   tag: z.string().trim().max(64).optional().nullable(),
+  payer: z.string().trim().max(120).optional().nullable(),
   paidByPartner: z.boolean().default(false),
   partnerSettled: z.boolean().default(false),
 });

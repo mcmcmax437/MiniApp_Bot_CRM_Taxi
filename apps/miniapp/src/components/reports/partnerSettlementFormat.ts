@@ -18,12 +18,13 @@ export function partnerPaymentDescription(
   return driver || note || "—";
 }
 
-/** Plate + action note only — no category or custom tags. */
+/** Plate, action note, and who paid — no category or grouping tags. */
 export function partnerExpenseDescription(
-  expense: Pick<Expense, "car" | "note">,
+  expense: Pick<Expense, "car" | "note" | "payer">,
 ): string {
   const plate = expense.car?.plate?.trim();
   const note = expense.note?.trim();
-  if (plate && note) return `${plate} · ${note}`;
-  return note || plate || "—";
+  const payer = expense.payer?.trim();
+  const parts = [plate, note, payer].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : "—";
 }

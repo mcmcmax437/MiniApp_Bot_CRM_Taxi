@@ -387,6 +387,7 @@ model Expense {
   date            DateTime
   note            String?             @db.MediumText
   tag             String?
+  payer           String?
   paidByPartner   Boolean         @default(false)
   partnerSettled  Boolean         @default(false)
   createdAt       DateTime        @default(now())
