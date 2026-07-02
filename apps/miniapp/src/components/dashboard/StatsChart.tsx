@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { formatMoney } from "../ui";
-import { Icon } from "../crm";
 import type { ReportSummary } from "@taxi/shared";
+import { formatMoney } from "../ui";
+import { Icon, type DashboardStatsPeriod } from "../crm";
+import { DASHBOARD_FLEET_OTHER_CAR_ID } from "../../utils/dashboardStats";
 
 /**
  * A small, dependency-free bar chart that summarises fleet numbers on the
@@ -21,10 +22,23 @@ import type { ReportSummary } from "@taxi/shared";
  * monthly finance chart section, so the user lands directly on the data
  * they came from the dashboard to see.
  */
-export function StatsChart(props: { rows: ReportSummary["byCar"] }) {
+export function StatsChart(props: { rows: ReportSummary["byCar"]; period: DashboardStatsPeriod }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const rows = props.rows;
+
+  function openRow(row: ReportSummary["byCar"][number]) {
+    if (row.carId === DASHBOARD_FLEET_OTHER_CAR_ID) {
+      const params = new URLSearchParams({
+        kind: "expenses",
+        period: props.period,
+        carId: DASHBOARD_FLEET_OTHER_CAR_ID,
+      });
+      navigate(`/stats?${params.toString()}`);
+      return;
+    }
+    navigate(`/cars/${row.carId}?finance=1`);
+  }
 
   if (!rows.length) {
     return (
@@ -56,8 +70,12 @@ export function StatsChart(props: { rows: ReportSummary["byCar"] }) {
             <button
               type="button"
               className="crm-stats-chart__row-button"
-              onClick={() => navigate(`/cars/${row.carId}?finance=1`)}
-              aria-label={t("dashboard.chartRowOpen", { label: row.label })}
+              onClick={() => openRow(row)}
+              aria-label={
+                row.carId === DASHBOARD_FLEET_OTHER_CAR_ID
+                  ? t("dashboard.chartFleetOtherOpen")
+                  : t("dashboard.chartRowOpen", { label: row.label })
+              }
             >
               <div className="crm-stats-chart__label">
                 <span>{row.label}</span>

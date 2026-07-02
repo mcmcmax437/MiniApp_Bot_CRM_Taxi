@@ -3,6 +3,9 @@ import type { ReportSummary } from "@taxi/shared";
 import type { DashboardStatsPeriod } from "../components/crm";
 import type { Car, Expense, Payment } from "../types";
 
+/** Synthetic id for dashboard / breakdown rows — expenses (or income) not tied to a car. */
+export const DASHBOARD_FLEET_OTHER_CAR_ID = "__fleet_other__";
+
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -72,6 +75,7 @@ export function dateInStatsPeriod(dateStr: string, period: DashboardStatsPeriod)
 
 export function matchesDashboardCar(carId: string | null | undefined, filterCarId: string): boolean {
   if (!filterCarId) return true;
+  if (filterCarId === DASHBOARD_FLEET_OTHER_CAR_ID) return carId == null || carId === "";
   return carId === filterCarId;
 }
 
@@ -116,21 +120,26 @@ export function buildDashboardByCar(
   expenses: Expense[],
   cars: Car[],
   period: DashboardStatsPeriod,
+  fleetOtherLabel: string,
 ): ReportSummary["byCar"] {
   const incomeByCar = new Map<string, number>();
+  let fleetOtherIncome = 0;
   for (const p of filterDashboardIncomePayments(payments, period, "")) {
     if (p.carId) incomeByCar.set(p.carId, (incomeByCar.get(p.carId) ?? 0) + p.amount);
+    else fleetOtherIncome += p.amount;
   }
 
   const expenseByCar = new Map<string, number>();
+  let fleetOtherExpenses = 0;
   for (const e of filterDashboardExpenses(expenses, period, "")) {
     if (e.carId) expenseByCar.set(e.carId, (expenseByCar.get(e.carId) ?? 0) + e.amount);
+    else fleetOtherExpenses += e.amount;
   }
 
   const labelById = new Map(cars.map((c) => [c.id, carRowLabel(c)] as const));
   const carIds = new Set<string>([...incomeByCar.keys(), ...expenseByCar.keys()]);
 
-  return [...carIds]
+  const rows = [...carIds]
     .map((carId) => {
       const income = round2(incomeByCar.get(carId) ?? 0);
       const exp = round2(expenseByCar.get(carId) ?? 0);
@@ -143,6 +152,20 @@ export function buildDashboardByCar(
       };
     })
     .sort((a, b) => b.profit - a.profit);
+
+  const otherIncome = round2(fleetOtherIncome);
+  const otherExpenses = round2(fleetOtherExpenses);
+  if (otherIncome > 0 || otherExpenses > 0) {
+    rows.push({
+      carId: DASHBOARD_FLEET_OTHER_CAR_ID,
+      label: fleetOtherLabel,
+      income: otherIncome,
+      expenses: otherExpenses,
+      profit: round2(otherIncome - otherExpenses),
+    });
+  }
+
+  return rows;
 }
 
 export type StatBreakdownKind = "income" | "expenses";

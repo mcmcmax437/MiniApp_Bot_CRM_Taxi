@@ -188,8 +188,9 @@ export function Dashboard() {
         expensesQuery.data ?? [],
         cars.data ?? [],
         statsPeriod,
+        t("dashboard.chartFleetOther"),
       ),
-    [paymentsQuery.data, expensesQuery.data, cars.data, statsPeriod],
+    [paymentsQuery.data, expensesQuery.data, cars.data, statsPeriod, t],
   );
 
   const owing = (balances.data ?? []).filter((b) => b.balance > 0.005);
@@ -328,7 +329,7 @@ export function Dashboard() {
         ) : (
           // Same period filters as the stat cards — not the raw report `byCar`,
           // which can disagree on expense months (e.g. one-time purchase costs).
-          <StatsChart rows={chartByCar} />
+          <StatsChart rows={chartByCar} period={statsPeriod} />
         )}
       </SectionCard>
 

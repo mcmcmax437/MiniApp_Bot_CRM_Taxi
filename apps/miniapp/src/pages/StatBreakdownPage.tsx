@@ -12,6 +12,7 @@ import { useCars, useExpenses, usePayments } from "../hooks";
 import type { Expense, Payment } from "../types";
 import { formatDate, formatMoney } from "../components/ui";
 import {
+  DASHBOARD_FLEET_OTHER_CAR_ID,
   filterDashboardExpenses,
   filterDashboardIncomePayments,
   parseStatBreakdownKind,
@@ -39,12 +40,13 @@ export function StatBreakdownPage() {
   const cars = useCars();
 
   const carLabel = useMemo(() => {
+    if (carId === DASHBOARD_FLEET_OTHER_CAR_ID) return t("dashboard.chartFleetOther");
     if (!carId) return null;
     const car = (cars.data ?? []).find((c) => c.id === carId);
     if (!car) return null;
     const name = [car.make, car.model].filter(Boolean).join(" ");
     return [car.plate, name].filter(Boolean).join(" · ");
-  }, [carId, cars.data]);
+  }, [carId, cars.data, t]);
 
   const periodSuffix =
     period === "month"
