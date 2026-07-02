@@ -5,7 +5,7 @@ import { partnerExpenseDescription } from "./partnerSettlementFormat";
 describe("partnerExpenseDescription", () => {
   it("includes the trimmed payer after plate and note", () => {
     const description = partnerExpenseDescription({
-      car: { plate: "  AA1234BB  " },
+      car: { id: "car-1", plate: "  AA1234BB  " },
       note: "  tire replacement  ",
       payer: "  father  ",
     });
@@ -25,7 +25,7 @@ describe("partnerExpenseDescription", () => {
 
   it("returns an em dash when no meaningful description fields exist", () => {
     const description = partnerExpenseDescription({
-      car: { plate: "   " },
+      car: { id: "car-1", plate: "   " },
       note: null,
       payer: "   ",
     });
