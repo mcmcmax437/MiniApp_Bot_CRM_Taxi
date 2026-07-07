@@ -495,7 +495,7 @@ const en = {
     formulaRentPaid: "Rent paid",
     formulaDiscounts: "Discounts",
     formulaFines: "Unpaid fines",
-    depositHeld: "Deposit held: {{amount}}",
+    depositHeld: "Deposit held separately (not included in balance): {{amount}}",
     // Hint shown above the rent-accrued section so the owner
     // understands that the balance keeps growing day-to-day: rent is
     // accrued continuously from the agreement start, so a driver who
@@ -1289,7 +1289,7 @@ const uk: Resources = {
     formulaRentPaid: "Сплачено",
     formulaDiscounts: "Знижки",
     formulaFines: "Неоплачені штрафи",
-    depositHeld: "Утримується депозит: {{amount}}",
+    depositHeld: "Депозит утримується окремо (не входить у баланс): {{amount}}",
     dailyAccrualHint: "Оренда нараховується кожен день, поки водій має авто — доки не зафіксовано платіж, баланс зростає на денну ставку ({{perDay}} / день).",
   },
   fleet: {
@@ -2075,7 +2075,7 @@ const ru: Resources = {
     formulaRentPaid: "Оплачено",
     formulaDiscounts: "Скидки",
     formulaFines: "Неоплаченные штрафы",
-    depositHeld: "Удерживается депозит: {{amount}}",
+    depositHeld: "Депозит удерживается отдельно (не входит в баланс): {{amount}}",
     dailyAccrualHint: "Аренда начисляется каждый день, пока водитель пользуется авто — пока не зафиксирован платёж, баланс растёт на дневную ставку ({{perDay}} / день).",
   },
   fleet: {

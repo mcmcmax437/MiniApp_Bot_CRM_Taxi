@@ -175,10 +175,9 @@ export async function computeDriverBalanceBreakdown(
   if (!driver) return null;
 
   // We need every agreement that contributes to the balance. Active
-  // agreements still accrue rent; ended agreements don't (they were
-  // already capped to their endDate), but they still count toward
-  // `depositHeld` because the deposit was held during the rental.
-  // End-date-only filtering happens via the `cap` below.
+  // agreements still accrue rent; ended agreements don't. Deposit held
+  // in the breakdown should mirror `/balances`, so we only include
+  // deposits from ACTIVE agreements here as well.
   const [agreements, payments, fines] = await Promise.all([
     prisma.rentalAgreement.findMany({
       where: { ownerId, driverId },
@@ -230,11 +229,9 @@ export async function computeDriverBalanceBreakdown(
         accrued,
       });
     }
-    // Deposits are held for the entire lifetime of the agreement
-    // (active or ended) — the deposit is still owed back to the
-    // driver at the end of the rental, so it counts toward
-    // `depositHeld` even on ended rows.
-    depositHeld += a.depositAmount;
+    if (a.status === "ACTIVE") {
+      depositHeld += a.depositAmount;
+    }
   }
   activeAccruals.sort((a, b) => a.startDate.localeCompare(b.startDate));
 
