@@ -77,6 +77,35 @@ function periodPerDay(rentAmount: number, period: RentPeriod): number {
   return rentAmount / days;
 }
 
+function ActiveRentalCard(props: { accrual: DriverBalanceAccrual }) {
+  const { t } = useTranslation();
+  const a = props.accrual;
+  return (
+    <div className="crm-contract-note crm-contract-note--active">
+      <div className="crm-contract-note__row crm-contract-note__row--primary">
+        <Icon name="car-01" size={16} color="var(--taxi-accent)" />
+        <span>{a.carPlate}</span>
+        <span>·</span>
+        <span>{t(`drivers.${a.period}`)}</span>
+      </div>
+      <div className="crm-contract-note__row crm-contract-note__row--meta">
+        {t("balanceBreakdown.startedOn", { date: formatDate(a.startDate) })}
+      </div>
+      <div className="crm-contract-note__row crm-contract-note__row--meta">
+        {t("balanceBreakdown.daysRiding", { count: a.daysElapsed })}
+      </div>
+      <div className="crm-contract-note__row">
+        <span>{t("balanceBreakdown.rentRate")}</span>
+        <span>{formatMoney(a.rentAmount)}</span>
+      </div>
+      <div className="crm-contract-note__row">
+        <span>{t("balanceBreakdown.accruedSoFar")}</span>
+        <span>{formatMoney(a.accrued)}</span>
+      </div>
+    </div>
+  );
+}
+
 export function DriverBalanceBreakdownModal(props: {
   open: boolean;
   driverId: string | null;
@@ -185,6 +214,21 @@ export function DriverBalanceBreakdownModal(props: {
             </button>
           ) : null}
 
+          {breakdown.activeAccruals.length > 0 ? (
+            <SectionCard
+              title={t("balanceBreakdown.activeRentals")}
+              icon={<Icon name="car-01" size={20} color="var(--taxi-text-muted)" />}
+              defaultOpen
+              storageKey="balance-bd-active-rentals"
+            >
+              <div className="crm-balance-rentals">
+                {breakdown.activeAccruals.map((a) => (
+                  <ActiveRentalCard key={a.agreementId} accrual={a} />
+                ))}
+              </div>
+            </SectionCard>
+          ) : null}
+
           <SectionCard
             title={t("balanceBreakdown.rentAccrued")}
             icon={<Icon name="car-01" size={20} color="var(--taxi-text-muted)" />}
@@ -199,7 +243,7 @@ export function DriverBalanceBreakdownModal(props: {
                   <MoneyLine
                     key={a.agreementId}
                     label={`${a.carPlate} · ${t(`drivers.${a.period}`)}`}
-                    sublabel={`${t("balanceBreakdown.since")} ${formatDate(a.startDate)} · ${a.daysElapsed} ${t("balanceBreakdown.days")} · ${a.periods.toFixed(2)} × ${formatMoney(a.rentAmount)}`}
+                    sublabel={`${t("balanceBreakdown.daysRiding", { count: a.daysElapsed })} · ${a.periods.toFixed(2)} × ${formatMoney(a.rentAmount)}`}
                     amount={a.accrued}
                     tone="bad"
                   />

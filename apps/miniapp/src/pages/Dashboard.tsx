@@ -21,6 +21,7 @@ import { ReminderList } from "../components/ReminderList";
 import { WeeklyMileageSkipBanner } from "../components/WeeklyMileageSkipBanner";
 import { RecentActivitySection } from "../components/RecentActivitySection";
 import { StatsChart } from "../components/dashboard/StatsChart";
+import { DriverBalanceBreakdownModal } from "../components/DriverBalanceBreakdownModal";
 import {
   AppHeader,
   Icon,
@@ -119,6 +120,9 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [statsPeriod, setStatsPeriod] = useState<DashboardStatsPeriod>(loadStatsPeriod);
   const [statsCarId, setStatsCarId] = useState(loadStatsCarId);
+  const [balanceModal, setBalanceModal] = useState<{ driverId: string; driverName: string } | null>(
+    null,
+  );
   const reportRange = useMemo(() => reportDateRange(statsPeriod), [statsPeriod]);
   const report = useReport(reportRange.from, reportRange.to);
   const cars = useCars();
@@ -445,21 +449,46 @@ export function Dashboard() {
         ) : (
           <div className="crm-list">
             {owing.map((b) => (
-              <div key={b.driverId} className="crm-list-item glass-card">
-                <div>
+              <button
+                key={b.driverId}
+                type="button"
+                className="crm-list-item glass-card crm-list-item--link"
+                onClick={() => setBalanceModal({ driverId: b.driverId, driverName: b.driverName })}
+                aria-label={t("dashboard.openBalanceBreakdown", { name: b.driverName })}
+              >
+                <div className="crm-list-item__body">
                   <div className="crm-list-item__title">{b.driverName}</div>
                   <div className="crm-list-item__subtitle">
                     {t("dashboard.deposit")}: {formatMoney(b.depositHeld)}
                   </div>
                 </div>
                 <div className="crm-amount crm-amount--expense">{formatMoney(b.balance)}</div>
-              </div>
+              </button>
             ))}
           </div>
         )}
       </SectionCard>
 
       {!readOnly ? <ReminderSettingsCard /> : null}
+
+      <DriverBalanceBreakdownModal
+        open={balanceModal != null}
+        driverId={balanceModal?.driverId ?? null}
+        driverName={balanceModal?.driverName ?? ""}
+        onClose={() => setBalanceModal(null)}
+        onGiveDiscount={
+          !readOnly && balanceModal
+            ? () => {
+                const params = new URLSearchParams({
+                  addPayment: "1",
+                  driverId: balanceModal.driverId,
+                });
+                navigate(`/finance?${params.toString()}`);
+                setBalanceModal(null);
+              }
+            : undefined
+        }
+      />
 
       <SectionCard
         storageKey="language"
