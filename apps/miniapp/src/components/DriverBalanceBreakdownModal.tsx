@@ -33,7 +33,7 @@ function SumRow(props: { label: string; value: string; tone?: "neutral" | "good"
 function MoneyLine(props: { label: string; sublabel?: string; amount: number; tone?: "neutral" | "good" | "bad" }) {
   const toneColor =
     props.tone === "good" ? "#69f0ae" : props.tone === "bad" ? "#ff5252" : "rgba(255,255,255,0.85)";
-  const prefix = props.tone === "good" ? "−" : props.tone === "bad" ? "+" : "";
+  const prefix = props.tone === "good" ? "+" : "";
   return (
     <div
       style={{

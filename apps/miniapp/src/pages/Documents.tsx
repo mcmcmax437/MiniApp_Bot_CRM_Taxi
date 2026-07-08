@@ -228,7 +228,7 @@ export function DocumentsPage() {
             <span className="crm-doc-detail-head__title-line">
               <span>{selectedEntity.label}</span>
               {selected.type === DocumentRelatedType.CAR && attentionCarIds.has(selected.id) ? (
-                <CarAttentionMark />
+                <CarAttentionMark carId={selected.id} reminders={reminders.data} />
               ) : null}
             </span>
           </h2>
@@ -420,7 +420,7 @@ export function DocumentsPage() {
                   <span className="crm-doc-entity__label-line">
                     <span>{entity.label}</span>
                     {entity.type === DocumentRelatedType.CAR && attentionCarIds.has(entity.id) ? (
-                      <CarAttentionMark />
+                      <CarAttentionMark carId={entity.id} reminders={reminders.data} />
                     ) : null}
                   </span>
                 </div>

@@ -1,12 +1,14 @@
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
+import type { ReminderItem } from "@taxi/shared";
 import type { Car } from "../types";
 import { formatDate } from "./ui";
 import { Icon } from "./crm";
 import { DocumentThumbnail } from "./DocumentThumbnail";
 import { CardOpenHint } from "./CardOpenHint";
 import { CarAttentionMark } from "./CarAttentionMark";
+import { expiryUrgency } from "../utils/expiryUrgency";
 
 const statusClass: Record<CarStatus, string> = {
   [CarStatus.AVAILABLE]: "crm-car-status--available",
@@ -15,7 +17,12 @@ const statusClass: Record<CarStatus, string> = {
   [CarStatus.INACTIVE]: "crm-car-status--inactive",
 };
 
-export function CarCard(props: { car: Car; coverDocumentId?: string; needsAttention?: boolean }) {
+export function CarCard(props: {
+  car: Car;
+  coverDocumentId?: string;
+  needsAttention?: boolean;
+  reminders?: ReminderItem[];
+}) {
   const { t } = useTranslation();
   const { car } = props;
   const subtitle = [car.make, car.model, car.year].filter(Boolean).join(" ");
@@ -35,7 +42,9 @@ export function CarCard(props: { car: Car; coverDocumentId?: string; needsAttent
           <div className="crm-car-card__plate">
             <span className="crm-car-card__plate-line">
               <span>{car.plate}</span>
-              {props.needsAttention ? <CarAttentionMark /> : null}
+              {props.needsAttention ? (
+                <CarAttentionMark carId={car.id} reminders={props.reminders} />
+              ) : null}
             </span>
           </div>
           {subtitle ? <div className="crm-car-card__model">{subtitle}</div> : null}
@@ -53,6 +62,7 @@ export function CarCard(props: { car: Car; coverDocumentId?: string; needsAttent
           tone="insurance"
           label={t("cars.insurance")}
           date={formatDate(car.insuranceExpiry)}
+          rawDate={car.insuranceExpiry}
           icon={<Icon name="calendar-01" size={22} color="#448AFF" />}
         />
         <div className="crm-car-card__divider" />
@@ -60,6 +70,7 @@ export function CarCard(props: { car: Car; coverDocumentId?: string; needsAttent
           tone="inspection"
           label={t("cars.inspection")}
           date={formatDate(car.inspectionExpiry)}
+          rawDate={car.inspectionExpiry}
           icon={<Icon name="pencil" size={22} color="#FF9800" />}
         />
       </div>
@@ -70,11 +81,13 @@ export function CarCard(props: { car: Car; coverDocumentId?: string; needsAttent
 function DateInfo(props: {
   label: string;
   date: string;
+  rawDate?: string | null;
   icon: ReactNode;
   tone: "insurance" | "inspection";
 }) {
+  const urgency = expiryUrgency(props.rawDate);
   return (
-    <div className={`crm-car-date crm-car-date--${props.tone}`}>
+    <div className={`crm-car-date crm-car-date--${props.tone} crm-expiry--${urgency}`}>
       <div className="crm-car-date__icon">{props.icon}</div>
       <div className="crm-car-date__text">
         <div className="crm-car-date__label">{props.label}</div>

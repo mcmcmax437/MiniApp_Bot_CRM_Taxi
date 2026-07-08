@@ -227,6 +227,7 @@ export function StatCard(props: {
   label: string;
   value: string;
   suffix: string;
+  detail?: string;
   tone: "income" | "expense" | "profit" | "roi";
   icon: ReactNode;
   onClick?: () => void;
@@ -238,6 +239,7 @@ export function StatCard(props: {
       <div className="crm-stat__label">{props.label}</div>
       <div className="crm-stat__value">{props.value}</div>
       <div className="crm-stat__suffix">{props.suffix}</div>
+      {props.detail ? <div className="crm-stat__detail">{props.detail}</div> : null}
     </>
   );
   if (props.onClick) {

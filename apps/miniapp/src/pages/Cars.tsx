@@ -110,6 +110,7 @@ export function CarsPage() {
                 car={car}
                 coverDocumentId={covers.data?.get(car.id)}
                 needsAttention={attentionCarIds.has(car.id)}
+                reminders={reminders.data}
               />
             </SwipeToDelete>
           ))}

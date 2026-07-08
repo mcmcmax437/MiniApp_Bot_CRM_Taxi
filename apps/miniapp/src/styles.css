@@ -612,6 +612,13 @@ body {
   line-height: 1.2;
 }
 
+.crm-stat__detail {
+  color: var(--taxi-text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  margin-top: 4px;
+}
+
 .crm-stat--income .crm-stat__value {
   color: var(--taxi-income);
 }
@@ -914,6 +921,83 @@ button.crm-stat {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.crm-expiry--unknown {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.crm-expiry--ok {
+  background: rgba(105, 240, 174, 0.08);
+  border-radius: 8px;
+}
+
+.crm-expiry--soon {
+  background: rgba(255, 193, 7, 0.12);
+  border-radius: 8px;
+}
+
+.crm-expiry--warning {
+  background: rgba(255, 152, 0, 0.16);
+  border-radius: 8px;
+}
+
+.crm-expiry--overdue {
+  background: rgba(244, 67, 54, 0.18);
+  border-radius: 8px;
+}
+
+.crm-car-date.crm-expiry--ok,
+.crm-car-date.crm-expiry--soon,
+.crm-car-date.crm-expiry--warning,
+.crm-car-date.crm-expiry--overdue,
+.crm-car-date.crm-expiry--unknown {
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.crm-car-overview__cell.crm-expiry--ok,
+.crm-car-overview__cell.crm-expiry--soon,
+.crm-car-overview__cell.crm-expiry--warning,
+.crm-car-overview__cell.crm-expiry--overdue,
+.crm-car-overview__cell.crm-expiry--unknown {
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.crm-car-attention-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.crm-car-attention-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 220px;
+  max-width: min(280px, 70vw);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(18, 18, 24, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.crm-car-attention-popover__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 6px;
+}
+
+.crm-car-attention-popover__list {
+  margin: 0;
+  padding-left: 16px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .crm-list-item--link {
@@ -3969,6 +4053,9 @@ div.crm-finance-item {
   line-height: 1;
   flex-shrink: 0;
   border: 1px solid rgba(244, 67, 54, 0.5);
+  appearance: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .crm-car-card__plate-line,

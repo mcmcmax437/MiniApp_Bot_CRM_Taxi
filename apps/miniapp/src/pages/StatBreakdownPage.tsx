@@ -100,6 +100,12 @@ export function StatBreakdownPage() {
   const title =
     kind === "income" ? t("dashboard.statBreakdownIncome") : t("dashboard.statBreakdownExpenses");
 
+  const subtitleParts = [
+    periodSuffix,
+    carLabel,
+    kind === "expenses" ? t("dashboard.statBreakdownExpensesIncludesTaxes") : null,
+  ].filter(Boolean);
+
   return (
     <div className="crm-page crm-page--stat-breakdown">
       <div className="crm-page-header-block">
@@ -113,9 +119,7 @@ export function StatBreakdownPage() {
             <span>{t("common.back")}</span>
           </button>
           <h2 className="crm-page-head__title">{title}</h2>
-          <p className="crm-page-head__subtitle">
-            {[periodSuffix, carLabel].filter(Boolean).join(" · ")}
-          </p>
+          <p className="crm-page-head__subtitle">{subtitleParts.join(" · ")}</p>
         </div>
       </div>
 

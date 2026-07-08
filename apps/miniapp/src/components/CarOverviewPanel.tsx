@@ -9,6 +9,7 @@ import { CopyOnDoubleTap, formatDate } from "./ui";
 import { formatMoney } from "../currency";
 import { maintenanceRuleLabel } from "./trackingLabels";
 import type { MaintenanceRule } from "../types";
+import { expiryUrgency } from "../utils/expiryUrgency";
 
 const INSPECTION_PRESET = "presetInspectionService";
 const INSPECTION_WARN_KM = 500;
@@ -164,8 +165,16 @@ export function CarOverviewPanel(props: {
           label={t("tracking.nextDue")}
           value={nextServiceLabel(rules.data, car.currentMileage, t)}
         />
-        <OverviewCell label={t("cars.insurance")} value={formatDate(car.insuranceExpiry)} />
-        <OverviewCell label={t("cars.inspection")} value={formatDate(car.inspectionExpiry)} />
+        <OverviewCell
+          label={t("cars.insurance")}
+          value={formatDate(car.insuranceExpiry)}
+          expiryDate={car.insuranceExpiry}
+        />
+        <OverviewCell
+          label={t("cars.inspection")}
+          value={formatDate(car.inspectionExpiry)}
+          expiryDate={car.inspectionExpiry}
+        />
         <OverviewCell
           label={t("tracking.inspectionByMileage")}
           hint={t("tracking.inspectionByMileageHint")}
@@ -235,11 +244,17 @@ function OverviewCell(props: {
   value?: string;
   copyValue?: string;
   hint?: string;
+  expiryDate?: string | null;
   children?: ReactNode;
 }) {
   const display = props.value ?? "—";
+  const urgency = props.expiryDate !== undefined ? expiryUrgency(props.expiryDate) : null;
   return (
-    <div className="crm-car-overview__cell">
+    <div
+      className={
+        urgency ? `crm-car-overview__cell crm-expiry--${urgency}` : "crm-car-overview__cell"
+      }
+    >
       <div className="crm-car-overview__cell-label">
         {props.label}
         {props.hint ? <div className="crm-car-overview__cell-hint">{props.hint}</div> : null}

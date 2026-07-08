@@ -147,7 +147,7 @@ export function CarDetailPage() {
           <div className="crm-car-detail-head__actions">
             {needsAttention ? (
               <span className="crm-car-detail-head__attention">
-                <CarAttentionMark />
+                <CarAttentionMark carId={car.id} reminders={reminders.data} />
               </span>
             ) : null}
             {!readOnly ? (

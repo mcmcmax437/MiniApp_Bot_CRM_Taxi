@@ -297,6 +297,7 @@ export function Dashboard() {
           label={t("dashboard.expenses")}
           value={expenses}
           suffix={periodSuffix}
+          detail={t("dashboard.expensesIncludesTaxes")}
           tone="expense"
           icon={<Icon name="chart-decrease" size={24} color="var(--taxi-expense)" />}
           onClick={() => goToStatBreakdown("expenses")}
