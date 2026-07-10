@@ -21,6 +21,7 @@ import {
   rankDriversForCar,
 } from "../driverCarSuggestions";
 import type { Agreement } from "../types";
+import { isIncomePayment } from "../components/reports/partnerSettlementFormat";
 import { FleetTab } from "../components/finance/FleetTab";
 import { TaxesTab } from "../components/finance/TaxesTab";
 import { ExpenseTagInput } from "../components/finance/ExpenseTagInput";
@@ -225,7 +226,10 @@ function PaymentsTab() {
   const totalPaid = all.reduce((s, p) => s + p.amount, 0);
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
   const monthItems = all.filter((p) => financeInPeriod(p.date, "month"));
-  const monthSum = monthItems.reduce((s, p) => s + p.amount, 0);
+  const monthIncomeItems = monthItems.filter((p) => isIncomePayment(p.type));
+  const monthIncomeSum = monthIncomeItems.reduce((s, p) => s + p.amount, 0);
+  const monthDepositItems = monthItems.filter((p) => p.type === PaymentType.DEPOSIT);
+  const monthDepositSum = monthDepositItems.reduce((s, p) => s + p.amount, 0);
   const partnerUnsettled = all.filter((p) => p.receivedByPartner && !p.partnerSettled);
   const partnerUnsettledSum = partnerUnsettled.reduce((s, p) => s + p.amount, 0);
 
@@ -373,9 +377,17 @@ function PaymentsTab() {
           icon={<Icon name="chart-decrease" size={16} color="#ff5252" />}
         />
         <FinanceStatCard
-          title={t("finance.thisMonth")}
-          value={formatMoney(monthSum)}
-          subtitle={t("finance.paymentCount", { count: monthItems.length })}
+          title={t("finance.thisMonthIncome")}
+          value={formatMoney(monthIncomeSum)}
+          subtitle={
+            monthDepositItems.length > 0
+              ? t("finance.monthIncomeWithDeposits", {
+                  count: monthIncomeItems.length,
+                  depositAmount: formatMoney(monthDepositSum),
+                  depositCount: monthDepositItems.length,
+                })
+              : t("finance.monthIncomeOnly", { count: monthIncomeItems.length })
+          }
           tone="purple"
           icon={<Icon name="calendar-01" size={16} color="#b388ff" />}
         />
@@ -442,6 +454,7 @@ function PaymentsTab() {
             getDate={(p) => p.date}
             getKey={(p) => p.id}
             getAmount={(p) => p.amount}
+            getSummaryAmount={(p) => (isIncomePayment(p.type) ? p.amount : 0)}
             formatCount={(count) => t("finance.paymentCount", { count })}
             summaryTone="income"
             renderItem={(p) => (

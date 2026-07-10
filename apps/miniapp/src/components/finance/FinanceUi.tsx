@@ -510,6 +510,8 @@ export function FinanceDateGroupedList<T>(props: {
   getDate: (item: T) => string;
   getKey: (item: T) => string;
   getAmount: (item: T) => number;
+  /** When set, month header totals use this instead of summing getAmount (e.g. rent/fine only). */
+  getSummaryAmount?: (item: T) => number;
   formatCount?: (count: number) => string;
   summaryTone?: "income" | "expense";
   collapseStorageKey?: string;
@@ -539,7 +541,8 @@ export function FinanceDateGroupedList<T>(props: {
   return (
     <>
       {groups.map((group, index) => {
-        const total = group.items.reduce((sum, item) => sum + props.getAmount(item), 0);
+        const sumAmount = props.getSummaryAmount ?? props.getAmount;
+        const total = group.items.reduce((sum, item) => sum + sumAmount(item), 0);
         const countLabel = props.formatCount?.(group.items.length);
         const collapsed = collapsedMonths.has(group.monthKey);
         const label = formatFinanceMonthLabel(group.monthKey, locale);

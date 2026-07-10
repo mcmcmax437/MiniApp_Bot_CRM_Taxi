@@ -693,7 +693,9 @@ function DriverViewPanel(props: {
     .filter(Boolean)
     .join(", ");
 
-  const activeAgreements = (props.driver?.agreements ?? []).filter((a) => a.status === "ACTIVE");
+  const rentalHistory = [...(props.driver?.agreements ?? [])].sort(
+    (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+  );
 
   return (
     <div className="crm-driver-view">
@@ -711,17 +713,33 @@ function DriverViewPanel(props: {
         ) : null}
         {address ? <DriverViewRow label={t("drivers.addressCity")} value={address} /> : null}
       </div>
-      {activeAgreements.length > 0 ? (
+      {rentalHistory.length > 0 ? (
         <div className="crm-driver-view__section">
-          <div className="crm-driver-view__section-title">{t("drivers.rentAgreement")}</div>
-          {activeAgreements.map((a) => (
-            <div key={a.id} className="crm-driver-view__agreement">
-              {a.car?.plate ?? "—"} · {formatMoney(a.rentAmount)} / {t(`drivers.${a.period}`)}
-            </div>
-          ))}
+          <div className="crm-driver-view__section-title">{t("drivers.rentalHistory")}</div>
+          <div className="crm-driver-view__rental-history">
+            {rentalHistory.map((a) => {
+              const isActive = a.status === AgreementStatus.ACTIVE;
+              const endLabel = isActive
+                ? t("drivers.rentalActive")
+                : a.endDate
+                  ? formatDate(a.endDate)
+                  : "—";
+              return (
+                <div key={a.id} className="crm-driver-view__rental-row">
+                  <div className="crm-driver-view__rental-plate">{a.car?.plate ?? "—"}</div>
+                  <div className="crm-driver-view__rental-dates">
+                    {formatDate(a.startDate)} — {endLabel}
+                  </div>
+                  <div className="crm-driver-view__rental-meta">
+                    {formatMoney(a.rentAmount)} / {t(`drivers.${a.period}`)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
-        <p className="crm-driver-view__hint">{t("drivers.noAgreement")}</p>
+        <p className="crm-driver-view__hint">{t("drivers.noRentalHistory")}</p>
       )}
       {props.form.notes ? (
         <div className="crm-driver-view__section">
