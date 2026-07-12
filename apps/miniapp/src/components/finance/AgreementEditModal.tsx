@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AgreementStatus, RentPeriod } from "@taxi/shared";
+import {
+  AgreementStatus,
+  RentPeriod,
+  agreementIsTemporaryDriver,
+} from "@taxi/shared";
 import { useAgreements, useDrivers, useUpdateAgreement } from "../../hooks";
 import { findAgreementDateConflict } from "../../agreementOverlap";
 import { ApiError } from "../../api";
@@ -12,6 +16,7 @@ import {
   DateInput,
   SelectInput,
   SearchableSelect,
+  TextInput,
   FormActions,
   MoneyNumberInput,
   isoDateOnly,
@@ -27,7 +32,9 @@ export function AgreementEditModal(props: {
   const agreements = useAgreements();
   const update = useUpdateAgreement();
 
+  const [useTemporaryDriver, setUseTemporaryDriver] = useState(false);
   const [driverId, setDriverId] = useState("");
+  const [temporaryDriverName, setTemporaryDriverName] = useState("");
   const [rentAmount, setRentAmount] = useState<number | "">("");
   const [depositAmount, setDepositAmount] = useState<number | "">("");
   const [period, setPeriod] = useState<RentPeriod>(RentPeriod.DAILY);
@@ -37,7 +44,10 @@ export function AgreementEditModal(props: {
   useEffect(() => {
     const a = props.agreement;
     if (!a) return;
-    setDriverId(a.driverId);
+    const isTemp = agreementIsTemporaryDriver(a);
+    setUseTemporaryDriver(isTemp);
+    setDriverId(a.driverId ?? "");
+    setTemporaryDriverName(a.temporaryDriverName ?? "");
     setRentAmount(a.rentAmount);
     setDepositAmount(a.depositAmount);
     setPeriod(a.period);
@@ -46,7 +56,11 @@ export function AgreementEditModal(props: {
   }, [props.agreement]);
 
   function submit() {
-    if (!props.agreement || rentAmount === "" || !driverId || !startDate) return;
+    if (!props.agreement || rentAmount === "" || !startDate) return;
+    const hasDriver = !useTemporaryDriver && Boolean(driverId);
+    const hasTemp = useTemporaryDriver && Boolean(temporaryDriverName.trim());
+    if (!hasDriver && !hasTemp) return;
+
     const end = endDate.trim();
     if (end && end < startDate) {
       showAlert(t("fleet.endBeforeStart"));
@@ -62,7 +76,9 @@ export function AgreementEditModal(props: {
       end && endIsPast ? AgreementStatus.ENDED : undefined;
 
     const body: Record<string, unknown> = {
-      driverId,
+      ...(hasTemp
+        ? { temporaryDriverName: temporaryDriverName.trim(), driverId: null }
+        : { driverId, temporaryDriverName: null }),
       rentAmount,
       depositAmount: depositAmount === "" ? 0 : depositAmount,
       period,
@@ -122,12 +138,44 @@ export function AgreementEditModal(props: {
       }
     >
       <Field label={t("finance.driver")}>
-        <SearchableSelect
-          value={driverId}
-          onChange={setDriverId}
-          options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
-          placeholder={t("common.searchToFilter")}
-        />
+        <div className="crm-fleet-driver-mode">
+          <button
+            type="button"
+            className={`crm-fleet-driver-mode__btn${!useTemporaryDriver ? " crm-fleet-driver-mode__btn--active" : ""}`}
+            onClick={() => setUseTemporaryDriver(false)}
+          >
+            {t("fleet.registeredDriver")}
+          </button>
+          <button
+            type="button"
+            className={`crm-fleet-driver-mode__btn${useTemporaryDriver ? " crm-fleet-driver-mode__btn--active" : ""}`}
+            onClick={() => {
+              setUseTemporaryDriver(true);
+              setDriverId("");
+            }}
+          >
+            {t("fleet.temporaryDriver")}
+          </button>
+        </div>
+        {useTemporaryDriver ? (
+          <>
+            <TextInput
+              value={temporaryDriverName}
+              placeholder={t("fleet.temporaryDriverPlaceholder")}
+              onChange={setTemporaryDriverName}
+            />
+            <p className="crm-form-hint">{t("fleet.temporaryDriverHint")}</p>
+          </>
+        ) : (drivers.data?.length ?? 0) > 0 ? (
+          <SearchableSelect
+            value={driverId}
+            onChange={setDriverId}
+            options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
+            placeholder={t("common.searchToFilter")}
+          />
+        ) : (
+          <p className="crm-form-hint">{t("fleet.noDriversUseTemporary")}</p>
+        )}
       </Field>
       <Field label={t("drivers.startDate")}>
         <DateInput value={startDate} onChange={setStartDate} />

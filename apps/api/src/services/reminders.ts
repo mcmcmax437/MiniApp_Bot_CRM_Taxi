@@ -261,13 +261,13 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
     if (left < 0) continue;
     if (!rentalEndingDays.includes(left)) continue;
     const carText = carLabel(a.car);
-    const driverText = a.driver?.fullName ?? "";
+    const driverText = a.driver?.fullName ?? a.temporaryDriverName ?? "";
     const label = driverText ? `${driverText} — ${carText}` : carText;
     items.push({
       kind: "RENTAL_ENDING",
       refId: a.id,
       carId: a.carId,
-      driverId: a.driverId,
+      driverId: a.driverId ?? undefined,
       label,
       dueDate: a.endDate.toISOString(),
       daysUntil: left,

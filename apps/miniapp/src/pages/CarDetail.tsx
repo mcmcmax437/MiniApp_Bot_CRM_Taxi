@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CarStatus } from "@taxi/shared";
+import { CarStatus, agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
 import { useCar, useReminders } from "../hooks";
 import { AppHeader, Icon, IconActionButton, SectionCard } from "../components/crm";
 import { CopyOnDoubleTap } from "../components/ui";
@@ -85,9 +85,18 @@ export function CarDetailPage() {
   );
   const assignedDriver = useMemo(() => {
     if (!car) return null;
-    const agreement = car.agreements?.find((a) => a.driver?.id && a.driver?.fullName);
-    if (!agreement?.driver) return null;
-    return { id: agreement.driver.id, name: agreement.driver.fullName };
+    const agreement = car.agreements?.find((a) => {
+      if (a.driver?.id && a.driver?.fullName) return true;
+      return agreementIsTemporaryDriver(a);
+    });
+    if (!agreement) return null;
+    const name = agreementDriverDisplayName(agreement);
+    if (name === "—") return null;
+    if (agreementIsTemporaryDriver(agreement)) {
+      return { name, temporary: true as const };
+    }
+    if (!agreement.driver?.id) return null;
+    return { id: agreement.driver.id, name, temporary: false as const };
   }, [car]);
 
   function refresh() {
@@ -158,17 +167,28 @@ export function CarDetailPage() {
               />
             ) : null}
           {assignedDriver ? (
-            <button
-              type="button"
-              className="crm-car-detail-head__driver-pill"
-              title={assignedDriver.name}
-              aria-label={t("cars.openDriverProfile")}
-              onClick={() => navigate(`/drivers?view=${assignedDriver.id}`)}
-            >
-              <Icon name="user" size={14} color="var(--taxi-accent, #ffc107)" />
-              <span className="crm-car-detail-head__driver-pill-name">{assignedDriver.name}</span>
-              <Icon name="arrow-right-01" size={12} color="rgba(255,255,255,0.45)" />
-            </button>
+            assignedDriver.temporary ? (
+              <span
+                className="crm-car-detail-head__driver-pill crm-car-detail-head__driver-pill--temp"
+                title={assignedDriver.name}
+              >
+                <Icon name="user" size={14} color="var(--taxi-accent, #ffc107)" />
+                <span className="crm-car-detail-head__driver-pill-name">{assignedDriver.name}</span>
+                <span className="crm-fleet-card__temp-badge">{t("fleet.temporaryDriver")}</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="crm-car-detail-head__driver-pill"
+                title={assignedDriver.name}
+                aria-label={t("cars.openDriverProfile")}
+                onClick={() => navigate(`/drivers?view=${assignedDriver.id}`)}
+              >
+                <Icon name="user" size={14} color="var(--taxi-accent, #ffc107)" />
+                <span className="crm-car-detail-head__driver-pill-name">{assignedDriver.name}</span>
+                <Icon name="arrow-right-01" size={12} color="rgba(255,255,255,0.45)" />
+              </button>
+            )
           ) : null}
           </div>
         </div>

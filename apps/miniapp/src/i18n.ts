@@ -532,8 +532,14 @@ const en = {
     allCarsTitle: "All cars",
     allCarsHint: "Active rentals and available cars in your fleet.",
     available: "Available",
-    emptyDesc: "Add cars and drivers, then assign a car to start tracking rentals.",
+    emptyDesc: "Add cars, then assign a car to start tracking rentals — even before you have full driver details.",
     needDriverFirst: "Add at least one driver before assigning a car",
+    registeredDriver: "From drivers",
+    temporaryDriver: "Temporary",
+    temporaryDriverPlaceholder: "e.g. new driver, waiting for documents",
+    temporaryDriverHint:
+      "Use when someone is already driving but you do not have their profile yet. Add the real driver later and edit this rental.",
+    noDriversUseTemporary: "No drivers yet — use Temporary and enter a short label.",
     noAvailableCars: "No free cars available to assign",
     endDateHint:
       "Leave empty for an open-ended rental. Pick a future date to schedule the hand-off — you'll get a reminder 7 days and 1 day before. Pick a past date to record a rental that's already finished.",
@@ -1347,8 +1353,14 @@ const uk: Resources = {
     allCarsTitle: "Усі авто",
     allCarsHint: "Активні оренди та вільні авто у вашому автопарку.",
     available: "Вільне",
-    emptyDesc: "Додайте авто та водіїв, потім закріпіть авто, щоб почати вести облік оренди.",
+    emptyDesc: "Додайте авто, потім закріпіть його для обліку оренди — навіть якщо дані водія ще неповні.",
     needDriverFirst: "Спочатку додайте хоча б одного водія",
+    registeredDriver: "Зі списку",
+    temporaryDriver: "Тимчасовий",
+    temporaryDriverPlaceholder: "напр. новий водій, очікуємо документи",
+    temporaryDriverHint:
+      "Коли хтось уже їздить, але профілю ще немає. Пізніше додайте водія та відредагуйте цю оренду.",
+    noDriversUseTemporary: "Водіїв ще немає — оберіть «Тимчасовий» і введіть коротку мітку.",
     noAvailableCars: "Немає вільних авто для видачі",
     endDateHint:
       "Залиште порожнім для безстрокової оренди. Виберіть майбутню дату, щоб запланувати повернення — ви отримаєте нагадування за 7 днів і за 1 день. Виберіть минулу дату, щоб записати вже завершену оренду.",
@@ -2160,8 +2172,14 @@ const ru: Resources = {
     allCarsTitle: "Все авто",
     allCarsHint: "Активные аренды и свободные авто в вашем автопарке.",
     available: "Свободно",
-    emptyDesc: "Добавьте авто и водителей, затем закрепите авто, чтобы начать вести учёт аренды.",
+    emptyDesc: "Добавьте авто, затем закрепите его для учёта аренды — даже если данные водителя ещё неполные.",
     needDriverFirst: "Сначала добавьте хотя бы одного водителя",
+    registeredDriver: "Из списка",
+    temporaryDriver: "Временный",
+    temporaryDriverPlaceholder: "напр. новый водитель, ждём документы",
+    temporaryDriverHint:
+      "Когда кто-то уже ездит, но профиля ещё нет. Позже добавьте водителя и отредактируйте эту аренду.",
+    noDriversUseTemporary: "Водителей ещё нет — выберите «Временный» и введите короткую метку.",
     noAvailableCars: "Нет свободных авто для выдачи",
     endDateHint:
       "Оставьте пустым для бессрочной аренды. Выберите будущую дату, чтобы запланировать возврат — вы получите напоминание за 7 дней и за 1 день. Выберите прошедшую дату, чтобы записать уже завершённую аренду.",

@@ -53,6 +53,8 @@ export interface Car {
   trackerNotes?: string | null;
   agreements?: Array<{
     id?: string;
+    driverId?: string | null;
+    temporaryDriverName?: string | null;
     driver?: { id: string; fullName: string; phone?: string | null };
   }>;
 }
@@ -142,7 +144,8 @@ export interface MileageLog {
 export interface Agreement {
   id: string;
   carId: string;
-  driverId: string;
+  driverId: string | null;
+  temporaryDriverName: string | null;
   rentAmount: number;
   depositAmount: number;
   period: RentPeriod;

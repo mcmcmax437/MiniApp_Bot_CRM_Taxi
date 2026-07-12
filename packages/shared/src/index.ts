@@ -338,9 +338,50 @@ export function driverFormFieldErrors(input: {
 // Rental agreement schemas
 // ---------------------------------------------------------------------------
 
-export const agreementCreateSchema = z.object({
+export type AgreementDriverFields = {
+  driverId?: string | null;
+  temporaryDriverName?: string | null;
+  driver?: { fullName?: string | null } | null;
+};
+
+export function agreementDriverDisplayName(agreement: AgreementDriverFields): string {
+  const registered = agreement.driver?.fullName?.trim();
+  if (registered) return registered;
+  const temp = agreement.temporaryDriverName?.trim();
+  if (temp) return temp;
+  return "—";
+}
+
+export function agreementIsTemporaryDriver(agreement: AgreementDriverFields): boolean {
+  return !agreement.driverId && Boolean(agreement.temporaryDriverName?.trim());
+}
+
+function refineAgreementDriverFields(
+  data: { driverId?: string | null; temporaryDriverName?: string | null },
+  ctx: z.RefinementCtx,
+): void {
+  const hasDriver = Boolean(data.driverId);
+  const hasTemp = Boolean(data.temporaryDriverName?.trim());
+  if (!hasDriver && !hasTemp) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "driver_or_temp_required",
+      path: ["driverId"],
+    });
+  }
+  if (hasDriver && hasTemp) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "driver_xor_temp",
+      path: ["temporaryDriverName"],
+    });
+  }
+}
+
+const agreementBaseSchema = z.object({
   carId: z.string().cuid(),
-  driverId: z.string().cuid(),
+  driverId: z.string().cuid().optional().nullable(),
+  temporaryDriverName: z.string().trim().min(1).max(120).optional().nullable(),
   rentAmount: money,
   depositAmount: money.default(0),
   period: z.nativeEnum(RentPeriod).default(RentPeriod.DAILY),
@@ -349,7 +390,12 @@ export const agreementCreateSchema = z.object({
   status: z.nativeEnum(AgreementStatus).default(AgreementStatus.ACTIVE),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
-export const agreementUpdateSchema = agreementCreateSchema.partial();
+
+export const agreementCreateSchema = agreementBaseSchema.superRefine(refineAgreementDriverFields);
+export const agreementUpdateSchema = agreementBaseSchema.partial().superRefine((data, ctx) => {
+  if (data.driverId === undefined && data.temporaryDriverName === undefined) return;
+  refineAgreementDriverFields(data, ctx);
+});
 export type AgreementCreateInput = z.infer<typeof agreementCreateSchema>;
 export type AgreementUpdateInput = z.infer<typeof agreementUpdateSchema>;
 

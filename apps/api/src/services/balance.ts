@@ -86,6 +86,7 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
   const depositByDriver = new Map<string, number>();
   const activeCarsByDriver = new Map<string, { id: string; plate: string }[]>();
   for (const a of agreements) {
+    if (!a.driverId) continue;
     const cap = a.endDate && a.endDate.getTime() < now.getTime() ? a.endDate : now;
     const units = periodsElapsed(a.startDate, cap, a.period);
     const due = units * a.rentAmount;

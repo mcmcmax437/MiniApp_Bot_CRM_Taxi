@@ -31,6 +31,7 @@ const ALL_MIGRATIONS = [
   "20250620000000_weekly_mileage_skip",
   "20250622000000_payment_discount_amount",
   "20250701000000_expense_payer",
+  "20250712000000_agreement_temporary_driver",
 ];
 
 function failedMigrationName(output) {

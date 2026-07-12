@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { findRentalPeriodConflict } from "@taxi/shared";
 import { prisma } from "../prisma.js";
 import { agreementCreateSchema, agreementUpdateSchema } from "@taxi/shared";
+import type { AgreementCreateInput, AgreementUpdateInput } from "@taxi/shared";
 import { ownerId, parse, toDates } from "./helpers.js";
 
 async function assertNoRentalOverlap(
@@ -33,6 +34,40 @@ async function assertNoRentalOverlap(
   return !conflict;
 }
 
+/** Exactly one of driverId or temporaryDriverName; clears the other field. */
+function normalizeAgreementDriverFields(
+  body: Pick<AgreementCreateInput, "driverId" | "temporaryDriverName">,
+): { driverId: string | null; temporaryDriverName: string | null } {
+  const temp = body.temporaryDriverName?.trim() || null;
+  if (temp) {
+    return { driverId: null, temporaryDriverName: temp };
+  }
+  if (body.driverId) {
+    return { driverId: body.driverId, temporaryDriverName: null };
+  }
+  return { driverId: null, temporaryDriverName: null };
+}
+
+function mergedDriverFields(
+  existing: { driverId: string | null; temporaryDriverName: string | null },
+  body: AgreementUpdateInput,
+): { driverId: string | null; temporaryDriverName: string | null } {
+  const driverTouched = body.driverId !== undefined || body.temporaryDriverName !== undefined;
+  if (!driverTouched) {
+    return {
+      driverId: existing.driverId,
+      temporaryDriverName: existing.temporaryDriverName,
+    };
+  }
+  return normalizeAgreementDriverFields({
+    driverId: body.driverId !== undefined ? body.driverId : existing.driverId,
+    temporaryDriverName:
+      body.temporaryDriverName !== undefined
+        ? body.temporaryDriverName
+        : existing.temporaryDriverName,
+  });
+}
+
 export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/agreements", async (req) => {
     const { driverId, carId, status } = req.query as {
@@ -59,11 +94,17 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     const body = parse(agreementCreateSchema, req.body, reply);
     if (!body) return;
     const oid = ownerId(req);
-    const [car, driver] = await Promise.all([
-      prisma.car.findFirst({ where: { id: body.carId, ownerId: oid } }),
-      prisma.driver.findFirst({ where: { id: body.driverId, ownerId: oid } }),
-    ]);
-    if (!car || !driver) return reply.code(400).send({ error: "invalid_car_or_driver" });
+    const driverFields = normalizeAgreementDriverFields(body);
+
+    const car = await prisma.car.findFirst({ where: { id: body.carId, ownerId: oid } });
+    if (!car) return reply.code(400).send({ error: "invalid_car_or_driver" });
+
+    if (driverFields.driverId) {
+      const driver = await prisma.driver.findFirst({
+        where: { id: driverFields.driverId, ownerId: oid },
+      });
+      if (!driver) return reply.code(400).send({ error: "invalid_car_or_driver" });
+    }
 
     const data = toDates(body, ["startDate", "endDate"]);
     // An agreement with no endDate is an ongoing rental (ACTIVE).
@@ -91,15 +132,17 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     }
 
     if (status === "ACTIVE") {
-      const duplicate = await prisma.rentalAgreement.findFirst({
-        where: {
-          ownerId: oid,
-          driverId: body.driverId,
-          carId: body.carId,
-          status: "ACTIVE",
-        },
-      });
-      if (duplicate) return reply.code(400).send({ error: "agreement_exists" });
+      if (driverFields.driverId) {
+        const duplicate = await prisma.rentalAgreement.findFirst({
+          where: {
+            ownerId: oid,
+            driverId: driverFields.driverId,
+            carId: body.carId,
+            status: "ACTIVE",
+          },
+        });
+        if (duplicate) return reply.code(400).send({ error: "agreement_exists" });
+      }
 
       const carBusy = await prisma.rentalAgreement.findFirst({
         where: { ownerId: oid, carId: body.carId, status: "ACTIVE" },
@@ -109,7 +152,7 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
 
     const created = await prisma.$transaction(async (tx) => {
       const agreement = await tx.rentalAgreement.create({
-        data: { ...data, ownerId: oid, status },
+        data: { ...data, ...driverFields, ownerId: oid, status },
       });
       if (agreement.status === "ACTIVE") {
         await tx.car.update({ where: { id: body.carId }, data: { status: "RENTED" } });
@@ -128,6 +171,18 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
       where: { id, ownerId: oid },
     });
     if (!existing) return reply.code(404).send({ error: "not_found" });
+
+    const driverFields = mergedDriverFields(existing, body);
+    if (!driverFields.driverId && !driverFields.temporaryDriverName) {
+      return reply.code(400).send({ error: "driver_or_temp_required" });
+    }
+
+    if (driverFields.driverId) {
+      const driver = await prisma.driver.findFirst({
+        where: { id: driverFields.driverId, ownerId: oid },
+      });
+      if (!driver) return reply.code(400).send({ error: "invalid_car_or_driver" });
+    }
 
     const data = toDates(body, ["startDate", "endDate"]);
     const start = (data.startDate ?? existing.startDate) as Date;
@@ -161,7 +216,7 @@ export async function agreementsRoutes(app: FastifyInstance): Promise<void> {
     return prisma.$transaction(async (tx) => {
       const agreement = await tx.rentalAgreement.update({
         where: { id },
-        data,
+        data: { ...data, ...driverFields },
       });
       if (ending) {
         const otherActiveOnCar = await tx.rentalAgreement.count({

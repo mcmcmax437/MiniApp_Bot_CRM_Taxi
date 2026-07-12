@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AgreementStatus } from "@taxi/shared";
+import { AgreementStatus, agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
 import { useDeleteAgreement } from "../../hooks";
 import { confirmAction } from "../../telegram";
 import type { Agreement } from "../../types";
@@ -68,7 +68,12 @@ export function CarDriverHistoryModal(props: {
                             size={14}
                             color={active ? "#69f0ae" : "rgba(255,255,255,0.55)"}
                           />
-                          {agreement.driver?.fullName ?? "—"}
+                          {agreementDriverDisplayName(agreement)}
+                          {agreementIsTemporaryDriver(agreement) ? (
+                            <span className="crm-fleet-card__temp-badge">
+                              {t("fleet.temporaryDriver")}
+                            </span>
+                          ) : null}
                         </span>
                         <span
                           className={`crm-fleet-history__status${active ? " crm-fleet-history__status--active" : ""}`}

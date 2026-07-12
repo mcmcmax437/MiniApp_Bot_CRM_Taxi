@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DocumentRelatedType } from "@taxi/shared";
+import { DocumentRelatedType, agreementDriverDisplayName } from "@taxi/shared";
 import {
   useAllDocuments,
   useAgreements,
@@ -125,12 +125,13 @@ export function DocumentsPage() {
       for (const agreement of agreements.data ?? []) {
         const list = docsFor(DocumentRelatedType.AGREEMENT, agreement.id);
         if (category === "ALL" && list.length === 0) continue;
-        const subtitle = [agreement.driver?.fullName, agreement.car?.plate].filter(Boolean).join(" · ");
+        const driverName = agreementDriverDisplayName(agreement);
+        const subtitle = [driverName !== "—" ? driverName : null, agreement.car?.plate].filter(Boolean).join(" · ");
         rows.push({
           type: DocumentRelatedType.AGREEMENT,
           id: agreement.id,
           label: t(`documents.agreementLabel`, {
-            driver: agreement.driver?.fullName ?? "—",
+            driver: driverName,
             car: agreement.car?.plate ?? "—",
           }),
           subtitle: subtitle || undefined,

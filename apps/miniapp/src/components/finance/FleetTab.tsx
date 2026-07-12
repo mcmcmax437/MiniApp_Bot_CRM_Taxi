@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AgreementStatus, RentPeriod } from "@taxi/shared";
+import { AgreementStatus, RentPeriod, agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
 import { confirmAction, showAlert } from "../../telegram";
 import { useAgreements, useCars, useDrivers, useCreateAgreement, useEndAgreement } from "../../hooks";
 import type { Agreement, Car } from "../../types";
@@ -10,6 +10,7 @@ import {
   DateInput,
   SelectInput,
   SearchableSelect,
+  TextInput,
   FormActions,
   formatMoney,
   formatDate,
@@ -43,7 +44,9 @@ export function FleetTab() {
   const [lockedCarId, setLockedCarId] = useState<string | null>(null);
   const [historyCar, setHistoryCar] = useState<Car | null>(null);
   const [form, setForm] = useState({
+    useTemporaryDriver: false,
     driverId: "",
+    temporaryDriverName: "",
     carId: "",
     startDate: todayInput(),
     endDate: "",
@@ -100,7 +103,8 @@ export function FleetTab() {
           car.plate,
           car.make,
           car.model,
-          agreement?.driver?.fullName,
+          agreement ? agreementDriverDisplayName(agreement) : "",
+          agreement ? agreement.temporaryDriverName : "",
           agreement ? formatDate(agreement.startDate) : "",
         ]
           .filter(Boolean)
@@ -117,9 +121,12 @@ export function FleetTab() {
 
   function openAssign(carId = "", options?: { historical?: boolean }) {
     const historical = Boolean(options?.historical && carId);
+    const noDrivers = (drivers.data?.length ?? 0) === 0;
     setLockedCarId(historical ? carId : null);
     setForm({
+      useTemporaryDriver: noDrivers,
       driverId: drivers.data?.[0]?.id ?? "",
+      temporaryDriverName: "",
       carId: carId || (availableCars[0]?.id ?? cars.data?.[0]?.id ?? ""),
       startDate: todayInput(),
       endDate: "",
@@ -136,7 +143,9 @@ export function FleetTab() {
   }
 
   function submit() {
-    if (!form.driverId || !form.carId || form.rentAmount === "") return;
+    const hasDriver = !form.useTemporaryDriver && Boolean(form.driverId);
+    const hasTemp = form.useTemporaryDriver && Boolean(form.temporaryDriverName.trim());
+    if ((!hasDriver && !hasTemp) || !form.carId || form.rentAmount === "") return;
     const endDate = form.endDate.trim();
     if (endDate && form.startDate && endDate < form.startDate) {
       showAlert(t("fleet.endBeforeStart"));
@@ -169,7 +178,9 @@ export function FleetTab() {
 
     create.mutate(
       {
-        driverId: form.driverId,
+        ...(hasTemp
+          ? { temporaryDriverName: form.temporaryDriverName.trim(), driverId: null }
+          : { driverId: form.driverId, temporaryDriverName: null }),
         carId: form.carId,
         rentAmount: form.rentAmount,
         depositAmount: form.depositAmount === "" ? 0 : form.depositAmount,
@@ -188,11 +199,7 @@ export function FleetTab() {
     );
   }
 
-  const hasDrivers = (drivers.data?.length ?? 0) > 0;
-  const hasAvailableCars = availableCars.length > 0;
-
   function assignBlockedReason(): string | undefined {
-    if (!hasDrivers) return t("fleet.needDriverFirst");
     return undefined;
   }
 
@@ -275,8 +282,11 @@ export function FleetTab() {
                     </span>
                   </div>
                   <p className="crm-fleet-card__meta">
-                    {agreement.driver?.fullName ?? "—"} · {t("fleet.since")}{" "}
-                    {formatDate(agreement.startDate)}
+                    <span>{agreementDriverDisplayName(agreement)}</span>
+                    {agreementIsTemporaryDriver(agreement) ? (
+                      <span className="crm-fleet-card__temp-badge">{t("fleet.temporaryDriver")}</span>
+                    ) : null}
+                    <span> · {t("fleet.since")} {formatDate(agreement.startDate)}</span>
                   </p>
                   {agreement.endDate ? (
                     <p className="crm-fleet-card__meta crm-fleet-card__meta--end">
@@ -364,12 +374,47 @@ export function FleetTab() {
         footer={<FormActions onCancel={closeAssign} onSave={submit} saving={create.isPending} />}
       >
         <Field label={t("finance.driver")}>
-          <SearchableSelect
-            value={form.driverId}
-            onChange={(v) => setForm({ ...form, driverId: v })}
-            options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
-            placeholder={t("common.searchToFilter")}
-          />
+          <div className="crm-fleet-driver-mode">
+            <button
+              type="button"
+              className={`crm-fleet-driver-mode__btn${!form.useTemporaryDriver ? " crm-fleet-driver-mode__btn--active" : ""}`}
+              onClick={() => setForm({ ...form, useTemporaryDriver: false })}
+            >
+              {t("fleet.registeredDriver")}
+            </button>
+            <button
+              type="button"
+              className={`crm-fleet-driver-mode__btn${form.useTemporaryDriver ? " crm-fleet-driver-mode__btn--active" : ""}`}
+              onClick={() =>
+                setForm({
+                  ...form,
+                  useTemporaryDriver: true,
+                  driverId: "",
+                })
+              }
+            >
+              {t("fleet.temporaryDriver")}
+            </button>
+          </div>
+          {form.useTemporaryDriver ? (
+            <>
+              <TextInput
+                value={form.temporaryDriverName}
+                placeholder={t("fleet.temporaryDriverPlaceholder")}
+                onChange={(v) => setForm({ ...form, temporaryDriverName: v })}
+              />
+              <p className="crm-form-hint">{t("fleet.temporaryDriverHint")}</p>
+            </>
+          ) : (drivers.data?.length ?? 0) > 0 ? (
+            <SearchableSelect
+              value={form.driverId}
+              onChange={(v) => setForm({ ...form, driverId: v })}
+              options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
+              placeholder={t("common.searchToFilter")}
+            />
+          ) : (
+            <p className="crm-form-hint">{t("fleet.noDriversUseTemporary")}</p>
+          )}
         </Field>
         {lockedCar ? (
           <Field label={t("finance.car")}>
