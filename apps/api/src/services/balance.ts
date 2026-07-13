@@ -65,10 +65,23 @@ type AgreementWithCar = {
   id: string;
   startDate: Date;
   endDate: Date | null;
+  updatedAt: Date;
+  status: "ACTIVE" | "ENDED";
   period: RentPeriod;
   rentAmount: number;
   car?: { plate: string } | null;
 };
+
+/** Last calendar day through which rent accrues for an agreement. */
+function agreementAccrualCap(a: AgreementWithCar, asOf: Date): Date {
+  if (a.status === "ENDED") {
+    return a.endDate ?? a.updatedAt;
+  }
+  if (a.endDate && a.endDate.getTime() < asOf.getTime()) {
+    return a.endDate;
+  }
+  return asOf;
+}
 
 function buildAgreementAccrual(a: AgreementWithCar, cap: Date): DriverBalanceAccrual {
   const start = a.startDate;
@@ -103,12 +116,12 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
 
   const [drivers, agreements, payments, fines] = await Promise.all([
     prisma.driver.findMany({ where: { ownerId }, orderBy: { fullName: "asc" } }),
-    // Pull the car id + plate alongside each active agreement so we can
-    // build the driver's "active car" list for the balance response. The
-    // frontend uses this to render "Driver — Plate" labels in the
-    // drivers list, finance tab, and overdue-payment reminder.
+    // Active + ended agreements both contribute to rent due. Payments are
+    // lifetime per driver, so ended rentals must keep their accrued rent
+    // in the balance or drivers with no active contract look massively
+    // overpaid (rent due = 0 while rent paid = all history).
     prisma.rentalAgreement.findMany({
-      where: { ownerId, status: "ACTIVE" },
+      where: { ownerId, driverId: { not: null }, status: { in: ["ACTIVE", "ENDED"] } },
       include: { car: { select: { id: true, plate: true } } },
     }),
     prisma.payment.findMany({ where: { ownerId } }),
@@ -120,10 +133,10 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
   const activeCarsByDriver = new Map<string, { id: string; plate: string }[]>();
   for (const a of agreements) {
     if (!a.driverId) continue;
-    const cap = a.endDate && a.endDate.getTime() < now.getTime() ? a.endDate : now;
-    const units = periodsElapsed(a.startDate, cap, a.period);
-    const due = units * a.rentAmount;
+    const cap = agreementAccrualCap(a, now);
+    const due = periodsElapsed(a.startDate, cap, a.period) * a.rentAmount;
     rentDueByDriver.set(a.driverId, (rentDueByDriver.get(a.driverId) ?? 0) + due);
+    if (a.status !== "ACTIVE") continue;
     depositByDriver.set(a.driverId, (depositByDriver.get(a.driverId) ?? 0) + a.depositAmount);
     if (a.car) {
       const list = activeCarsByDriver.get(a.driverId) ?? [];
@@ -209,9 +222,8 @@ export async function computeDriverBalanceBreakdown(
   if (!driver) return null;
 
   // We need every agreement that contributes to the balance. Active
-  // agreements still accrue rent; ended agreements don't. Deposit held
-  // in the breakdown should mirror `/balances`, so we only include
-  // deposits from ACTIVE agreements here as well.
+  // agreements accrue through today; ended agreements keep their final
+  // accrued rent so lifetime payments reconcile against lifetime due.
   const [agreements, payments, fines] = await Promise.all([
     prisma.rentalAgreement.findMany({
       where: { ownerId, driverId },
@@ -235,16 +247,14 @@ export async function computeDriverBalanceBreakdown(
   let depositHeld = 0;
   for (const a of agreements) {
     if (a.status === "ACTIVE") {
-      const explicitEnd = a.endDate;
-      const cap =
-        explicitEnd && explicitEnd.getTime() < asOf.getTime() ? explicitEnd : asOf;
-      const accrual = buildAgreementAccrual(a, cap);
+      const accrual = buildAgreementAccrual(a, agreementAccrualCap(a, asOf));
       activeAccruals.push(accrual);
       rentDue += accrual.accrued;
       depositHeld += a.depositAmount;
     } else if (a.status === "ENDED") {
-      const end = a.endDate ?? a.updatedAt;
-      pastRentals.push(buildAgreementAccrual(a, end));
+      const accrual = buildAgreementAccrual(a, agreementAccrualCap(a, asOf));
+      pastRentals.push(accrual);
+      rentDue += accrual.accrued;
     }
   }
   activeAccruals.sort((a, b) => a.startDate.localeCompare(b.startDate));

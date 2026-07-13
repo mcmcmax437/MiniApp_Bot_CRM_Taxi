@@ -147,6 +147,16 @@ export function DriverBalanceBreakdownModal(props: {
   const breakdownQuery = useDriverBalanceBreakdown(props.open ? props.driverId : null);
   const breakdown: DriverBalanceBreakdown | null = breakdownQuery.data ?? null;
   const pastRentals = breakdown?.pastRentals ?? [];
+  const pastRentalIds = useMemo(
+    () => new Set(pastRentals.map((a) => a.agreementId)),
+    [pastRentals],
+  );
+  const accrualLines = useMemo(() => {
+    if (!breakdown) return [];
+    return [...breakdown.activeAccruals, ...pastRentals].sort((a, b) =>
+      a.startDate.localeCompare(b.startDate),
+    );
+  }, [breakdown, pastRentals]);
 
   const loading = props.open && !breakdown;
 
@@ -283,19 +293,32 @@ export function DriverBalanceBreakdownModal(props: {
             defaultOpen
             storageKey="balance-bd-accruals"
           >
-            {breakdown.activeAccruals.length === 0 ? (
-              <p className="crm-form-hint">{t("balanceBreakdown.noActiveAgreements")}</p>
+            {accrualLines.length === 0 ? (
+              <p className="crm-form-hint">{t("balanceBreakdown.noRentAccrued")}</p>
             ) : (
               <>
-                {breakdown.activeAccruals.map((a: DriverBalanceAccrual) => (
-                  <MoneyLine
-                    key={a.agreementId}
-                    label={`${a.carPlate} · ${t(`drivers.${a.period}`)}`}
-                    sublabel={`${t("balanceBreakdown.daysRiding", { count: a.daysElapsed })} · ${a.periods.toFixed(2)} × ${formatMoney(a.rentAmount)}`}
-                    amount={a.accrued}
-                    tone="bad"
-                  />
-                ))}
+                {accrualLines.map((a: DriverBalanceAccrual) => {
+                  const ended = pastRentalIds.has(a.agreementId);
+                  const range =
+                    ended && a.endDate
+                      ? `${formatDate(a.startDate)} — ${formatDate(a.endDate)}`
+                      : null;
+                  return (
+                    <MoneyLine
+                      key={a.agreementId}
+                      label={`${a.carPlate} · ${t(`drivers.${a.period}`)}`}
+                      sublabel={[
+                        range,
+                        t("balanceBreakdown.daysRiding", { count: a.daysElapsed }),
+                        `${a.periods.toFixed(2)} × ${formatMoney(a.rentAmount)}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                      amount={a.accrued}
+                      tone="bad"
+                    />
+                  );
+                })}
                 <SumRow
                   label={t("balanceBreakdown.totalRentDue")}
                   value={formatMoney(breakdown.rentDue)}
