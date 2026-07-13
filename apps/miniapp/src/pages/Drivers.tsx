@@ -5,6 +5,8 @@ import {
   AgreementStatus,
   DriverStatus,
   RentPeriod,
+  inferAgreementStatus,
+  validateAgreementDates,
   driverFormFieldErrors,
   type DriverFormField,
 } from "@taxi/shared";
@@ -43,7 +45,7 @@ import { DriverBalanceBreakdownModal } from "../components/DriverBalanceBreakdow
 import { SwipeToDelete } from "../components/SwipeToDelete";
 import { useReadOnly } from "../readOnly";
 import { confirmAction, showAlert } from "../telegram";
-import { findAgreementDateConflict } from "../agreementOverlap";
+import { findAgreementDateConflict, rentalOverlapMessage, agreementDateValidationMessage, agreementApiErrorMessage } from "../agreementOverlap";
 import { ApiError } from "../api";
 
 const ph = (t: (k: string) => string, key: string) => t(`drivers.placeholder.${key}`);
@@ -872,15 +874,21 @@ function AgreementSection(props: {
         disabled={!carId || rentAmount === "" || create.isPending}
         onClick={() => {
           const end = endDate.trim();
-          if (end && startDate && end < startDate) {
-            showAlert(t("fleet.endBeforeStart"));
+          const asOf = todayInput();
+          const requireEnd = isHistorical;
+          const dateCheck = validateAgreementDates(startDate, end || null, {
+            requireEndDate: requireEnd,
+            asOf,
+          });
+          if (!dateCheck.ok) {
+            showAlert(agreementDateValidationMessage(dateCheck, t));
             return;
           }
           if (!end && activeCarIds.has(carId)) {
             showAlert(t("fleet.noAvailableCars"));
             return;
           }
-          const status = end ? AgreementStatus.ENDED : AgreementStatus.ACTIVE;
+          const status = inferAgreementStatus(end || null, asOf);
           const conflict = findAgreementDateConflict(
             {
               carId,
@@ -891,7 +899,7 @@ function AgreementSection(props: {
             allAgreements.data ?? [],
           );
           if (conflict) {
-            showAlert(t("fleet.rentalOverlap"));
+            showAlert(rentalOverlapMessage(conflict, t, formatDate));
             return;
           }
           create.mutate(
@@ -902,7 +910,7 @@ function AgreementSection(props: {
               depositAmount: depositAmount === "" ? 0 : depositAmount,
               period,
               startDate,
-              ...(end ? { endDate: end, status: AgreementStatus.ENDED } : {}),
+              ...(end ? { endDate: end, status } : {}),
             },
             {
               onSuccess: () => {
@@ -913,8 +921,12 @@ function AgreementSection(props: {
                 setEndDate("");
               },
               onError: (err) => {
-                if (err instanceof ApiError && err.code === "rental_overlap") {
-                  showAlert(t("fleet.rentalOverlap"));
+                if (err instanceof ApiError) {
+                  if (err.code === "rental_overlap") {
+                    showAlert(t("fleet.rentalOverlap"));
+                  } else {
+                    showAlert(agreementApiErrorMessage(err.code, t));
+                  }
                 }
               },
             },

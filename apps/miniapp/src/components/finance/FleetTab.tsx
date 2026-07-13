@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AgreementStatus, RentPeriod, agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
+import { AgreementStatus, RentPeriod, agreementDriverDisplayName, agreementIsTemporaryDriver, inferAgreementStatus, validateAgreementDates } from "@taxi/shared";
 import { confirmAction, showAlert } from "../../telegram";
 import { useAgreements, useCars, useDrivers, useCreateAgreement, useEndAgreement } from "../../hooks";
 import type { Agreement, Car } from "../../types";
@@ -27,7 +27,7 @@ import {
 } from "./FinanceUi";
 import { CarDriverHistoryModal } from "./CarDriverHistoryModal";
 import { useReadOnly } from "../../readOnly";
-import { findAgreementDateConflict } from "../../agreementOverlap";
+import { findAgreementDateConflict, rentalOverlapMessage, agreementDateValidationMessage, agreementApiErrorMessage } from "../../agreementOverlap";
 import { ApiError } from "../../api";
 
 export function FleetTab() {
@@ -147,8 +147,13 @@ export function FleetTab() {
     const hasTemp = form.useTemporaryDriver && Boolean(form.temporaryDriverName.trim());
     if ((!hasDriver && !hasTemp) || !form.carId || form.rentAmount === "") return;
     const endDate = form.endDate.trim();
-    if (endDate && form.startDate && endDate < form.startDate) {
-      showAlert(t("fleet.endBeforeStart"));
+    const asOf = todayInput();
+    const dateCheck = validateAgreementDates(form.startDate, endDate || null, {
+      requireEndDate: Boolean(lockedCarId),
+      asOf,
+    });
+    if (!dateCheck.ok) {
+      showAlert(agreementDateValidationMessage(dateCheck, t));
       return;
     }
     if (!endDate && activeByCarId.has(form.carId)) {
@@ -156,12 +161,7 @@ export function FleetTab() {
       return;
     }
 
-    // An agreement whose endDate is today or in the future is ACTIVE — the
-    // endDate is just when it stops. Only past endDates are historical
-    // (ENDED). The API also enforces this rule server-side.
-    const endIsFuture = !!endDate && endDate >= form.startDate;
-    const status =
-      endDate && !endIsFuture ? AgreementStatus.ENDED : AgreementStatus.ACTIVE;
+    const status = inferAgreementStatus(endDate || null, asOf);
     const conflict = findAgreementDateConflict(
       {
         carId: form.carId,
@@ -172,7 +172,7 @@ export function FleetTab() {
       agreements.data ?? [],
     );
     if (conflict) {
-      showAlert(t("fleet.rentalOverlap"));
+      showAlert(rentalOverlapMessage(conflict, t, formatDate));
       return;
     }
 
@@ -191,8 +191,12 @@ export function FleetTab() {
       {
         onSuccess: () => closeAssign(),
         onError: (err) => {
-          if (err instanceof ApiError && err.code === "rental_overlap") {
-            showAlert(t("fleet.rentalOverlap"));
+          if (err instanceof ApiError) {
+            if (err.code === "rental_overlap") {
+              showAlert(t("fleet.rentalOverlap"));
+            } else {
+              showAlert(agreementApiErrorMessage(err.code, t));
+            }
           }
         },
       },

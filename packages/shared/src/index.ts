@@ -808,7 +808,11 @@ export interface ReminderSettings {
 }
 
 export {
+  calendarDateOnly,
   findRentalPeriodConflict,
+  inferAgreementStatus,
   rentalPeriodsConflict,
+  validateAgreementDates,
+  type AgreementDateValidation,
   type RentalPeriodLike,
 } from "./agreement-overlap.js";

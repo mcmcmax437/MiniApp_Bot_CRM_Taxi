@@ -547,9 +547,17 @@ const en = {
     noAvailableCars: "No free cars available to assign",
     endDateHint:
       "Leave empty for an open-ended rental. Pick a future date to schedule the hand-off — you'll get a reminder 7 days and 1 day before. Pick a past date to record a rental that's already finished.",
+    pastRentalNeedsEndDate: "Past rentals need an end date.",
+    pastRentalEndMustBePast: "Past rentals must end before today.",
+    carAlreadyRented: "This car already has an active rental. End it first, or add a past rental with an end date in the past.",
+    agreementExists: "This driver already has an active rental for this car.",
+    invalidCarOrDriver: "Could not find the selected car or driver.",
+    driverOrTempRequired: "Pick a driver or enter a temporary driver name.",
     endBeforeStart: "End date cannot be before start date.",
     rentalOverlap:
       "These dates overlap with another rental for this car. The next rental can start on the same day the previous one ended.",
+    rentalOverlapDetail:
+      "Overlaps with {{driver}} on this car ({{start}} — {{end}}). Only rentals for the same plate are checked — other cars are unaffected.",
     addPastRental: "Add past rental",
     assignCar: "Assign car",
     endConfirm: "End this rental and mark the car as available?",
@@ -1372,9 +1380,17 @@ const uk: Resources = {
     noAvailableCars: "Немає вільних авто для видачі",
     endDateHint:
       "Залиште порожнім для безстрокової оренди. Виберіть майбутню дату, щоб запланувати повернення — ви отримаєте нагадування за 7 днів і за 1 день. Виберіть минулу дату, щоб записати вже завершену оренду.",
+    pastRentalNeedsEndDate: "Для минулої оренди потрібна дата закінчення.",
+    pastRentalEndMustBePast: "Минула оренда має завершуватися до сьогодні.",
+    carAlreadyRented: "У цього авто вже є активна оренда. Спочатку завершіть її або додайте минулу оренду з датою закінчення в минулому.",
+    agreementExists: "У цього водія вже є активна оренда цього авто.",
+    invalidCarOrDriver: "Не вдалося знайти обране авто або водія.",
+    driverOrTempRequired: "Оберіть водія або введіть тимчасове ім'я.",
     endBeforeStart: "Дата закінчення не може бути раніше дати початку.",
     rentalOverlap:
       "Ці дати перетинаються з іншою орендою цього авто. Наступна оренда може початися в той самий день, коли попередня закінчилась.",
+    rentalOverlapDetail:
+      "Перетинається з {{driver}} на цьому авто ({{start}} — {{end}}). Перевіряються лише оренди цього номера — інші авто не враховуються.",
     addPastRental: "Додати минулу оренду",
     assignCar: "Видати авто",
     endConfirm: "Завершити цю оренду та позначити авто як вільне?",
@@ -2195,9 +2211,17 @@ const ru: Resources = {
     noAvailableCars: "Нет свободных авто для выдачи",
     endDateHint:
       "Оставьте пустым для бессрочной аренды. Выберите будущую дату, чтобы запланировать возврат — вы получите напоминание за 7 дней и за 1 день. Выберите прошедшую дату, чтобы записать уже завершённую аренду.",
+    pastRentalNeedsEndDate: "Для прошлой аренды нужна дата окончания.",
+    pastRentalEndMustBePast: "Прошлая аренда должна заканчиваться до сегодняшнего дня.",
+    carAlreadyRented: "У этого авто уже есть активная аренда. Сначала завершите её или добавьте прошлую аренду с датой окончания в прошлом.",
+    agreementExists: "У этого водителя уже есть активная аренда этого авто.",
+    invalidCarOrDriver: "Не удалось найти выбранное авто или водителя.",
+    driverOrTempRequired: "Выберите водителя или введите временное имя.",
     endBeforeStart: "Дата окончания не может быть раньше даты начала.",
     rentalOverlap:
       "Эти даты пересекаются с другой арендой этого авто. Следующая аренда может начаться в тот же день, когда предыдущая закончилась.",
+    rentalOverlapDetail:
+      "Пересекается с {{driver}} на этом авто ({{start}} — {{end}}). Проверяются только аренды этого номера — другие авто не учитываются.",
     addPastRental: "Добавить прошлую аренду",
     assignCar: "Выдать авто",
     endConfirm: "Завершить эту аренду и пометить авто как свободное?",

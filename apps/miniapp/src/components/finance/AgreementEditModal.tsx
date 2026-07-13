@@ -4,9 +4,11 @@ import {
   AgreementStatus,
   RentPeriod,
   agreementIsTemporaryDriver,
+  inferAgreementStatus,
+  validateAgreementDates,
 } from "@taxi/shared";
 import { useAgreements, useDrivers, useUpdateAgreement } from "../../hooks";
-import { findAgreementDateConflict } from "../../agreementOverlap";
+import { findAgreementDateConflict, rentalOverlapMessage, agreementDateValidationMessage, agreementApiErrorMessage } from "../../agreementOverlap";
 import { ApiError } from "../../api";
 import { showAlert } from "../../telegram";
 import type { Agreement } from "../../types";
@@ -20,6 +22,8 @@ import {
   FormActions,
   MoneyNumberInput,
   isoDateOnly,
+  formatDate,
+  todayInput,
 } from "../ui";
 
 export function AgreementEditModal(props: {
@@ -62,18 +66,20 @@ export function AgreementEditModal(props: {
     if (!hasDriver && !hasTemp) return;
 
     const end = endDate.trim();
-    if (end && end < startDate) {
-      showAlert(t("fleet.endBeforeStart"));
+    const asOf = todayInput();
+    const requireEnd =
+      props.agreement.status === AgreementStatus.ENDED ||
+      (!!end && inferAgreementStatus(end, asOf) === AgreementStatus.ENDED);
+    const dateCheck = validateAgreementDates(startDate, end || null, {
+      requireEndDate: requireEnd,
+      asOf,
+    });
+    if (!dateCheck.ok) {
+      showAlert(agreementDateValidationMessage(dateCheck, t));
       return;
     }
 
-    // A future or current endDate keeps the agreement ACTIVE; only a past
-    // endDate marks it ENDED. This matches the create-form logic so that
-    // scheduling a future hand-off doesn't accidentally end the rental.
-    const today = startDate.slice(0, 10);
-    const endIsPast = !!end && end < today;
-    const inferredStatus: AgreementStatus | undefined =
-      end && endIsPast ? AgreementStatus.ENDED : undefined;
+    const inferredStatus = inferAgreementStatus(end || null, asOf);
 
     const body: Record<string, unknown> = {
       ...(hasTemp
@@ -88,12 +94,11 @@ export function AgreementEditModal(props: {
 
     // Preserve ACTIVE when only an endDate in the future is being set;
     // flip to ENDED only when the user explicitly picks a past endDate.
-    if (inferredStatus) {
+    if (inferredStatus === AgreementStatus.ENDED) {
       body.status = inferredStatus;
     } else if (
       props.agreement.status === AgreementStatus.ACTIVE &&
-      end &&
-      !endIsPast
+      end
     ) {
       body.status = AgreementStatus.ACTIVE;
     }
@@ -111,7 +116,7 @@ export function AgreementEditModal(props: {
       agreements.data ?? [],
     );
     if (conflict) {
-      showAlert(t("fleet.rentalOverlap"));
+      showAlert(rentalOverlapMessage(conflict, t, formatDate));
       return;
     }
 
@@ -120,8 +125,12 @@ export function AgreementEditModal(props: {
       {
         onSuccess: () => props.onClose(),
         onError: (err) => {
-          if (err instanceof ApiError && err.code === "rental_overlap") {
-            showAlert(t("fleet.rentalOverlap"));
+          if (err instanceof ApiError) {
+            if (err.code === "rental_overlap") {
+              showAlert(t("fleet.rentalOverlap"));
+            } else {
+              showAlert(agreementApiErrorMessage(err.code, t));
+            }
           }
         },
       },
