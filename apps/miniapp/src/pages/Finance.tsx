@@ -1224,23 +1224,20 @@ function PaymentModal(props: {
                   color="rgba(255, 255, 255, 0.55)"
                 />
                 <span>
-                  {(() => {
-                    if (contractAgreement.status === AgreementStatus.ACTIVE) {
-                      if (contractAgreement.endDate) {
-                        return t("finance.contractEndsOn", {
-                          date: formatDate(contractAgreement.endDate),
-                        });
-                      }
-                      return t("finance.contractStartsOn", {
-                        date: formatDate(contractAgreement.startDate),
-                      });
-                    }
-                    return t("finance.contractEnded", {
-                      date: formatDate(
-                        contractAgreement.endDate ?? contractAgreement.startDate,
-                      ),
-                    });
-                  })()}
+                  {t("finance.contractStartsOn", {
+                    date: formatDate(contractAgreement.startDate),
+                  })}
+                  {contractAgreement.endDate
+                    ? ` · ${
+                        contractAgreement.status === AgreementStatus.ACTIVE
+                          ? t("finance.contractEndsOn", {
+                              date: formatDate(contractAgreement.endDate),
+                            })
+                          : t("finance.contractEnded", {
+                              date: formatDate(contractAgreement.endDate),
+                            })
+                      }`
+                    : null}
                 </span>
               </div>
             </>
