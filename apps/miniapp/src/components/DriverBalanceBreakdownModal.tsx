@@ -106,6 +106,36 @@ function ActiveRentalCard(props: { accrual: DriverBalanceAccrual }) {
   );
 }
 
+function PastRentalCard(props: { accrual: DriverBalanceAccrual }) {
+  const { t } = useTranslation();
+  const a = props.accrual;
+  const endLabel = a.endDate ? formatDate(a.endDate) : "—";
+  return (
+    <div className="crm-contract-note crm-contract-note--ended">
+      <div className="crm-contract-note__row crm-contract-note__row--primary">
+        <Icon name="car-01" size={16} color="rgba(255,255,255,0.55)" />
+        <span>{a.carPlate}</span>
+        <span>·</span>
+        <span>{t(`drivers.${a.period}`)}</span>
+      </div>
+      <div className="crm-contract-note__row crm-contract-note__row--meta">
+        {formatDate(a.startDate)} — {endLabel}
+      </div>
+      <div className="crm-contract-note__row crm-contract-note__row--meta">
+        {t("balanceBreakdown.daysRiding", { count: a.daysElapsed })}
+      </div>
+      <div className="crm-contract-note__row">
+        <span>{t("balanceBreakdown.rentRate")}</span>
+        <span>{formatMoney(a.rentAmount)}</span>
+      </div>
+      <div className="crm-contract-note__row">
+        <span>{t("balanceBreakdown.totalAccrued")}</span>
+        <span>{formatMoney(a.accrued)}</span>
+      </div>
+    </div>
+  );
+}
+
 export function DriverBalanceBreakdownModal(props: {
   open: boolean;
   driverId: string | null;
@@ -116,6 +146,7 @@ export function DriverBalanceBreakdownModal(props: {
   const { t } = useTranslation();
   const breakdownQuery = useDriverBalanceBreakdown(props.open ? props.driverId : null);
   const breakdown: DriverBalanceBreakdown | null = breakdownQuery.data ?? null;
+  const pastRentals = breakdown?.pastRentals ?? [];
 
   const loading = props.open && !breakdown;
 
@@ -228,6 +259,23 @@ export function DriverBalanceBreakdownModal(props: {
               </div>
             </SectionCard>
           ) : null}
+
+          <SectionCard
+            title={t("balanceBreakdown.pastRentals")}
+            icon={<Icon name="clock-01" size={20} color="var(--taxi-text-muted)" />}
+            defaultOpen={pastRentals.length > 0}
+            storageKey="balance-bd-past-rentals"
+          >
+            {pastRentals.length === 0 ? (
+              <p className="crm-form-hint">{t("balanceBreakdown.noPastRentals")}</p>
+            ) : (
+              <div className="crm-balance-rentals">
+                {pastRentals.map((a) => (
+                  <PastRentalCard key={a.agreementId} accrual={a} />
+                ))}
+              </div>
+            )}
+          </SectionCard>
 
           <SectionCard
             title={t("balanceBreakdown.rentAccrued")}

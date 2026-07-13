@@ -61,6 +61,39 @@ export function periodsElapsed(start: Date, asOf: Date, period: RentPeriod): num
   return 1 + remainingDays / periodDays;
 }
 
+type AgreementWithCar = {
+  id: string;
+  startDate: Date;
+  endDate: Date | null;
+  period: RentPeriod;
+  rentAmount: number;
+  car?: { plate: string } | null;
+};
+
+function buildAgreementAccrual(a: AgreementWithCar, cap: Date): DriverBalanceAccrual {
+  const start = a.startDate;
+  const explicitEnd = a.endDate;
+  const periods = periodsElapsed(start, cap, a.period);
+  const accrued = periods * a.rentAmount;
+  const daysElapsed = Math.max(
+    0,
+    Math.floor((startOfDay(cap).getTime() - startOfDay(start).getTime()) / DAY_MS) + 1,
+  );
+  const plate = a.car?.plate ?? "—";
+  return {
+    agreementId: a.id,
+    carPlate: plate,
+    carLabel: plate,
+    period: a.period,
+    rentAmount: a.rentAmount,
+    startDate: start.toISOString(),
+    endDate: explicitEnd ? explicitEnd.toISOString() : null,
+    daysElapsed,
+    periods,
+    accrued,
+  };
+}
+
 /**
  * balance = accrued rent - rent paid - discounts + unpaid fines  (positive => driver owes you)
  * depositHeld = sum of deposits on active rental agreements
@@ -197,44 +230,29 @@ export async function computeDriverBalanceBreakdown(
   ]);
 
   const activeAccruals: DriverBalanceAccrual[] = [];
+  const pastRentals: DriverBalanceAccrual[] = [];
   let rentDue = 0;
   let depositHeld = 0;
   for (const a of agreements) {
-    // Only ACTIVE agreements accrue rent. ENDED agreements stop
-    // accruing past their endDate (which the server stored already),
-    // so we mirror the /balances math exactly.
     if (a.status === "ACTIVE") {
-      const start = a.startDate;
       const explicitEnd = a.endDate;
       const cap =
         explicitEnd && explicitEnd.getTime() < asOf.getTime() ? explicitEnd : asOf;
-      const periods = periodsElapsed(start, cap, a.period);
-      const accrued = periods * a.rentAmount;
-      rentDue += accrued;
-
-      const daysElapsed = Math.max(
-        0,
-        Math.floor((startOfDay(cap).getTime() - startOfDay(start).getTime()) / DAY_MS) + 1,
-      );
-      const plate = a.car?.plate ?? "—";
-      activeAccruals.push({
-        agreementId: a.id,
-        carPlate: plate,
-        carLabel: plate,
-        period: a.period,
-        rentAmount: a.rentAmount,
-        startDate: start.toISOString(),
-        endDate: explicitEnd ? explicitEnd.toISOString() : null,
-        daysElapsed,
-        periods,
-        accrued,
-      });
-    }
-    if (a.status === "ACTIVE") {
+      const accrual = buildAgreementAccrual(a, cap);
+      activeAccruals.push(accrual);
+      rentDue += accrual.accrued;
       depositHeld += a.depositAmount;
+    } else if (a.status === "ENDED") {
+      const end = a.endDate ?? a.updatedAt;
+      pastRentals.push(buildAgreementAccrual(a, end));
     }
   }
   activeAccruals.sort((a, b) => a.startDate.localeCompare(b.startDate));
+  pastRentals.sort((a, b) => {
+    const aEnd = a.endDate ?? a.startDate;
+    const bEnd = b.endDate ?? b.startDate;
+    return bEnd.localeCompare(aEnd);
+  });
 
   const rentPayments: DriverBalancePaymentLine[] = [];
   const discountPayments: DriverBalancePaymentLine[] = [];
@@ -295,6 +313,7 @@ export async function computeDriverBalanceBreakdown(
     driverName: driver.fullName,
     asOf: asOf.toISOString(),
     activeAccruals,
+    pastRentals,
     rentDue: round2(rentDue),
     rentPayments,
     discountPayments,

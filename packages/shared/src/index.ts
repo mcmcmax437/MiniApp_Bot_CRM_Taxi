@@ -650,6 +650,8 @@ export interface DriverBalanceBreakdown {
   asOf: string;
   /** Active agreements currently accruing rent. */
   activeAccruals: DriverBalanceAccrual[];
+  /** Ended rental agreements — informational history, not in rentDue. */
+  pastRentals: DriverBalanceAccrual[];
   rentDue: number;
   rentPayments: DriverBalancePaymentLine[];
   discountPayments: DriverBalancePaymentLine[];
