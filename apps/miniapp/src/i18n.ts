@@ -389,6 +389,10 @@ const en = {
     totalPayments: "Total payments",
     totalExpenses: "Total expenses",
     paid: "Paid",
+    incomeAllTime: "Income",
+    allTimeIncomeOnly: "{{count}} rent & fines",
+    allTimeIncomeWithDeposits:
+      "{{count}} rent & fines · {{depositAmount}} deposits held ({{depositCount}})",
     debts: "Debts",
     spent: "Spent",
     thisMonth: "This month",
@@ -1237,6 +1241,10 @@ const uk: Resources = {
     totalPayments: "Усього платежів",
     totalExpenses: "Усього витрат",
     paid: "Оплачено",
+    incomeAllTime: "Дохід",
+    allTimeIncomeOnly: "{{count}} оренда та штрафи",
+    allTimeIncomeWithDeposits:
+      "{{count}} оренда та штрафи · {{depositAmount}} депозити утримано ({{depositCount}})",
     debts: "Борги",
     spent: "Витрачено",
     thisMonth: "Цього місяця",
@@ -2068,6 +2076,10 @@ const ru: Resources = {
     totalPayments: "Всего платежей",
     totalExpenses: "Всего расходов",
     paid: "Оплачено",
+    incomeAllTime: "Доход",
+    allTimeIncomeOnly: "{{count}} аренда и штрафы",
+    allTimeIncomeWithDeposits:
+      "{{count}} аренда и штрафы · {{depositAmount}} депозиты удержано ({{depositCount}})",
     debts: "Долги",
     spent: "Потрачено",
     thisMonth: "Этот месяц",

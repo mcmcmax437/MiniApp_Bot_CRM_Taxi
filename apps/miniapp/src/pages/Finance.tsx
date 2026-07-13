@@ -223,7 +223,10 @@ function PaymentsTab() {
     searchParams,
     setSearchParams,
   ]);
-  const totalPaid = all.reduce((s, p) => s + p.amount, 0);
+  const incomeItems = all.filter((p) => isIncomePayment(p.type));
+  const totalIncome = incomeItems.reduce((s, p) => s + p.amount, 0);
+  const allTimeDepositItems = all.filter((p) => p.type === PaymentType.DEPOSIT);
+  const allTimeDepositSum = allTimeDepositItems.reduce((s, p) => s + p.amount, 0);
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
   const monthItems = all.filter((p) => financeInPeriod(p.date, "month"));
   const monthIncomeItems = monthItems.filter((p) => isIncomePayment(p.type));
@@ -363,9 +366,17 @@ function PaymentsTab() {
           icon={<Icon name="credit-card" size={16} color="#448aff" />}
         />
         <FinanceStatCard
-          title={t("finance.paid")}
-          value={formatMoney(totalPaid)}
-          subtitle={t("finance.allTime")}
+          title={t("finance.incomeAllTime")}
+          value={formatMoney(totalIncome)}
+          subtitle={
+            allTimeDepositItems.length > 0
+              ? t("finance.allTimeIncomeWithDeposits", {
+                  count: incomeItems.length,
+                  depositAmount: formatMoney(allTimeDepositSum),
+                  depositCount: allTimeDepositItems.length,
+                })
+              : t("finance.allTimeIncomeOnly", { count: incomeItems.length })
+          }
           tone="green"
           icon={<Icon name="chart-increase" size={16} color="#69f0ae" />}
         />
