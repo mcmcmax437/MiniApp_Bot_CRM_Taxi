@@ -10,10 +10,17 @@ import type {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+/** Local calendar date encoded as UTC midnight — DST-safe day arithmetic. */
+function calendarDayUtc(d: Date): number {
+  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/** Inclusive count of local calendar days from `start` through `end`. */
+function calendarDaysInclusive(start: Date, end: Date): number {
+  const from = calendarDayUtc(start);
+  const to = calendarDayUtc(end);
+  if (to < from) return 0;
+  return Math.floor((to - from) / DAY_MS) + 1;
 }
 
 function periodLengthDays(period: RentPeriod): number {
@@ -43,25 +50,26 @@ function periodLengthDays(period: RentPeriod): number {
  *
  * The return value is the number of "periods" billed (the first period can be
  * fractional, e.g. 0.71 for 5/7 of a week).
+ *
+ * Day counts use calendar dates (not wall-clock ms) so spring/autumn DST
+ * transitions do not under- or over-count riding days.
  */
 export function periodsElapsed(start: Date, asOf: Date, period: RentPeriod): number {
-  const from = startOfDay(start);
-  const to = startOfDay(asOf);
-  if (to.getTime() < from.getTime()) return 0;
+  const days = calendarDaysInclusive(start, asOf);
+  if (days <= 0) return 0;
 
-  const totalDays = Math.floor((to.getTime() - from.getTime()) / DAY_MS);
   const periodDays = periodLengthDays(period);
-  const firstPeriodDays = Math.min(totalDays + 1, periodDays);
+  const firstPeriodDays = Math.min(days, periodDays);
 
-  if (totalDays + 1 <= periodDays) {
+  if (days <= periodDays) {
     return firstPeriodDays / periodDays;
   }
 
-  const remainingDays = totalDays + 1 - periodDays;
+  const remainingDays = days - periodDays;
   return 1 + remainingDays / periodDays;
 }
 
-type AgreementWithCar = {
+export type AgreementWithCar = {
   id: string;
   startDate: Date;
   endDate: Date | null;
@@ -73,7 +81,7 @@ type AgreementWithCar = {
 };
 
 /** Last calendar day through which rent accrues for an agreement. */
-function agreementAccrualCap(a: AgreementWithCar, asOf: Date): Date {
+export function agreementAccrualCap(a: AgreementWithCar, asOf: Date): Date {
   if (a.status === "ENDED") {
     return a.endDate ?? a.updatedAt;
   }
@@ -83,15 +91,12 @@ function agreementAccrualCap(a: AgreementWithCar, asOf: Date): Date {
   return asOf;
 }
 
-function buildAgreementAccrual(a: AgreementWithCar, cap: Date): DriverBalanceAccrual {
+export function buildAgreementAccrual(a: AgreementWithCar, cap: Date): DriverBalanceAccrual {
   const start = a.startDate;
   const explicitEnd = a.endDate;
   const periods = periodsElapsed(start, cap, a.period);
   const accrued = periods * a.rentAmount;
-  const daysElapsed = Math.max(
-    0,
-    Math.floor((startOfDay(cap).getTime() - startOfDay(start).getTime()) / DAY_MS) + 1,
-  );
+  const daysElapsed = calendarDaysInclusive(start, cap);
   const plate = a.car?.plate ?? "—";
   return {
     agreementId: a.id,
