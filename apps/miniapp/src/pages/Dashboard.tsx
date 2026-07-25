@@ -33,7 +33,7 @@ import {
 import i18n from "../i18n";
 import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
 import { closeTelegramApp } from "../telegram";
-import { buildDashboardByCar, dateInStatsPeriod, reportDateRange } from "../utils/dashboardStats";
+import { buildDashboardByCar, dateInStatsPeriod, reportDateRange, sumIncomeByMethod } from "../utils/dashboardStats";
 
 const STATS_PERIOD_KEY = "dashboard-stats-period";
 const STATS_CAR_KEY = "dashboard-stats-car";
@@ -143,6 +143,8 @@ export function Dashboard() {
         expenses: 0,
         profit: 0,
         roiPercent: null as number | null,
+        cash: 0,
+        bank: 0,
       };
     }
 
@@ -167,14 +169,19 @@ export function Dashboard() {
         expenses: expensesValue,
         profit: profitValue,
         roiPercent: calcRoi(report.data.income, expensesValue),
+        cash: 0,
+        bank: 0,
       };
     }
 
-    const carRow = report.data.byCar.find((row) => row.carId === statsCarId);
-    const income = carRow?.income ?? 0;
-    // When a car is selected, prefer the locally-computed period total.
+    // Per-car income from payments so we can split cash vs bank (report
+    // byCar only returns a single total).
+    const byMethod = sumIncomeByMethod(paymentsQuery.data ?? [], statsPeriod, statsCarId);
+    const income = byMethod.total;
     const expenses =
-      localExpenses != null ? localExpenses : (carRow?.expenses ?? 0);
+      localExpenses != null
+        ? localExpenses
+        : (report.data.byCar.find((row) => row.carId === statsCarId)?.expenses ?? 0);
     const profit = round2(income - expenses);
 
     return {
@@ -182,8 +189,10 @@ export function Dashboard() {
       expenses,
       profit,
       roiPercent: calcRoi(income, expenses),
+      cash: byMethod.cash,
+      bank: byMethod.bank,
     };
-  }, [report.data, statsCarId, expensesQuery.data, statsPeriod]);
+  }, [report.data, statsCarId, expensesQuery.data, paymentsQuery.data, statsPeriod]);
 
   const chartByCar = useMemo(
     () =>
@@ -289,6 +298,14 @@ export function Dashboard() {
           label={t("dashboard.income")}
           value={income}
           suffix={periodSuffix}
+          detail={
+            statsCarId
+              ? t("dashboard.incomeCashBank", {
+                  cash: formatMoney(stats.cash),
+                  bank: formatMoney(stats.bank),
+                })
+              : undefined
+          }
           tone="income"
           icon={<Icon name="credit-card" size={24} color="var(--taxi-income)" />}
           onClick={() => goToStatBreakdown("income")}

@@ -96,6 +96,25 @@ export function filterDashboardIncomePayments(
   );
 }
 
+/** Rent + fine totals split by payment method for a dashboard car/period filter. */
+export function sumIncomeByMethod(
+  payments: Payment[],
+  period: DashboardStatsPeriod,
+  carId: string,
+): { cash: number; bank: number; total: number } {
+  let cash = 0;
+  let bank = 0;
+  for (const p of filterDashboardIncomePayments(payments, period, carId)) {
+    if (p.method === "CASH") cash += p.amount;
+    else bank += p.amount;
+  }
+  return {
+    cash: round2(cash),
+    bank: round2(bank),
+    total: round2(cash + bank),
+  };
+}
+
 export function filterDashboardExpenses(
   expenses: Expense[],
   period: DashboardStatsPeriod,

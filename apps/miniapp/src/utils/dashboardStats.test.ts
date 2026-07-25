@@ -6,6 +6,7 @@ import {
   isDashboardIncomePayment,
   matchesDashboardCar,
   reportDateRange,
+  sumIncomeByMethod,
 } from "./dashboardStats.js";
 import type { Payment } from "../types";
 
@@ -82,5 +83,70 @@ describe("filterDashboardIncomePayments", () => {
     const income = filterDashboardIncomePayments(payments, "all", "");
     expect(income).toHaveLength(1);
     expect(income[0]?.type).toBe(PaymentType.RENT);
+  });
+});
+
+describe("sumIncomeByMethod", () => {
+  const payments: Payment[] = [
+    {
+      id: "1",
+      driverId: "d1",
+      carId: "car-1",
+      amount: 700,
+      discountAmount: 0,
+      date: "2001-01-15",
+      method: "BANK" as Payment["method"],
+      type: PaymentType.RENT,
+      note: null,
+      receivedByPartner: false,
+      partnerSettled: false,
+    },
+    {
+      id: "2",
+      driverId: "d1",
+      carId: "car-1",
+      amount: 550,
+      discountAmount: 0,
+      date: "2001-01-20",
+      method: "CASH" as Payment["method"],
+      type: PaymentType.RENT,
+      note: null,
+      receivedByPartner: false,
+      partnerSettled: false,
+    },
+    {
+      id: "3",
+      driverId: "d1",
+      carId: "car-2",
+      amount: 400,
+      discountAmount: 0,
+      date: "2001-01-20",
+      method: "CASH" as Payment["method"],
+      type: PaymentType.FINE,
+      note: null,
+      receivedByPartner: false,
+      partnerSettled: false,
+    },
+    {
+      id: "4",
+      driverId: "d1",
+      carId: "car-1",
+      amount: 650,
+      discountAmount: 0,
+      date: "2001-01-20",
+      method: "CASH" as Payment["method"],
+      type: PaymentType.DEPOSIT,
+      note: null,
+      receivedByPartner: false,
+      partnerSettled: false,
+    },
+  ];
+
+  it("splits rent and fines into cash and bank for one car", () => {
+    expect(sumIncomeByMethod(payments, "all", "car-1")).toEqual({
+      cash: 550,
+      bank: 700,
+      total: 1250,
+    });
   });
 });
