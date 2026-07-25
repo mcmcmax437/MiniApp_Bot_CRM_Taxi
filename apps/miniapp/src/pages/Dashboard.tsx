@@ -145,8 +145,12 @@ export function Dashboard() {
         roiPercent: null as number | null,
         cash: 0,
         bank: 0,
+        showMethodSplit: false,
       };
     }
+
+    // Cash/bank split only for this month / previous month — not all-time.
+    const showMethodSplit = statsPeriod === "month" || statsPeriod === "previous";
 
     // For month/previous, recompute expenses locally so the number covers the
     // whole calendar month and respects the car filter (including taxes).
@@ -160,23 +164,30 @@ export function Dashboard() {
       localExpenses = round2(list.reduce((s, e) => s + e.amount, 0));
     }
 
+    const byMethod = showMethodSplit
+      ? sumIncomeByMethod(paymentsQuery.data ?? [], statsPeriod, statsCarId)
+      : { cash: 0, bank: 0, total: 0 };
+
     if (!statsCarId) {
       const expensesValue =
         localExpenses != null ? localExpenses : report.data.expenses;
-      const profitValue = round2(report.data.income - expensesValue);
+      // Prefer local rent+fines total when showing method split so cash+bank
+      // matches the headline income figure.
+      const income = showMethodSplit ? byMethod.total : report.data.income;
+      const profitValue = round2(income - expensesValue);
       return {
-        income: report.data.income,
+        income,
         expenses: expensesValue,
         profit: profitValue,
-        roiPercent: calcRoi(report.data.income, expensesValue),
-        cash: 0,
-        bank: 0,
+        roiPercent: calcRoi(income, expensesValue),
+        cash: byMethod.cash,
+        bank: byMethod.bank,
+        showMethodSplit,
       };
     }
 
     // Per-car income from payments so we can split cash vs bank (report
     // byCar only returns a single total).
-    const byMethod = sumIncomeByMethod(paymentsQuery.data ?? [], statsPeriod, statsCarId);
     const income = byMethod.total;
     const expenses =
       localExpenses != null
@@ -191,6 +202,7 @@ export function Dashboard() {
       roiPercent: calcRoi(income, expenses),
       cash: byMethod.cash,
       bank: byMethod.bank,
+      showMethodSplit,
     };
   }, [report.data, statsCarId, expensesQuery.data, paymentsQuery.data, statsPeriod]);
 
@@ -299,7 +311,7 @@ export function Dashboard() {
           value={income}
           suffix={periodSuffix}
           detail={
-            statsCarId
+            stats.showMethodSplit
               ? t("dashboard.incomeCashBank", {
                   cash: formatMoney(stats.cash),
                   bank: formatMoney(stats.bank),
