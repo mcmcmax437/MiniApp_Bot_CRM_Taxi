@@ -7,7 +7,15 @@ import type { Car, Expense, Payment } from "../types";
 export const DASHBOARD_FLEET_OTHER_CAR_ID = "__fleet_other__";
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDateIso(new Date());
+}
+
+/** Local calendar YYYY-MM-DD — avoids UTC day-shift from `toISOString()`. */
+function localDateIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function round2(n: number): number {
@@ -32,15 +40,18 @@ function previousCalendarMonthKey(): string {
 export function reportDateRange(period: DashboardStatsPeriod): { from: string; to: string } {
   const now = new Date();
   if (period === "month") {
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    return { from, to: todayIso() };
+    return {
+      from: localDateIso(new Date(now.getFullYear(), now.getMonth(), 1)),
+      to: localDateIso(now),
+    };
   }
   if (period === "previous") {
-    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-    const to = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
-    return { from, to };
+    return {
+      from: localDateIso(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+      to: localDateIso(new Date(now.getFullYear(), now.getMonth(), 0)),
+    };
   }
-  return { from: "2000-01-01", to: todayIso() };
+  return { from: "2000-01-01", to: localDateIso(now) };
 }
 
 export function dateInCalendarMonth(dateStr: string, period: "month" | "previous"): boolean {
@@ -49,16 +60,22 @@ export function dateInCalendarMonth(dateStr: string, period: "month" | "previous
   return key === previousCalendarMonthKey();
 }
 
-/** Income on the dashboard follows the report API date range (e.g. this month = 1st → today). */
+/**
+ * Income for month/previous uses the full calendar month (same idea as Finance
+ * "this month"), so Home and Finance totals match. All-time uses the report range.
+ */
 export function paymentInStatsPeriod(dateStr: string, period: DashboardStatsPeriod): boolean {
+  if (period === "month" || period === "previous") {
+    return dateInCalendarMonth(dateStr, period);
+  }
   const { from, to } = reportDateRange(period);
   const d = dateStr.slice(0, 10);
   return d >= from && d <= to;
 }
 
 /**
- * Expenses for month/previous use the full calendar month on the dashboard,
- * while income uses the report API range above.
+ * Expenses for month/previous use the full calendar month on the dashboard
+ * (same calendar-month rule as income / Finance).
  */
 export function expenseInStatsPeriod(dateStr: string, period: DashboardStatsPeriod): boolean {
   if (period === "month" || period === "previous") {

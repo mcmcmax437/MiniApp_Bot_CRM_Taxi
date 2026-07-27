@@ -5,6 +5,7 @@ import {
   filterDashboardIncomePayments,
   isDashboardIncomePayment,
   matchesDashboardCar,
+  paymentInStatsPeriod,
   reportDateRange,
   sumIncomeByMethod,
 } from "./dashboardStats.js";
@@ -46,6 +47,30 @@ describe("reportDateRange", () => {
     const range = reportDateRange("previous");
     expect(range.from <= range.to).toBe(true);
     expect(range.from.slice(0, 7)).not.toBe(new Date().toISOString().slice(0, 7));
+  });
+
+  it("uses local calendar dates for this month (no UTC day shift)", () => {
+    const now = new Date();
+    const expectedFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const expectedTo = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    expect(reportDateRange("month")).toEqual({ from: expectedFrom, to: expectedTo });
+  });
+});
+
+describe("paymentInStatsPeriod", () => {
+  it("includes the full calendar month for this month", () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    expect(paymentInStatsPeriod(`${y}-${m}-01`, "month")).toBe(true);
+    expect(paymentInStatsPeriod(`${y}-${m}-15`, "month")).toBe(true);
+  });
+
+  it("excludes the last day of the previous month", () => {
+    const now = new Date();
+    const prevLast = new Date(now.getFullYear(), now.getMonth(), 0);
+    const iso = `${prevLast.getFullYear()}-${String(prevLast.getMonth() + 1).padStart(2, "0")}-${String(prevLast.getDate()).padStart(2, "0")}`;
+    expect(paymentInStatsPeriod(iso, "month")).toBe(false);
   });
 });
 
