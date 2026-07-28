@@ -1093,6 +1093,12 @@ function PaymentModal(props: {
     }
   }, [contractAgreement, t]);
 
+  const previewFullRent = useMemo(() => {
+    if (contractAgreement) return contractAgreement.rentAmount;
+    if (form.amount === "" || form.discount === "") return null;
+    return form.amount + form.discount;
+  }, [contractAgreement, form.amount, form.discount]);
+
   const driverOptions = useMemo(() => {
     const driverById = new Map(props.drivers.map((d) => [d.id, d]));
     const { orderedDriverIds } = rankDriversForCar(
@@ -1315,7 +1321,7 @@ function PaymentModal(props: {
         <div className="crm-discount-preview">
           <div className="crm-discount-preview__row">
             <span>{t("finance.fullRent")}</span>
-            <strong>{formatMoney(form.amount + form.discount)}</strong>
+            <strong>{formatMoney(previewFullRent ?? form.amount + form.discount)}</strong>
           </div>
           <div className="crm-discount-preview__row">
             <span>{t("finance.discount")}</span>
