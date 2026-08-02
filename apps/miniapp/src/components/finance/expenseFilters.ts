@@ -4,7 +4,7 @@ import {
   sortFinanceByDate,
   type FinanceDateSort,
   type FinancePeriod,
-} from "./FinanceUi";
+} from "./financeDateFilters";
 
 type Translate = (key: string) => string;
 

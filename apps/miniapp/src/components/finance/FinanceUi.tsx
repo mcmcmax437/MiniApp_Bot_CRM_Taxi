@@ -3,6 +3,19 @@ import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
 import { formatMoney } from "../../currency";
 import { Icon } from "../crm";
+import {
+  financeInPeriod,
+  sortFinanceByDate,
+  type FinanceDateSort,
+  type FinancePeriod,
+} from "./financeDateFilters";
+
+export {
+  financeInPeriod,
+  sortFinanceByDate,
+  type FinanceDateSort,
+  type FinancePeriod,
+} from "./financeDateFilters";
 
 export type FinanceTabId = "payments" | "expenses" | "taxes" | "fleet" | "balances";
 
@@ -116,21 +129,6 @@ export function FinanceStatCard(props: {
 
 export function FinanceStatsRow(props: { children: ReactNode }) {
   return <div className="crm-finance-stats">{props.children}</div>;
-}
-
-export type FinancePeriod = "all" | "month" | "year";
-
-export type FinanceDateSort = "newest" | "oldest";
-
-export function sortFinanceByDate<T>(
-  items: T[],
-  sort: FinanceDateSort,
-  getDate: (item: T) => string,
-): T[] {
-  return [...items].sort((a, b) => {
-    const diff = new Date(getDate(b)).getTime() - new Date(getDate(a)).getTime();
-    return sort === "newest" ? diff : -diff;
-  });
 }
 
 export function FinanceSearchRow(props: {
@@ -361,16 +359,6 @@ export function FinanceListItem(props: {
       ) : null}
     </Tag>
   );
-}
-
-export function financeInPeriod(dateStr: string, period: FinancePeriod): boolean {
-  if (period === "all") return true;
-  const d = new Date(dateStr);
-  const now = new Date();
-  if (period === "month") {
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }
-  return d.getFullYear() === now.getFullYear();
 }
 
 export function getFinanceMonthKey(dateStr: string): string {
