@@ -64,6 +64,7 @@ import {
   paymentDisplaySubtitle,
   paymentDisplayTitle,
 } from "../components/finance/financeLabels";
+import { filterExpensesForList, type ExpensePayerFilter } from "../components/finance/expenseFilters";
 import { useReadOnly } from "../readOnly";
 import { ApiError } from "../api";
 import { showAlert } from "../telegram";
@@ -556,7 +557,7 @@ function ExpensesTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [payerFilter, setPayerFilter] = useState<"ALL" | "PARTNER" | "MINE">("ALL");
+  const [payerFilter, setPayerFilter] = useState<ExpensePayerFilter>("ALL");
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -603,16 +604,7 @@ function ExpensesTab() {
   const partnerUnsettledSum = partnerUnsettled.reduce((s, e) => s + e.amount, 0);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const list = all.filter((e) => {
-      if (!financeInPeriod(e.date, period)) return false;
-      if (payerFilter === "PARTNER" && !e.paidByPartner) return false;
-      if (payerFilter === "MINE" && e.paidByPartner) return false;
-      if (!q) return true;
-      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.paidByFather ? t("finance.paidByFather") : ""} ${e.paidByPartner ? t("finance.paidByPartner") : ""} ${e.note ?? ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-    return sortFinanceByDate(list, dateSort, (e) => e.date);
+    return filterExpensesForList(all, { period, search, payerFilter, dateSort, t });
   }, [all, period, search, t, dateSort, payerFilter]);
 
   function openCreate() {
