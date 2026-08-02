@@ -555,6 +555,8 @@ function ExpensesTab() {
   const [periodOpen, setPeriodOpen] = useState(false);
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [payerFilter, setPayerFilter] = useState<"ALL" | "PARTNER" | "MINE">("ALL");
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -604,12 +606,14 @@ function ExpensesTab() {
     const q = search.trim().toLowerCase();
     const list = all.filter((e) => {
       if (!financeInPeriod(e.date, period)) return false;
+      if (payerFilter === "PARTNER" && !e.paidByPartner) return false;
+      if (payerFilter === "MINE" && e.paidByPartner) return false;
       if (!q) return true;
       const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.paidByFather ? t("finance.paidByFather") : ""} ${e.paidByPartner ? t("finance.paidByPartner") : ""} ${e.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (e) => e.date);
-  }, [all, period, search, t, dateSort]);
+  }, [all, period, search, t, dateSort, payerFilter]);
 
   function openCreate() {
     setEditId(null);
@@ -712,6 +716,45 @@ function ExpensesTab() {
         onDateSortChange={setDateSort}
         sortOpen={sortOpen}
         onSortOpenChange={setSortOpen}
+        filterActive={payerFilter !== "ALL"}
+        onFilterClick={() => setFilterOpen((v) => !v)}
+        filterMenu={
+          filterOpen ? (
+            <div className="crm-filter-menu crm-finance-filter-menu">
+              <div className="crm-filter-menu__heading">{t("finance.filterByPayer")}</div>
+              <button
+                type="button"
+                className={`crm-filter-menu__item${payerFilter === "ALL" ? " crm-filter-menu__item--active" : ""}`}
+                onClick={() => {
+                  setPayerFilter("ALL");
+                  setFilterOpen(false);
+                }}
+              >
+                {t("common.all")}
+              </button>
+              <button
+                type="button"
+                className={`crm-filter-menu__item${payerFilter === "PARTNER" ? " crm-filter-menu__item--active" : ""}`}
+                onClick={() => {
+                  setPayerFilter("PARTNER");
+                  setFilterOpen(false);
+                }}
+              >
+                {t("finance.paidByPartner")}
+              </button>
+              <button
+                type="button"
+                className={`crm-filter-menu__item${payerFilter === "MINE" ? " crm-filter-menu__item--active" : ""}`}
+                onClick={() => {
+                  setPayerFilter("MINE");
+                  setFilterOpen(false);
+                }}
+              >
+                {t("finance.myPayment")}
+              </button>
+            </div>
+          ) : null
+        }
       />
 
       {!expenses.isLoading && filtered.length === 0 ? (
