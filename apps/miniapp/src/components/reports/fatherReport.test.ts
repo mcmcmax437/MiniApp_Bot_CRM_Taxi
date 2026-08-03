@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { ExpenseCategory, PaymentMethod, PaymentType } from "@taxi/shared";
 import type { Expense, Payment } from "../../types";
 import {
-  assignFatherCar,
-  sumFatherPersonTotals,
-  sumFatherTotals,
+  fatherMonthKeysInRange,
+  sumFatherSelectedCars,
+  toggleFatherCar,
 } from "./fatherReport";
 
 function payment(partial: Partial<Payment> & Pick<Payment, "id" | "amount" | "date" | "method" | "type">): Payment {
@@ -32,8 +32,8 @@ function expense(partial: Partial<Expense> & Pick<Expense, "id" | "amount" | "da
   };
 }
 
-describe("sumFatherPersonTotals", () => {
-  it("splits income cash/bank and expenses partner/mine for selected cars", () => {
+describe("sumFatherSelectedCars", () => {
+  it("returns one combined sum for selected cars and months", () => {
     const payments = [
       payment({
         id: "1",
@@ -45,7 +45,7 @@ describe("sumFatherPersonTotals", () => {
       }),
       payment({
         id: "2",
-        carId: "a",
+        carId: "b",
         amount: 200,
         date: "2026-07-11",
         method: PaymentMethod.BANK,
@@ -53,33 +53,23 @@ describe("sumFatherPersonTotals", () => {
       }),
       payment({
         id: "3",
-        carId: "b",
+        carId: "a",
         amount: 50,
-        date: "2026-07-12",
+        date: "2026-06-12",
         method: PaymentMethod.CASH,
         type: PaymentType.RENT,
-      }),
-      payment({
-        id: "4",
-        carId: "a",
-        amount: 999,
-        date: "2026-07-13",
-        method: PaymentMethod.CASH,
-        type: PaymentType.DEPOSIT,
       }),
     ];
     const expenses = [
       expense({ id: "e1", carId: "a", amount: 40, date: "2026-07-10", paidByPartner: true }),
-      expense({ id: "e2", carId: "a", amount: 15, date: "2026-07-11", paidByPartner: false }),
-      expense({ id: "e3", carId: "a", amount: 80, date: "2026-07-11", category: ExpenseCategory.TAX }),
+      expense({ id: "e2", carId: "b", amount: 15, date: "2026-07-11", paidByPartner: false }),
     ];
 
-    const totals = sumFatherPersonTotals(
+    const totals = sumFatherSelectedCars(
       payments,
       expenses,
-      new Set(["a"]),
-      "2026-07-01",
-      "2026-07-31",
+      new Set(["a", "b"]),
+      new Set(["2026-07"]),
     );
 
     expect(totals).toEqual({
@@ -92,14 +82,13 @@ describe("sumFatherPersonTotals", () => {
     });
   });
 
-  it("returns zeros when no cars selected", () => {
+  it("returns zeros when no months selected", () => {
     expect(
-      sumFatherPersonTotals(
+      sumFatherSelectedCars(
         [payment({ id: "1", amount: 10, date: "2026-07-01", method: PaymentMethod.CASH, type: PaymentType.RENT })],
         [],
+        new Set(["car-1"]),
         new Set(),
-        "2026-07-01",
-        "2026-07-31",
       ),
     ).toEqual({
       incomeCash: 0,
@@ -112,38 +101,25 @@ describe("sumFatherPersonTotals", () => {
   });
 });
 
-describe("sumFatherTotals", () => {
-  it("adds two person totals", () => {
-    const a = sumFatherPersonTotals(
-      [payment({ id: "1", carId: "a", amount: 10, date: "2026-07-01", method: PaymentMethod.CASH, type: PaymentType.RENT })],
-      [],
-      new Set(["a"]),
-      "2026-07-01",
-      "2026-07-31",
-    );
-    const b = sumFatherPersonTotals(
-      [payment({ id: "2", carId: "b", amount: 20, date: "2026-07-01", method: PaymentMethod.BANK, type: PaymentType.RENT })],
-      [],
-      new Set(["b"]),
-      "2026-07-01",
-      "2026-07-31",
-    );
-    expect(sumFatherTotals(a, b).incomeSum).toBe(30);
+describe("fatherMonthKeysInRange", () => {
+  it("collects YYYY-MM keys with activity", () => {
+    expect(
+      fatherMonthKeysInRange(
+        [
+          payment({ id: "1", amount: 1, date: "2026-07-01", method: PaymentMethod.CASH, type: PaymentType.RENT }),
+          payment({ id: "2", amount: 1, date: "2026-05-01", method: PaymentMethod.CASH, type: PaymentType.RENT }),
+        ],
+        [expense({ id: "e1", amount: 1, date: "2026-07-15" })],
+        "2026-01-01",
+        "2026-12-31",
+      ),
+    ).toEqual(["2026-05", "2026-07"]);
   });
 });
 
-describe("assignFatherCar", () => {
-  it("moves a car from Oleh to Max", () => {
-    expect(assignFatherCar("max", "c1", [], ["c1"])).toEqual({
-      maxCars: ["c1"],
-      olehCars: [],
-    });
-  });
-
-  it("toggles off when already assigned to the same person", () => {
-    expect(assignFatherCar("oleh", "c1", [], ["c1"])).toEqual({
-      maxCars: [],
-      olehCars: [],
-    });
+describe("toggleFatherCar", () => {
+  it("adds and removes a car id", () => {
+    expect(toggleFatherCar("c1", [])).toEqual(["c1"]);
+    expect(toggleFatherCar("c1", ["c1", "c2"])).toEqual(["c2"]);
   });
 });

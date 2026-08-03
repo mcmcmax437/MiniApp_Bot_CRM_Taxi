@@ -78,7 +78,7 @@ export function ReportsPage() {
 
       <PartnerSettlementCard />
 
-      <FatherReportCard from={applied.from} to={applied.to} />
+      <FatherReportCard />
     </div>
   );
 }

@@ -1,36 +1,28 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCars, useExpenses, usePayments } from "../../hooks";
 import { Icon } from "../crm";
+import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
-import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import {
-  assignFatherCar,
-  sumFatherPersonTotals,
-  sumFatherTotals,
-  type FatherPersonId,
-  type FatherPersonTotals,
+  fatherMonthKeysInRange,
+  sumFatherSelectedCars,
+  toggleFatherCar,
+  type FatherTotals,
 } from "./fatherReport";
+import { ReportYearMonthPicker } from "./ReportYearMonthPicker";
+import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
+import { useReportYearMonths } from "./useReportYearMonths";
 
-function TotalsTable(props: {
+function SimpleTotalsTable(props: {
   title: string;
   colA: string;
   colB: string;
   colSum: string;
-  maxLabel: string;
-  olehLabel: string;
-  totalLabel: string;
-  max: FatherPersonTotals;
-  oleh: FatherPersonTotals;
-  total: FatherPersonTotals;
-  pick: (row: FatherPersonTotals) => { a: number; b: number; sum: number };
+  values: FatherTotals;
+  pick: (row: FatherTotals) => { a: number; b: number; sum: number };
 }) {
-  const rows: Array<{ label: string; values: FatherPersonTotals; strong?: boolean }> = [
-    { label: props.maxLabel, values: props.max },
-    { label: props.olehLabel, values: props.oleh },
-    { label: props.totalLabel, values: props.total, strong: true },
-  ];
-
+  const v = props.pick(props.values);
   return (
     <div className="crm-father-report__table-block">
       <div className="crm-father-report__table-title">{props.title}</div>
@@ -38,24 +30,17 @@ function TotalsTable(props: {
         <table className="crm-driver-income-report__table crm-father-report__table">
           <thead>
             <tr>
-              <th>{/* person */}</th>
               <th>{props.colA}</th>
               <th>{props.colB}</th>
               <th>{props.colSum}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
-              const v = props.pick(row.values);
-              return (
-                <tr key={row.label} className={row.strong ? "crm-father-report__row--total" : undefined}>
-                  <td>{row.label}</td>
-                  <td>{formatMoney(v.a)}</td>
-                  <td>{formatMoney(v.b)}</td>
-                  <td className="crm-driver-income-report__total-cell">{formatMoney(v.sum)}</td>
-                </tr>
-              );
-            })}
+            <tr className="crm-father-report__row--total">
+              <td>{formatMoney(v.a)}</td>
+              <td>{formatMoney(v.b)}</td>
+              <td className="crm-driver-income-report__total-cell">{formatMoney(v.sum)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -64,56 +49,54 @@ function TotalsTable(props: {
 }
 
 /**
- * “For Father” report: manually assign cars to Max / Oleh each time, then
- * see income (cash/bank) and expenses (partner/mine) for those cars in the
- * page date range.
+ * “For Father” (Max + Oleh): year/month picker, shared car selection, then
+ * one combined income (cash/bank/sum) and expenses (partner/mine/sum).
  */
-export function FatherReportCard(props: { from: string; to: string }) {
-  const { t } = useTranslation();
+export function FatherReportCard() {
+  const { t, i18n } = useTranslation();
   const cars = useCars();
   const payments = usePayments();
   const expenses = useExpenses();
-  const [maxCars, setMaxCars] = useState<string[]>([]);
-  const [olehCars, setOlehCars] = useState<string[]>([]);
+  const [selectedCars, setSelectedCars] = useState<string[]>([]);
+  const {
+    year,
+    changeYear,
+    applied,
+    selectedMonths,
+    syncAvailableMonths,
+    toggleMonth,
+    selectAllMonths,
+  } = useReportYearMonths();
 
   const carList = cars.data ?? [];
+  const paymentList = payments.data ?? [];
+  const expenseList = expenses.data ?? [];
   const loading = cars.isLoading || payments.isLoading || expenses.isLoading;
 
-  function onToggleCar(person: FatherPersonId, carId: string) {
-    const next = assignFatherCar(person, carId, maxCars, olehCars);
-    setMaxCars(next.maxCars);
-    setOlehCars(next.olehCars);
-  }
-
-  const maxTotals = useMemo(
-    () =>
-      sumFatherPersonTotals(
-        payments.data ?? [],
-        expenses.data ?? [],
-        new Set(maxCars),
-        props.from,
-        props.to,
-      ),
-    [payments.data, expenses.data, maxCars, props.from, props.to],
+  const monthKeys = useMemo(
+    () => fatherMonthKeysInRange(paymentList, expenseList, applied.from, applied.to),
+    [paymentList, expenseList, applied.from, applied.to],
   );
 
-  const olehTotals = useMemo(
+  useEffect(() => {
+    syncAvailableMonths(monthKeys);
+  }, [applied.from, applied.to, monthKeys.join("|")]);
+
+  const totals = useMemo(
     () =>
-      sumFatherPersonTotals(
-        payments.data ?? [],
-        expenses.data ?? [],
-        new Set(olehCars),
-        props.from,
-        props.to,
+      sumFatherSelectedCars(
+        paymentList,
+        expenseList,
+        new Set(selectedCars),
+        selectedMonths,
       ),
-    [payments.data, expenses.data, olehCars, props.from, props.to],
+    [paymentList, expenseList, selectedCars, selectedMonths],
   );
 
-  const total = useMemo(() => sumFatherTotals(maxTotals, olehTotals), [maxTotals, olehTotals]);
-
-  const maxLabel = t("reports.fatherMax");
-  const olehLabel = t("reports.fatherOleh");
-  const hasAssignment = maxCars.length > 0 || olehCars.length > 0;
+  const hasAssignment = selectedCars.length > 0;
+  const hasMonths = selectedMonths.size > 0;
+  const monthLabel = (monthKey: string) =>
+    formatFinanceMonthLabel(monthKey, i18n.language);
 
   return (
     <CollapsibleReportBlock
@@ -129,56 +112,44 @@ export function FatherReportCard(props: { from: string; to: string }) {
       }
     >
       <div className="crm-father-report__body">
+        <ReportYearMonthPicker
+          year={year}
+          onYearChange={changeYear}
+          monthKeys={monthKeys}
+          selectedMonths={selectedMonths}
+          onToggleMonth={toggleMonth}
+          onSelectAllMonths={() => selectAllMonths(monthKeys)}
+          monthLabel={monthLabel}
+          loading={loading}
+        />
+
         <section className="crm-father-report__ownership">
           <div className="crm-father-report__table-title">{t("reports.fatherWhoOwns")}</div>
           <p className="crm-form-hint crm-father-report__hint">{t("reports.fatherWhoOwnsHint")}</p>
-          <div className="crm-father-report__owners">
-            <div className="crm-father-report__owner-col">
-              <div className="crm-father-report__owner-name">{maxLabel}</div>
-              <div className="crm-father-report__car-list">
-                {carList.length === 0 && !cars.isLoading ? (
-                  <p className="crm-form-hint">{t("reports.fatherNoCars")}</p>
-                ) : (
-                  carList.map((c) => {
-                    const checked = maxCars.includes(c.id);
-                    return (
-                      <button
-                        key={`max-${c.id}`}
-                        type="button"
-                        className={`crm-father-report__car-chip${checked ? " crm-father-report__car-chip--active" : ""}`}
-                        onClick={() => onToggleCar("max", c.id)}
-                      >
-                        <span className={`crm-filter-check${checked ? " crm-filter-check--on" : ""}`} aria-hidden>
-                          {checked ? "✓" : ""}
-                        </span>
-                        <span>{c.plate}</span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-            <div className="crm-father-report__owner-col">
-              <div className="crm-father-report__owner-name">{olehLabel}</div>
-              <div className="crm-father-report__car-list">
-                {carList.map((c) => {
-                  const checked = olehCars.includes(c.id);
-                  return (
-                    <button
-                      key={`oleh-${c.id}`}
-                      type="button"
-                      className={`crm-father-report__car-chip${checked ? " crm-father-report__car-chip--active" : ""}`}
-                      onClick={() => onToggleCar("oleh", c.id)}
-                    >
-                      <span className={`crm-filter-check${checked ? " crm-filter-check--on" : ""}`} aria-hidden>
-                        {checked ? "✓" : ""}
-                      </span>
-                      <span>{c.plate}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          <div className="crm-father-report__owner-badge">
+            {t("reports.fatherMax")} + {t("reports.fatherOleh")}
+          </div>
+          <div className="crm-father-report__car-list crm-father-report__car-list--shared">
+            {carList.length === 0 && !cars.isLoading ? (
+              <p className="crm-form-hint">{t("reports.fatherNoCars")}</p>
+            ) : (
+              carList.map((c) => {
+                const checked = selectedCars.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`crm-father-report__car-chip${checked ? " crm-father-report__car-chip--active" : ""}`}
+                    onClick={() => setSelectedCars((prev) => toggleFatherCar(c.id, prev))}
+                  >
+                    <span className={`crm-filter-check${checked ? " crm-filter-check--on" : ""}`} aria-hidden>
+                      {checked ? "✓" : ""}
+                    </span>
+                    <span>{c.plate}</span>
+                  </button>
+                );
+              })
+            )}
           </div>
         </section>
 
@@ -186,6 +157,14 @@ export function FatherReportCard(props: { from: string; to: string }) {
           <div className="crm-report-section__empty">
             <span className="crm-spinner" />
             <p>{t("common.loading")}</p>
+          </div>
+        ) : monthKeys.length === 0 ? (
+          <div className="crm-report-section__empty">
+            <p className="crm-form-hint">{t("reports.accountantNoMonthsInYear", { year })}</p>
+          </div>
+        ) : !hasMonths ? (
+          <div className="crm-report-section__empty">
+            <p className="crm-form-hint">{t("reports.accountantNoMonthsSelected")}</p>
           </div>
         ) : !hasAssignment ? (
           <div className="crm-report-section__empty">
@@ -199,30 +178,20 @@ export function FatherReportCard(props: { from: string; to: string }) {
           </div>
         ) : (
           <>
-            <TotalsTable
+            <SimpleTotalsTable
               title={t("reports.fatherIncomeTitle")}
               colA={t("finance.CASH")}
               colB={t("finance.BANK")}
               colSum={t("common.total")}
-              maxLabel={maxLabel}
-              olehLabel={olehLabel}
-              totalLabel={t("common.total")}
-              max={maxTotals}
-              oleh={olehTotals}
-              total={total}
+              values={totals}
               pick={(row) => ({ a: row.incomeCash, b: row.incomeBank, sum: row.incomeSum })}
             />
-            <TotalsTable
+            <SimpleTotalsTable
               title={t("reports.fatherExpensesTitle")}
               colA={t("reports.fatherExpensePartner")}
               colB={t("reports.fatherExpenseMine")}
               colSum={t("common.total")}
-              maxLabel={maxLabel}
-              olehLabel={olehLabel}
-              totalLabel={t("common.total")}
-              max={maxTotals}
-              oleh={olehTotals}
-              total={total}
+              values={totals}
               pick={(row) => ({ a: row.expensePartner, b: row.expenseMine, sum: row.expenseSum })}
             />
           </>

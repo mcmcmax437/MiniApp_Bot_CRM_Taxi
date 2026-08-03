@@ -7031,37 +7031,32 @@ select.crm-input option {
   margin-bottom: 8px;
 }
 
-.crm-father-report__owners {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-@media (max-width: 520px) {
-  .crm-father-report__owners {
-    grid-template-columns: 1fr;
-  }
-}
-
-.crm-father-report__owner-col {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 12px;
-  background: rgba(8, 18, 31, 0.35);
-}
-
-.crm-father-report__owner-name {
-  font-size: 15px;
-  font-weight: 700;
+.crm-father-report__owner-badge {
+  display: inline-flex;
+  align-items: center;
   margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 183, 77, 0.14);
+  border: 1px solid rgba(255, 183, 77, 0.28);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .crm-father-report__car-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 220px;
+  max-height: 260px;
   overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 8px;
+  background: rgba(8, 18, 31, 0.35);
+}
+
+.crm-father-report__car-list--shared {
+  max-height: 280px;
 }
 
 .crm-father-report__car-chip {
