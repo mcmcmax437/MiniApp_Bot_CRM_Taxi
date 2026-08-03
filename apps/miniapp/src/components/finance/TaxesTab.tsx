@@ -24,7 +24,6 @@ import {
   FinanceList,
   FinanceListItem,
   FinanceDateGroupedList,
-  financeInPeriod,
   sortFinanceByDate,
   toggleFilterValue,
   type FinancePeriod,
@@ -32,6 +31,7 @@ import {
   type FinanceDateSort,
   type FinanceFilterSection,
 } from "./FinanceUi";
+import { filterTaxExpenses } from "./taxFilters";
 import { useReadOnly } from "../../readOnly";
 import { ApiError } from "../../api";
 import { showAlert } from "../../telegram";
@@ -74,25 +74,26 @@ export function TaxesTab() {
     note: "",
   });
 
+  const allExpenses = expenses.data ?? [];
+
   const taxItems = useMemo(
-    () => (expenses.data ?? []).filter((e) => e.category === ExpenseCategory.TAX),
-    [expenses.data],
+    () => filterTaxExpenses(allExpenses, { period: "all" }),
+    [allExpenses],
   );
 
   const scoped = useMemo(() => {
-    return taxItems.filter((e) => {
-      if (!financeInPeriod(e.date, period, dateRange)) return false;
-      if (carFilters.length > 0) {
-        const carId = e.carId ?? "";
-        if (!carFilters.includes(carId)) return false;
-      }
-      return true;
-    });
-  }, [taxItems, period, dateRange, carFilters]);
+    return filterTaxExpenses(allExpenses, { period, dateRange, carFilters });
+  }, [allExpenses, period, dateRange, carFilters]);
   const total = scoped.reduce((s, e) => s + e.amount, 0);
-  const monthItems = taxItems.filter((e) => financeInPeriod(e.date, "month"));
+  const monthItems = useMemo(
+    () => filterTaxExpenses(allExpenses, { period: "month", carFilters }),
+    [allExpenses, carFilters],
+  );
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
-  const yearItems = taxItems.filter((e) => financeInPeriod(e.date, "year"));
+  const yearItems = useMemo(
+    () => filterTaxExpenses(allExpenses, { period: "year", carFilters }),
+    [allExpenses, carFilters],
+  );
   const yearSum = yearItems.reduce((s, e) => s + e.amount, 0);
   const periodSubtitle =
     period === "custom" && dateRange
