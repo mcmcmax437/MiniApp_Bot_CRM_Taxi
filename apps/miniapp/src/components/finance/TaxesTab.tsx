@@ -27,6 +27,7 @@ import {
   financeInPeriod,
   sortFinanceByDate,
   type FinancePeriod,
+  type FinanceDateRange,
   type FinanceDateSort,
 } from "./FinanceUi";
 import { useReadOnly } from "../../readOnly";
@@ -56,6 +57,7 @@ export function TaxesTab() {
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
+  const [dateRange, setDateRange] = useState<FinanceDateRange | null>(null);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -76,22 +78,29 @@ export function TaxesTab() {
     [expenses.data],
   );
 
-  const total = taxItems.reduce((s, e) => s + e.amount, 0);
+  const scoped = useMemo(
+    () => taxItems.filter((e) => financeInPeriod(e.date, period, dateRange)),
+    [taxItems, period, dateRange],
+  );
+  const total = scoped.reduce((s, e) => s + e.amount, 0);
   const monthItems = taxItems.filter((e) => financeInPeriod(e.date, "month"));
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
   const yearItems = taxItems.filter((e) => financeInPeriod(e.date, "year"));
   const yearSum = yearItems.reduce((s, e) => s + e.amount, 0);
+  const periodSubtitle =
+    period === "custom" && dateRange
+      ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
+      : t(`finance.period_${period}`);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = taxItems.filter((e) => {
-      if (!financeInPeriod(e.date, period)) return false;
+    const list = scoped.filter((e) => {
       if (!q) return true;
       const hay = `${e.car?.plate ?? ""} ${e.note ?? ""} ${e.amount}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (e) => e.date);
-  }, [taxItems, period, search, dateSort]);
+  }, [scoped, search, dateSort]);
 
   function openCreate() {
     setEditId(null);
@@ -131,7 +140,7 @@ export function TaxesTab() {
         <FinanceStatCard
           title={t("finance.totalTax")}
           value={formatMoney(total)}
-          subtitle={t("finance.taxCount", { count: taxItems.length })}
+          subtitle={`${periodSubtitle} · ${t("finance.taxCount", { count: scoped.length })}`}
           tone="red"
           icon={<Icon name="lock" size={16} color="#ff5252" />}
         />
@@ -157,6 +166,8 @@ export function TaxesTab() {
         searchPlaceholder={t("finance.searchTaxes")}
         period={period}
         onPeriodChange={setPeriod}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
         periodOpen={periodOpen}
         onPeriodOpenChange={setPeriodOpen}
         dateSort={dateSort}

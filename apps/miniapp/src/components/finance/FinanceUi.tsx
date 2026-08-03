@@ -1,8 +1,17 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
 import { formatMoney } from "../../currency";
 import { Icon } from "../crm";
+import { DateInput } from "../ui";
+import {
+  financeInPeriod,
+  type FinanceDateRange,
+  type FinancePeriod,
+} from "./financePeriod";
+
+export type { FinanceDateRange, FinancePeriod } from "./financePeriod";
+export { financeDateKey, financeInPeriod } from "./financePeriod";
 
 export type FinanceTabId = "payments" | "expenses" | "taxes" | "fleet" | "balances";
 
@@ -118,8 +127,6 @@ export function FinanceStatsRow(props: { children: ReactNode }) {
   return <div className="crm-finance-stats">{props.children}</div>;
 }
 
-export type FinancePeriod = "all" | "month" | "year";
-
 export type FinanceDateSort = "newest" | "oldest";
 
 export function sortFinanceByDate<T>(
@@ -141,6 +148,9 @@ export function FinanceSearchRow(props: {
   onPeriodChange: (v: FinancePeriod) => void;
   periodOpen: boolean;
   onPeriodOpenChange: (v: boolean) => void;
+  /** Applied custom range when period is `custom`. */
+  dateRange?: FinanceDateRange | null;
+  onDateRangeChange?: (range: FinanceDateRange | null) => void;
   dateSort?: FinanceDateSort;
   onDateSortChange?: (v: FinanceDateSort) => void;
   sortOpen?: boolean;
@@ -151,8 +161,39 @@ export function FinanceSearchRow(props: {
   filterMenu?: ReactNode;
 }) {
   const { t } = useTranslation();
-  const periods: FinancePeriod[] = ["all", "month", "year"];
+  const periods: FinancePeriod[] = ["all", "month", "year", "custom"];
   const dateSorts: FinanceDateSort[] = ["newest", "oldest"];
+  const [draftFrom, setDraftFrom] = useState(props.dateRange?.from ?? "");
+  const [draftTo, setDraftTo] = useState(props.dateRange?.to ?? "");
+  const [customOpen, setCustomOpen] = useState(props.period === "custom");
+
+  // Keep draft inputs in sync when the menu opens or an applied range changes.
+  useEffect(() => {
+    if (!props.periodOpen) return;
+    setDraftFrom(props.dateRange?.from ?? "");
+    setDraftTo(props.dateRange?.to ?? "");
+    setCustomOpen(props.period === "custom");
+  }, [props.periodOpen, props.dateRange?.from, props.dateRange?.to, props.period]);
+
+  const periodActive = props.period !== "all";
+  const customReady = Boolean(draftFrom && draftTo);
+  const showCustomFields = customOpen || props.period === "custom";
+
+  function pickPreset(p: Exclude<FinancePeriod, "custom">) {
+    setCustomOpen(false);
+    props.onPeriodChange(p);
+    props.onDateRangeChange?.(null);
+    props.onPeriodOpenChange(false);
+  }
+
+  function applyCustom() {
+    if (!draftFrom || !draftTo) return;
+    const from = draftFrom <= draftTo ? draftFrom : draftTo;
+    const to = draftFrom <= draftTo ? draftTo : draftFrom;
+    props.onDateRangeChange?.({ from, to });
+    props.onPeriodChange("custom");
+    props.onPeriodOpenChange(false);
+  }
 
   return (
     <div className="crm-finance-filters">
@@ -169,7 +210,7 @@ export function FinanceSearchRow(props: {
       <div className="crm-filter-wrap">
         <button
           type="button"
-          className={`crm-finance-filter-btn${props.period !== "all" ? " crm-finance-filter-btn--active" : ""}`}
+          className={`crm-finance-filter-btn${periodActive ? " crm-finance-filter-btn--active" : ""}`}
           onClick={() => {
             props.onSortOpenChange?.(false);
             props.onPeriodOpenChange(!props.periodOpen);
@@ -185,15 +226,42 @@ export function FinanceSearchRow(props: {
               <button
                 key={p}
                 type="button"
-                className={`crm-filter-menu__item${props.period === p ? " crm-filter-menu__item--active" : ""}`}
+                className={`crm-filter-menu__item${
+                  (p === "custom" ? showCustomFields : props.period === p && !showCustomFields)
+                    ? " crm-filter-menu__item--active"
+                    : ""
+                }`}
                 onClick={() => {
-                  props.onPeriodChange(p);
-                  props.onPeriodOpenChange(false);
+                  if (p === "custom") {
+                    setCustomOpen(true);
+                    return;
+                  }
+                  pickPreset(p);
                 }}
               >
                 {t(`finance.period_${p}`)}
               </button>
             ))}
+            {showCustomFields ? (
+              <div className="crm-finance-period-custom">
+                <label className="crm-finance-period-custom__field">
+                  <span>{t("reports.from")}</span>
+                  <DateInput value={draftFrom} onChange={setDraftFrom} max={draftTo || undefined} />
+                </label>
+                <label className="crm-finance-period-custom__field">
+                  <span>{t("reports.to")}</span>
+                  <DateInput value={draftTo} onChange={setDraftTo} min={draftFrom || undefined} />
+                </label>
+                <button
+                  type="button"
+                  className="crm-btn-primary crm-finance-period-custom__apply"
+                  disabled={!customReady}
+                  onClick={applyCustom}
+                >
+                  {t("reports.apply")}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -361,16 +429,6 @@ export function FinanceListItem(props: {
       ) : null}
     </Tag>
   );
-}
-
-export function financeInPeriod(dateStr: string, period: FinancePeriod): boolean {
-  if (period === "all") return true;
-  const d = new Date(dateStr);
-  const now = new Date();
-  if (period === "month") {
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }
-  return d.getFullYear() === now.getFullYear();
 }
 
 export function getFinanceMonthKey(dateStr: string): string {

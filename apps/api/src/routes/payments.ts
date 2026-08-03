@@ -37,6 +37,7 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
       if (!driver) return reply.code(400).send({ error: "invalid_driver" });
     }
     const data = toDates(body, ["date"]);
+    if (data.method === "CASH") data.bank = "NONE";
     return prisma.payment.create({ data: { ...data, ownerId: oid } });
   });
 
@@ -53,6 +54,8 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
       if (!driver) return reply.code(400).send({ error: "invalid_driver" });
     }
     const data = toDates(body, ["date"]);
+    const nextMethod = data.method ?? existing.method;
+    if (nextMethod === "CASH") data.bank = "NONE";
     return prisma.payment.update({ where: { id }, data });
   });
 

@@ -46,6 +46,14 @@ enum PaymentMethod {
   BANK
 }
 
+/// Which bank account received a bank-transfer payment. NONE when cash
+/// or when the owner has not specified a bank yet.
+enum PaymentBank {
+  NONE
+  PKO
+  CA
+}
+
 enum PaymentType {
   RENT
   DEPOSIT
@@ -365,6 +373,10 @@ model Payment {
   discountAmount Float         @default(0)
   date           DateTime
   method         PaymentMethod @default(CASH)
+  /// Bank that received the transfer when method = BANK. Defaults to NONE
+  /// (unset) for cash payments and for bank transfers where the owner
+  /// has not picked PKO / CA / etc. yet.
+  bank           PaymentBank   @default(NONE)
   type           PaymentType   @default(RENT)
   note           String?             @db.MediumText
   receivedByPartner Boolean    @default(false)

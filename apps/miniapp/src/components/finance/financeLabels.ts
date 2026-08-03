@@ -69,6 +69,8 @@ export function paymentDisplaySubtitle(
     driver?: { fullName: string } | null;
     car?: { plate: string } | null;
     method: string;
+    /** Bank that received the transfer when method is BANK. NONE = unset. */
+    bank?: string | null;
     // Optional inline discount recorded on the same RENT payment. Shown
     // as a separate segment so the user can see at a glance that the
     // rent was reduced (e.g. "−300 zł discount" between the plate and
@@ -87,13 +89,18 @@ export function paymentDisplaySubtitle(
           value: payment.discountAmount.toLocaleString(),
         })
       : null;
+  const methodLabel = t(`finance.${payment.method}`);
+  const bank =
+    payment.method === "BANK" && payment.bank && payment.bank !== "NONE"
+      ? t(`finance.bank_${payment.bank}`)
+      : null;
   return [
     dateLabel,
     plate,
     discountTag,
     hasNote && payment.driver?.fullName ? payment.driver.fullName : null,
     t(`finance.${payment.type}`),
-    t(`finance.${payment.method}`),
+    bank ? `${methodLabel} · ${bank}` : methodLabel,
   ]
     .filter(Boolean)
     .join(" · ");

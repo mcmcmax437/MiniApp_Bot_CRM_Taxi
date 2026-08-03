@@ -48,6 +48,17 @@ export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 /** Payment methods offered in the UI (cash and bank transfer). */
 export const PAYMENT_METHODS = [PaymentMethod.CASH, PaymentMethod.BANK] as const;
 
+/** Bank that received a bank-transfer payment. NONE = not set / cash. */
+export const PaymentBank = {
+  NONE: "NONE",
+  PKO: "PKO",
+  CA: "CA",
+} as const;
+export type PaymentBank = (typeof PaymentBank)[keyof typeof PaymentBank];
+
+/** Banks offered in the payment form when method is BANK. */
+export const PAYMENT_BANKS = [PaymentBank.NONE, PaymentBank.PKO, PaymentBank.CA] as const;
+
 export const PaymentType = {
   RENT: "RENT",
   DEPOSIT: "DEPOSIT",
@@ -416,6 +427,9 @@ export const paymentCreateSchema = z.object({
   discountAmount: money.optional().default(0),
   date: isoDate,
   method: z.nativeEnum(PaymentMethod).default(PaymentMethod.BANK),
+  // Which bank received the transfer. Defaults to NONE; forced to NONE
+  // when method is CASH (see payment create/update routes / client).
+  bank: z.nativeEnum(PaymentBank).default(PaymentBank.NONE),
   type: z.nativeEnum(PaymentType).default(PaymentType.RENT),
   note: z.string().trim().max(12000).optional().nullable(),
   receivedByPartner: z.boolean().default(false),

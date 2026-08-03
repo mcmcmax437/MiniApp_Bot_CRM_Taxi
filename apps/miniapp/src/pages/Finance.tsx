@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { PAYMENT_METHODS, PaymentMethod, PaymentType, ExpenseCategory, AgreementStatus, RentPeriod } from "@taxi/shared";
+import { PAYMENT_METHODS, PAYMENT_BANKS, PaymentBank, PaymentMethod, PaymentType, ExpenseCategory, AgreementStatus, RentPeriod } from "@taxi/shared";
 import {
   usePayments,
   useExpenses,
@@ -56,6 +56,7 @@ import {
   sortFinanceByDate,
   type FinanceTabId,
   type FinancePeriod,
+  type FinanceDateRange,
   type FinanceDateSort,
 } from "../components/finance/FinanceUi";
 import {
@@ -128,6 +129,7 @@ function PaymentsTab() {
   const wantsAddPayment = searchParams.get("addPayment") === "1";
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
+  const [dateRange, setDateRange] = useState<FinanceDateRange | null>(null);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -154,6 +156,7 @@ function PaymentsTab() {
     discount: number | "";
     date: string;
     method: PaymentMethod;
+    bank: PaymentBank;
     type: PaymentType;
     note: string;
     receivedByPartner: boolean;
@@ -165,6 +168,7 @@ function PaymentsTab() {
     discount: "",
     date: todayInput(),
     method: PaymentMethod.BANK,
+    bank: PaymentBank.NONE,
     type: PaymentType.RENT,
     note: "",
     receivedByPartner: false,
@@ -202,6 +206,7 @@ function PaymentsTab() {
       discount: "",
       date: todayInput(),
       method: PaymentMethod.BANK,
+      bank: PaymentBank.NONE,
       type: PaymentType.RENT,
       note: "",
       receivedByPartner: false,
@@ -223,12 +228,30 @@ function PaymentsTab() {
     searchParams,
     setSearchParams,
   ]);
-  const incomeItems = all.filter((p) => isIncomePayment(p.type));
+
+  // List + income cards share period + method filters (search is list-only).
+  const scoped = useMemo(() => {
+    return all.filter((p) => {
+      if (!financeInPeriod(p.date, period, dateRange)) return false;
+      if (methodFilter !== "ALL" && p.method !== methodFilter) return false;
+      return true;
+    });
+  }, [all, period, dateRange, methodFilter]);
+
+  const incomeItems = scoped.filter((p) => isIncomePayment(p.type));
   const totalIncome = incomeItems.reduce((s, p) => s + p.amount, 0);
-  const allTimeDepositItems = all.filter((p) => p.type === PaymentType.DEPOSIT);
-  const allTimeDepositSum = allTimeDepositItems.reduce((s, p) => s + p.amount, 0);
+  const depositItems = scoped.filter((p) => p.type === PaymentType.DEPOSIT);
+  const depositSum = depositItems.reduce((s, p) => s + p.amount, 0);
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
-  const monthItems = all.filter((p) => financeInPeriod(p.date, "month"));
+
+  // Calendar this-month KPI still respects method filter so Cash/Bank stays consistent.
+  const monthItems = useMemo(() => {
+    return all.filter((p) => {
+      if (!financeInPeriod(p.date, "month")) return false;
+      if (methodFilter !== "ALL" && p.method !== methodFilter) return false;
+      return true;
+    });
+  }, [all, methodFilter]);
   const monthIncomeItems = monthItems.filter((p) => isIncomePayment(p.type));
   const monthIncomeSum = monthIncomeItems.reduce((s, p) => s + p.amount, 0);
   const monthDepositItems = monthItems.filter((p) => p.type === PaymentType.DEPOSIT);
@@ -236,17 +259,20 @@ function PaymentsTab() {
   const partnerUnsettled = all.filter((p) => p.receivedByPartner && !p.partnerSettled);
   const partnerUnsettledSum = partnerUnsettled.reduce((s, p) => s + p.amount, 0);
 
+  const periodSubtitle =
+    period === "custom" && dateRange
+      ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
+      : t(`finance.period_${period}`);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = all.filter((p) => {
-      if (!financeInPeriod(p.date, period)) return false;
-      if (methodFilter !== "ALL" && p.method !== methodFilter) return false;
+    const list = scoped.filter((p) => {
       if (!q) return true;
-      const hay = `${p.driver?.fullName ?? ""} ${p.car?.plate ?? ""} ${p.note ?? ""} ${p.amount}`.toLowerCase();
+      const hay = `${p.driver?.fullName ?? ""} ${p.car?.plate ?? ""} ${p.note ?? ""} ${p.amount} ${p.method === PaymentMethod.BANK && p.bank && p.bank !== PaymentBank.NONE ? p.bank : ""}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (p) => p.date);
-  }, [all, period, search, methodFilter, dateSort]);
+  }, [scoped, search, dateSort]);
 
   function openCreate() {
     setEditId(null);
@@ -258,6 +284,7 @@ function PaymentsTab() {
       discount: "",
       date: todayInput(),
       method: PaymentMethod.BANK,
+      bank: PaymentBank.NONE,
       type: PaymentType.RENT,
       note: "",
       receivedByPartner: false,
@@ -293,6 +320,10 @@ function PaymentsTab() {
             : "",
       date: p.date.slice(0, 10),
       method: p.method === PaymentMethod.CASH ? PaymentMethod.CASH : PaymentMethod.BANK,
+      bank:
+        p.method === PaymentMethod.BANK && p.bank && p.bank !== PaymentBank.NONE
+          ? p.bank
+          : PaymentBank.NONE,
       type: editableType,
       note: p.note ?? "",
       receivedByPartner: p.receivedByPartner,
@@ -325,6 +356,9 @@ function PaymentsTab() {
           discountAmount: form.discount === "" ? 0 : form.discount,
           date: form.date,
           method: form.method,
+          // Cash payments never carry a bank; bank transfers default to NONE
+          // until the owner picks PKO / CA / etc.
+          bank: form.method === PaymentMethod.BANK ? form.bank : PaymentBank.NONE,
           type: form.type,
           note: form.note || null,
           receivedByPartner: form.receivedByPartner,
@@ -360,8 +394,8 @@ function PaymentsTab() {
       <FinanceStatsRow>
         <FinanceStatCard
           title={t("finance.totalPayments")}
-          value={String(all.length)}
-          subtitle={t("finance.allTime")}
+          value={String(scoped.length)}
+          subtitle={periodSubtitle}
           tone="blue"
           icon={<Icon name="credit-card" size={16} color="#448aff" />}
         />
@@ -369,13 +403,17 @@ function PaymentsTab() {
           title={t("finance.incomeAllTime")}
           value={formatMoney(totalIncome)}
           subtitle={
-            allTimeDepositItems.length > 0
-              ? t("finance.allTimeIncomeWithDeposits", {
+            depositItems.length > 0
+              ? t("finance.scopedIncomeWithDeposits", {
+                  period: periodSubtitle,
                   count: incomeItems.length,
-                  depositAmount: formatMoney(allTimeDepositSum),
-                  depositCount: allTimeDepositItems.length,
+                  depositAmount: formatMoney(depositSum),
+                  depositCount: depositItems.length,
                 })
-              : t("finance.allTimeIncomeOnly", { count: incomeItems.length })
+              : t("finance.scopedIncomeOnly", {
+                  period: periodSubtitle,
+                  count: incomeItems.length,
+                })
           }
           tone="green"
           icon={<Icon name="chart-increase" size={16} color="#69f0ae" />}
@@ -410,6 +448,8 @@ function PaymentsTab() {
         searchPlaceholder={t("finance.searchPayments")}
         period={period}
         onPeriodChange={setPeriod}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
         periodOpen={periodOpen}
         onPeriodOpenChange={setPeriodOpen}
         dateSort={dateSort}
@@ -552,6 +592,7 @@ function ExpensesTab() {
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
+  const [dateRange, setDateRange] = useState<FinanceDateRange | null>(null);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -596,24 +637,42 @@ function ExpensesTab() {
     }
     return [...tags].sort((a, b) => a.localeCompare(b));
   }, [all]);
-  const total = all.reduce((s, e) => s + e.amount, 0);
-  const monthItems = all.filter((e) => financeInPeriod(e.date, "month"));
+
+  const scoped = useMemo(() => {
+    return all.filter((e) => {
+      if (!financeInPeriod(e.date, period, dateRange)) return false;
+      if (payerFilter === "PARTNER" && !e.paidByPartner) return false;
+      if (payerFilter === "MINE" && e.paidByPartner) return false;
+      return true;
+    });
+  }, [all, period, dateRange, payerFilter]);
+
+  const total = scoped.reduce((s, e) => s + e.amount, 0);
+  const monthItems = useMemo(() => {
+    return all.filter((e) => {
+      if (!financeInPeriod(e.date, "month")) return false;
+      if (payerFilter === "PARTNER" && !e.paidByPartner) return false;
+      if (payerFilter === "MINE" && e.paidByPartner) return false;
+      return true;
+    });
+  }, [all, payerFilter]);
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
   const partnerUnsettled = all.filter((e) => e.paidByPartner && !e.partnerSettled);
   const partnerUnsettledSum = partnerUnsettled.reduce((s, e) => s + e.amount, 0);
+  const periodSubtitle =
+    period === "custom" && dateRange
+      ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
+      : t(`finance.period_${period}`);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = all.filter((e) => {
-      if (!financeInPeriod(e.date, period)) return false;
-      if (payerFilter === "PARTNER" && !e.paidByPartner) return false;
-      if (payerFilter === "MINE" && e.paidByPartner) return false;
+    const list = scoped.filter((e) => {
       if (!q) return true;
       const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.paidByFather ? t("finance.paidByFather") : ""} ${e.paidByPartner ? t("finance.paidByPartner") : ""} ${e.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (e) => e.date);
-  }, [all, period, search, t, dateSort, payerFilter]);
+  }, [scoped, search, t, dateSort]);
 
   function openCreate() {
     setEditId(null);
@@ -683,15 +742,15 @@ function ExpensesTab() {
       <FinanceStatsRow>
         <FinanceStatCard
           title={t("finance.totalExpenses")}
-          value={String(all.length)}
-          subtitle={t("finance.allTime")}
+          value={String(scoped.length)}
+          subtitle={periodSubtitle}
           tone="blue"
           icon={<Icon name="fire" size={16} color="#448aff" />}
         />
         <FinanceStatCard
           title={t("finance.spent")}
           value={formatMoney(total)}
-          subtitle={t("finance.allTime")}
+          subtitle={periodSubtitle}
           tone="red"
           icon={<Icon name="chart-decrease" size={16} color="#ff5252" />}
         />
@@ -710,6 +769,8 @@ function ExpensesTab() {
         searchPlaceholder={t("finance.searchExpenses")}
         period={period}
         onPeriodChange={setPeriod}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
         periodOpen={periodOpen}
         onPeriodOpenChange={setPeriodOpen}
         dateSort={dateSort}
@@ -1037,6 +1098,7 @@ function PaymentModal(props: {
     discount: number | "";
     date: string;
     method: PaymentMethod;
+    bank: PaymentBank;
     type: PaymentType;
     note: string;
     receivedByPartner: boolean;
@@ -1418,12 +1480,30 @@ function PaymentModal(props: {
           value={form.method}
           invalid={fieldErrors.method}
           onChange={(v) => {
-            setForm({ ...form, method: v });
+            const method = v as PaymentMethod;
+            setForm({
+              ...form,
+              method,
+              // Switching to cash clears the bank parameter.
+              bank: method === PaymentMethod.BANK ? form.bank : PaymentBank.NONE,
+            });
             props.onFieldErrorClear?.("method");
           }}
           options={PAYMENT_METHODS.map((x) => ({ value: x, label: t(`finance.${x}`) }))}
         />
       </Field>
+      {form.method === PaymentMethod.BANK ? (
+        <Field label={t("finance.bank")}>
+          <SelectInput
+            value={form.bank}
+            onChange={(v) => setForm({ ...form, bank: v as PaymentBank })}
+            options={PAYMENT_BANKS.map((x) => ({
+              value: x,
+              label: x === PaymentBank.NONE ? t("common.none") : t(`finance.bank_${x}`),
+            }))}
+          />
+        </Field>
+      ) : null}
       <Field label={t("finance.note")}>
         <TextArea
           value={form.note}

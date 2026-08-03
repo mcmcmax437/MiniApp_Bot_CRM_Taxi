@@ -4,6 +4,7 @@ import type {
   RentPeriod,
   AgreementStatus,
   PaymentMethod,
+  PaymentBank,
   PaymentType,
   ExpenseCategory,
   FineStatus,
@@ -169,6 +170,8 @@ export interface Payment {
   discountAmount: number;
   date: string;
   method: PaymentMethod;
+  /** Which bank received a bank transfer. NONE when cash or unset. */
+  bank?: PaymentBank;
   type: PaymentType;
   note: string | null;
   receivedByPartner: boolean;
