@@ -60,10 +60,28 @@ describe("sumFatherSelectedCars", () => {
         method: PaymentMethod.CASH,
         type: PaymentType.RENT,
       }),
+      payment({
+        id: "4",
+        carId: null,
+        amount: 999,
+        date: "2026-07-12",
+        method: PaymentMethod.CASH,
+        type: PaymentType.RENT,
+      }),
+      payment({
+        id: "5",
+        carId: "c",
+        amount: 999,
+        date: "2026-07-13",
+        method: PaymentMethod.BANK,
+        type: PaymentType.FINE,
+      }),
     ];
     const expenses = [
       expense({ id: "e1", carId: "a", amount: 40, date: "2026-07-10", paidByPartner: true }),
       expense({ id: "e2", carId: "b", amount: 15, date: "2026-07-11", paidByPartner: false }),
+      expense({ id: "e3", carId: null, amount: 999, date: "2026-07-12", paidByPartner: true }),
+      expense({ id: "e4", carId: "c", amount: 999, date: "2026-07-13", paidByPartner: false }),
     ];
 
     const totals = sumFatherSelectedCars(
@@ -128,6 +146,68 @@ describe("sumFatherSelectedCars", () => {
     expect(totals.incomeCash).toBe(100);
     expect(totals.incomeBank).toBe(50);
     expect(totals.incomeSum).toBe(150);
+  });
+
+  it("defaults to whole-fleet totals while filtering non-income payments and taxes", () => {
+    const totals = sumFatherInMonths(
+      [
+        payment({
+          id: "1",
+          carId: "a",
+          amount: 100,
+          date: "2026-07-10",
+          method: PaymentMethod.CASH,
+          type: PaymentType.RENT,
+        }),
+        payment({
+          id: "2",
+          carId: null,
+          amount: 25,
+          date: "2026-07-11",
+          method: PaymentMethod.BANK,
+          type: PaymentType.FINE,
+        }),
+        payment({
+          id: "3",
+          carId: "a",
+          amount: 999,
+          date: "2026-07-12",
+          method: PaymentMethod.BANK,
+          type: PaymentType.DEPOSIT,
+        }),
+        payment({
+          id: "4",
+          carId: "a",
+          amount: 999,
+          date: "2026-06-30",
+          method: PaymentMethod.CASH,
+          type: PaymentType.RENT,
+        }),
+      ],
+      [
+        expense({ id: "e1", carId: "a", amount: 40, date: "2026-07-10", paidByPartner: true }),
+        expense({ id: "e2", carId: null, amount: 15, date: "2026-07-11", paidByPartner: false }),
+        expense({
+          id: "e3",
+          carId: "a",
+          amount: 999,
+          date: "2026-07-12",
+          category: ExpenseCategory.TAX,
+          paidByPartner: true,
+        }),
+        expense({ id: "e4", carId: "a", amount: 999, date: "2026-06-30", paidByPartner: false }),
+      ],
+      new Set(["2026-07"]),
+    );
+
+    expect(totals).toEqual({
+      incomeCash: 100,
+      incomeBank: 25,
+      incomeSum: 125,
+      expensePartner: 40,
+      expenseMine: 15,
+      expenseSum: 55,
+    });
   });
 });
 
