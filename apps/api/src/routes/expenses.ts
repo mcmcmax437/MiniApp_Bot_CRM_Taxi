@@ -41,8 +41,13 @@ export async function expensesRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     const body = parse(expenseUpdateSchema, req.body, reply);
     if (!body) return;
-    const existing = await prisma.expense.findFirst({ where: { id, ownerId: ownerId(req) } });
+    const oid = ownerId(req);
+    const existing = await prisma.expense.findFirst({ where: { id, ownerId: oid } });
     if (!existing) return reply.code(404).send({ error: "not_found" });
+    if (body.carId) {
+      const car = await prisma.car.findFirst({ where: { id: body.carId, ownerId: oid } });
+      if (!car) return reply.code(400).send({ error: "invalid_car" });
+    }
     const data = toDates(body, ["date"]);
     return prisma.expense.update({ where: { id }, data });
   });
