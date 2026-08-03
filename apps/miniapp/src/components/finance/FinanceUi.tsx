@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
@@ -141,305 +141,276 @@ export function sortFinanceByDate<T>(
   });
 }
 
-/**
- * Renders a filter/period menu in a body portal with `position: fixed`.
- * Avoids clipping when page content is short (overflow-x:hidden ancestors
- * also clip vertical overflow of absolute dropdowns).
- */
-function AnchoredPortalMenu(props: {
-  open: boolean;
-  anchorRef: RefObject<HTMLElement | null>;
-  className?: string;
-  children: ReactNode;
-  onDismiss?: () => void;
+export type FinanceFilterOption = {
+  key: string;
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+};
+
+export type FinanceFilterSection = {
+  title: string;
+  options: FinanceFilterOption[];
+};
+
+/** Toggle a value in a multi-select list (empty list = no filter / all). */
+export function toggleFilterValue<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
+}
+
+function FinanceFilterCheckRow(props: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
 }) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [style, setStyle] = useState<CSSProperties>({
-    position: "fixed",
-    zIndex: 1200,
-    visibility: "hidden",
-  });
-
-  const updatePosition = useCallback(() => {
-    const anchor = props.anchorRef.current;
-    const menu = menuRef.current;
-    if (!anchor) return;
-    const r = anchor.getBoundingClientRect();
-    const gap = 8;
-    const pad = 10;
-    const menuHeight = menu?.offsetHeight ?? 280;
-    const spaceBelow = window.innerHeight - r.bottom - gap - pad;
-    const spaceAbove = r.top - gap - pad;
-    const openUp = spaceBelow < Math.min(220, menuHeight) && spaceAbove > spaceBelow;
-    const maxHeight = Math.max(140, Math.min(window.innerHeight * 0.7, 420, openUp ? spaceAbove : spaceBelow));
-    const right = Math.max(pad, window.innerWidth - r.right);
-
-    setStyle({
-      position: "fixed",
-      zIndex: 1200,
-      right,
-      maxHeight,
-      overflowY: "auto",
-      visibility: "visible",
-      ...(openUp
-        ? { bottom: window.innerHeight - r.top + gap, top: "auto" }
-        : { top: r.bottom + gap, bottom: "auto" }),
-    });
-  }, [props.anchorRef]);
-
-  useEffect(() => {
-    if (!props.open) return;
-    updatePosition();
-    // Second pass after paint so maxHeight/openUp use real menu height.
-    const raf = requestAnimationFrame(updatePosition);
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [props.open, updatePosition, props.children]);
-
-  useEffect(() => {
-    if (!props.open || !props.onDismiss) return;
-    function onPointerDown(e: PointerEvent) {
-      const target = e.target as Node;
-      if (props.anchorRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      props.onDismiss?.();
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [props.open, props.onDismiss, props.anchorRef]);
-
-  if (!props.open) return null;
-
-  return createPortal(
-    <div ref={menuRef} className={props.className} style={style} role="listbox">
-      {props.children}
-    </div>,
-    document.body,
+  return (
+    <button
+      type="button"
+      className={`crm-finance-sidebar__option${props.checked ? " crm-finance-sidebar__option--active" : ""}`}
+      onClick={props.onToggle}
+    >
+      <span className={`crm-filter-check${props.checked ? " crm-filter-check--on" : ""}`} aria-hidden>
+        {props.checked ? "✓" : ""}
+      </span>
+      <span>{props.label}</span>
+    </button>
   );
 }
 
-export function FinanceSearchRow(props: {
-  search: string;
-  onSearchChange: (v: string) => void;
-  searchPlaceholder: string;
+function FinanceFilterSidebar(props: {
+  open: boolean;
+  onClose: () => void;
   period: FinancePeriod;
   onPeriodChange: (v: FinancePeriod) => void;
-  periodOpen: boolean;
-  onPeriodOpenChange: (v: boolean) => void;
-  /** Applied custom range when period is `custom`. */
   dateRange?: FinanceDateRange | null;
   onDateRangeChange?: (range: FinanceDateRange | null) => void;
   dateSort?: FinanceDateSort;
   onDateSortChange?: (v: FinanceDateSort) => void;
-  sortOpen?: boolean;
-  onSortOpenChange?: (v: boolean) => void;
-  filterLabel?: string;
-  filterActive?: boolean;
-  /** Number of active multi-select filter chips (shown as a badge). */
-  filterCount?: number;
-  onFilterClick?: () => void;
-  filterMenu?: ReactNode;
+  sections?: FinanceFilterSection[];
+  onClearAll?: () => void;
 }) {
   const { t } = useTranslation();
   const periods: FinancePeriod[] = ["all", "month", "year", "custom"];
   const dateSorts: FinanceDateSort[] = ["newest", "oldest"];
   const [draftFrom, setDraftFrom] = useState(props.dateRange?.from ?? "");
   const [draftTo, setDraftTo] = useState(props.dateRange?.to ?? "");
-  const [customOpen, setCustomOpen] = useState(props.period === "custom");
-  const periodBtnRef = useRef<HTMLButtonElement>(null);
-  const sortBtnRef = useRef<HTMLButtonElement>(null);
-  const filterBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Keep draft inputs in sync when the menu opens or an applied range changes.
   useEffect(() => {
-    if (!props.periodOpen) return;
+    if (!props.open) return;
     setDraftFrom(props.dateRange?.from ?? "");
     setDraftTo(props.dateRange?.to ?? "");
-    setCustomOpen(props.period === "custom");
-  }, [props.periodOpen, props.dateRange?.from, props.dateRange?.to, props.period]);
+  }, [props.open, props.dateRange?.from, props.dateRange?.to]);
 
-  const periodActive = props.period !== "all";
+  useEffect(() => {
+    if (!props.open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") props.onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [props.open, props.onClose]);
+
   const customReady = Boolean(draftFrom && draftTo);
-  const showCustomFields = customOpen || props.period === "custom";
 
-  function pickPreset(p: Exclude<FinancePeriod, "custom">) {
-    setCustomOpen(false);
+  function pickPeriod(p: FinancePeriod) {
+    if (p === "custom") {
+      props.onPeriodChange("custom");
+      return;
+    }
     props.onPeriodChange(p);
     props.onDateRangeChange?.(null);
-    props.onPeriodOpenChange(false);
   }
 
-  function applyCustom() {
+  function applyCustomRange() {
     if (!draftFrom || !draftTo) return;
     const from = draftFrom <= draftTo ? draftFrom : draftTo;
     const to = draftFrom <= draftTo ? draftTo : draftFrom;
     props.onDateRangeChange?.({ from, to });
     props.onPeriodChange("custom");
-    props.onPeriodOpenChange(false);
   }
 
-  return (
-    <div className="crm-finance-filters">
-      <label className="crm-search-input crm-finance-search">
-        <Icon name="search-01" size={20} color="rgba(255,255,255,0.45)" />
-        <input
-          type="search"
-          value={props.search}
-          onChange={(e) => props.onSearchChange(e.target.value)}
-          placeholder={props.searchPlaceholder}
-        />
-      </label>
+  if (!props.open) return null;
 
-      <div className="crm-filter-wrap">
-        <button
-          ref={periodBtnRef}
-          type="button"
-          className={`crm-finance-filter-btn${periodActive ? " crm-finance-filter-btn--active" : ""}`}
-          onClick={() => {
-            props.onSortOpenChange?.(false);
-            props.onPeriodOpenChange(!props.periodOpen);
-          }}
-        >
-          <Icon name="calendar-01" size={18} color="rgba(255,255,255,0.7)" />
-          <span className="crm-finance-filter-btn__label">{t("finance.period")}</span>
-          <Icon name="arrow-down-01" size={16} color="rgba(255,255,255,0.5)" />
-        </button>
-        <AnchoredPortalMenu
-          open={props.periodOpen}
-          anchorRef={periodBtnRef}
-          className="crm-filter-menu crm-finance-period-menu"
-          onDismiss={() => props.onPeriodOpenChange(false)}
-        >
-          {periods.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={`crm-filter-menu__item${
-                (p === "custom" ? showCustomFields : props.period === p && !showCustomFields)
-                  ? " crm-filter-menu__item--active"
-                  : ""
-              }`}
-              onClick={() => {
-                if (p === "custom") {
-                  setCustomOpen(true);
-                  return;
-                }
-                pickPreset(p);
-              }}
-            >
-              {t(`finance.period_${p}`)}
-            </button>
-          ))}
-          {showCustomFields ? (
-            <div className="crm-finance-period-custom">
-              <label className="crm-finance-period-custom__field">
-                <span>{t("reports.from")}</span>
-                <DateInput value={draftFrom} onChange={setDraftFrom} max={draftTo || undefined} />
-              </label>
-              <label className="crm-finance-period-custom__field">
-                <span>{t("reports.to")}</span>
-                <DateInput value={draftTo} onChange={setDraftTo} min={draftFrom || undefined} />
-              </label>
-              <button
-                type="button"
-                className="crm-btn-primary crm-finance-period-custom__apply"
-                disabled={!customReady}
-                onClick={applyCustom}
-              >
-                {t("reports.apply")}
-              </button>
+  return createPortal(
+    <div
+      className="crm-finance-filter-overlay crm-finance-filter-overlay--open"
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) props.onClose();
+      }}
+    >
+      <aside className="crm-finance-filter-sidebar" role="dialog" aria-label={t("finance.filter")}>
+        <div className="crm-finance-sidebar__head">
+          <h2 className="crm-finance-sidebar__title">{t("finance.filter")}</h2>
+          <button type="button" className="crm-modal-close" onClick={props.onClose} aria-label={t("common.cancel")}>
+            ×
+          </button>
+        </div>
+
+        <div className="crm-finance-sidebar__body">
+          <section className="crm-finance-sidebar__section">
+            <div className="crm-finance-sidebar__heading">{t("finance.period")}</div>
+            <div className="crm-finance-sidebar__options">
+              {periods.map((p) => (
+                <FinanceFilterCheckRow
+                  key={p}
+                  label={t(`finance.period_${p}`)}
+                  checked={props.period === p}
+                  onToggle={() => pickPeriod(p)}
+                />
+              ))}
             </div>
-          ) : null}
-        </AnchoredPortalMenu>
-      </div>
-
-      {props.onDateSortChange ? (
-        <div className="crm-filter-wrap">
-          <button
-            ref={sortBtnRef}
-            type="button"
-            className={`crm-finance-filter-btn${props.dateSort !== "newest" ? " crm-finance-filter-btn--active" : ""}`}
-            onClick={() => {
-              props.onPeriodOpenChange(false);
-              props.onSortOpenChange?.(!props.sortOpen);
-            }}
-          >
-            <Icon name="clock-01" size={18} color="rgba(255,255,255,0.7)" />
-            <span className="crm-finance-filter-btn__label">{t("finance.sortByDate")}</span>
-            <Icon name="arrow-down-01" size={16} color="rgba(255,255,255,0.5)" />
-          </button>
-          <AnchoredPortalMenu
-            open={Boolean(props.sortOpen)}
-            anchorRef={sortBtnRef}
-            className="crm-filter-menu crm-finance-period-menu"
-            onDismiss={() => props.onSortOpenChange?.(false)}
-          >
-            {dateSorts.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`crm-filter-menu__item${props.dateSort === s ? " crm-filter-menu__item--active" : ""}`}
-                onClick={() => {
-                  props.onDateSortChange?.(s);
-                  props.onSortOpenChange?.(false);
-                }}
-              >
-                {t(`finance.dateSort_${s}`)}
-              </button>
-            ))}
-          </AnchoredPortalMenu>
-        </div>
-      ) : null}
-
-      {props.onFilterClick ? (
-        <div className="crm-filter-wrap">
-          <button
-            ref={filterBtnRef}
-            type="button"
-            className={`crm-finance-filter-btn${props.filterActive ? " crm-finance-filter-btn--active" : ""}`}
-            onClick={() => {
-              props.onPeriodOpenChange(false);
-              props.onSortOpenChange?.(false);
-              props.onFilterClick?.();
-            }}
-          >
-            <Icon name="filter" size={18} color="rgba(255,255,255,0.7)" />
-            <span className="crm-finance-filter-btn__label">{props.filterLabel ?? t("finance.filter")}</span>
-            {props.filterActive && props.filterCount ? (
-              <span className="crm-finance-filter-btn__count">{props.filterCount}</span>
+            {props.period === "custom" ? (
+              <div className="crm-finance-period-custom crm-finance-period-custom--sidebar">
+                <label className="crm-finance-period-custom__field">
+                  <span>{t("reports.from")}</span>
+                  <DateInput value={draftFrom} onChange={setDraftFrom} max={draftTo || undefined} />
+                </label>
+                <label className="crm-finance-period-custom__field">
+                  <span>{t("reports.to")}</span>
+                  <DateInput value={draftTo} onChange={setDraftTo} min={draftFrom || undefined} />
+                </label>
+                <button
+                  type="button"
+                  className="crm-btn-primary crm-finance-period-custom__apply"
+                  disabled={!customReady}
+                  onClick={applyCustomRange}
+                >
+                  {t("reports.apply")}
+                </button>
+              </div>
             ) : null}
-            <Icon name="arrow-down-01" size={16} color="rgba(255,255,255,0.5)" />
-          </button>
-          <AnchoredPortalMenu
-            open={Boolean(props.filterMenu)}
-            anchorRef={filterBtnRef}
-            className="crm-filter-menu crm-finance-filter-menu crm-finance-multi-filter"
-            onDismiss={() => props.onFilterClick?.()}
-          >
-            {props.filterMenu}
-          </AnchoredPortalMenu>
+          </section>
+
+          {props.onDateSortChange ? (
+            <section className="crm-finance-sidebar__section">
+              <div className="crm-finance-sidebar__heading">{t("finance.sortByDate")}</div>
+              <div className="crm-finance-sidebar__options">
+                {dateSorts.map((s) => (
+                  <FinanceFilterCheckRow
+                    key={s}
+                    label={t(`finance.dateSort_${s}`)}
+                    checked={props.dateSort === s}
+                    onToggle={() => props.onDateSortChange?.(s)}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {(props.sections ?? []).map((section) => (
+            <section key={section.title} className="crm-finance-sidebar__section">
+              <div className="crm-finance-sidebar__heading">{section.title}</div>
+              <div className="crm-finance-sidebar__options">
+                {section.options.map((opt) => (
+                  <FinanceFilterCheckRow
+                    key={opt.key}
+                    label={opt.label}
+                    checked={opt.checked}
+                    onToggle={opt.onToggle}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
-      ) : null}
-    </div>
+
+        <div className="crm-finance-sidebar__footer">
+          {props.onClearAll ? (
+            <button type="button" className="crm-btn-outline" onClick={props.onClearAll}>
+              {t("finance.clearFilters")}
+            </button>
+          ) : null}
+          <button type="button" className="crm-btn-primary" onClick={props.onClose}>
+            {t("finance.doneFilters")}
+          </button>
+        </div>
+      </aside>
+    </div>,
+    document.body,
   );
 }
 
-/** Multi-select filter dropdown: toggle options without closing; combine sections. */
+/**
+ * Search + one Filters button. Period, sort, and multi-select filters open
+ * in a right-side sidebar so several can be combined without stacked menus.
+ */
+export function FinanceSearchRow(props: {
+  search: string;
+  onSearchChange: (v: string) => void;
+  searchPlaceholder: string;
+  period: FinancePeriod;
+  onPeriodChange: (v: FinancePeriod) => void;
+  dateRange?: FinanceDateRange | null;
+  onDateRangeChange?: (range: FinanceDateRange | null) => void;
+  dateSort?: FinanceDateSort;
+  onDateSortChange?: (v: FinanceDateSort) => void;
+  /** Extra multi-select sections (method, bank, car, payer…). */
+  sections?: FinanceFilterSection[];
+  /** Clears extra sections (not period/sort) — combined with period reset in onClearAll. */
+  onClearExtraFilters?: () => void;
+  /** Count of active chips in `sections` (for the badge). */
+  extraFilterCount?: number;
+}) {
+  const { t } = useTranslation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const periodActive = props.period !== "all";
+  const sortActive = Boolean(props.dateSort && props.dateSort !== "newest");
+  const filterCount =
+    (periodActive ? 1 : 0) + (sortActive ? 1 : 0) + (props.extraFilterCount ?? 0);
+  const filterActive = filterCount > 0;
+
+  function clearAll() {
+    props.onPeriodChange("all");
+    props.onDateRangeChange?.(null);
+    props.onDateSortChange?.("newest");
+    props.onClearExtraFilters?.();
+  }
+
+  return (
+    <>
+      <div className="crm-finance-filters">
+        <label className="crm-search-input crm-finance-search">
+          <Icon name="search-01" size={20} color="rgba(255,255,255,0.45)" />
+          <input
+            type="search"
+            value={props.search}
+            onChange={(e) => props.onSearchChange(e.target.value)}
+            placeholder={props.searchPlaceholder}
+          />
+        </label>
+
+        <button
+          type="button"
+          className={`crm-finance-filter-btn${filterActive ? " crm-finance-filter-btn--active" : ""}`}
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Icon name="filter" size={18} color="rgba(255,255,255,0.7)" />
+          <span className="crm-finance-filter-btn__label">{t("finance.filter")}</span>
+          {filterActive ? <span className="crm-finance-filter-btn__count">{filterCount}</span> : null}
+        </button>
+      </div>
+
+      <FinanceFilterSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        period={props.period}
+        onPeriodChange={props.onPeriodChange}
+        dateRange={props.dateRange}
+        onDateRangeChange={props.onDateRangeChange}
+        dateSort={props.dateSort}
+        onDateSortChange={props.onDateSortChange}
+        sections={props.sections}
+        onClearAll={clearAll}
+      />
+    </>
+  );
+}
+
+/** @deprecated Prefer `sections` on FinanceSearchRow (sidebar). Kept for rare custom menus. */
 export function FinanceMultiFilterMenu(props: {
-  sections: Array<{
-    title: string;
-    options: Array<{
-      key: string;
-      label: string;
-      checked: boolean;
-      onToggle: () => void;
-    }>;
-  }>;
+  sections: FinanceFilterSection[];
   onClear?: () => void;
   clearLabel?: string;
 }) {
@@ -474,11 +445,6 @@ export function FinanceMultiFilterMenu(props: {
       ) : null}
     </>
   );
-}
-
-/** Toggle a value in a multi-select list (empty list = no filter / all). */
-export function toggleFilterValue<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
 }
 
 export function FinanceEmptyState(props: {

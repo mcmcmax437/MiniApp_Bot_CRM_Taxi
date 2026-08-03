@@ -26,9 +26,11 @@ import {
   FinanceDateGroupedList,
   financeInPeriod,
   sortFinanceByDate,
+  toggleFilterValue,
   type FinancePeriod,
   type FinanceDateRange,
   type FinanceDateSort,
+  type FinanceFilterSection,
 } from "./FinanceUi";
 import { useReadOnly } from "../../readOnly";
 import { ApiError } from "../../api";
@@ -58,9 +60,8 @@ export function TaxesTab() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [dateRange, setDateRange] = useState<FinanceDateRange | null>(null);
-  const [periodOpen, setPeriodOpen] = useState(false);
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
-  const [sortOpen, setSortOpen] = useState(false);
+  const [carFilters, setCarFilters] = useState<string[]>([]);
   const [form, setForm] = useState<{
     carId: string;
     amount: number | "";
@@ -78,10 +79,16 @@ export function TaxesTab() {
     [expenses.data],
   );
 
-  const scoped = useMemo(
-    () => taxItems.filter((e) => financeInPeriod(e.date, period, dateRange)),
-    [taxItems, period, dateRange],
-  );
+  const scoped = useMemo(() => {
+    return taxItems.filter((e) => {
+      if (!financeInPeriod(e.date, period, dateRange)) return false;
+      if (carFilters.length > 0) {
+        const carId = e.carId ?? "";
+        if (!carFilters.includes(carId)) return false;
+      }
+      return true;
+    });
+  }, [taxItems, period, dateRange, carFilters]);
   const total = scoped.reduce((s, e) => s + e.amount, 0);
   const monthItems = taxItems.filter((e) => financeInPeriod(e.date, "month"));
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
@@ -91,6 +98,28 @@ export function TaxesTab() {
     period === "custom" && dateRange
       ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
       : t(`finance.period_${period}`);
+
+  const taxFilterSections = useMemo((): FinanceFilterSection[] => {
+    return [
+      {
+        title: t("finance.filterByCar"),
+        options: [
+          {
+            key: "",
+            label: t("common.none"),
+            checked: carFilters.includes(""),
+            onToggle: () => setCarFilters((prev) => toggleFilterValue(prev, "")),
+          },
+          ...(cars.data ?? []).map((c) => ({
+            key: c.id,
+            label: c.plate,
+            checked: carFilters.includes(c.id),
+            onToggle: () => setCarFilters((prev) => toggleFilterValue(prev, c.id)),
+          })),
+        ],
+      },
+    ];
+  }, [t, cars.data, carFilters]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -168,12 +197,11 @@ export function TaxesTab() {
         onPeriodChange={setPeriod}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
-        periodOpen={periodOpen}
-        onPeriodOpenChange={setPeriodOpen}
         dateSort={dateSort}
         onDateSortChange={setDateSort}
-        sortOpen={sortOpen}
-        onSortOpenChange={setSortOpen}
+        sections={taxFilterSections}
+        extraFilterCount={carFilters.length}
+        onClearExtraFilters={() => setCarFilters([])}
       />
 
       {!expenses.isLoading && filtered.length === 0 ? (

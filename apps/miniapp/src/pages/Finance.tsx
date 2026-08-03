@@ -47,7 +47,6 @@ import {
   FinanceStatCard,
   FinanceStatsRow,
   FinanceSearchRow,
-  FinanceMultiFilterMenu,
   FinanceEmptyState,
   FinanceList,
   FinanceListItem,
@@ -60,6 +59,7 @@ import {
   type FinancePeriod,
   type FinanceDateRange,
   type FinanceDateSort,
+  type FinanceFilterSection,
 } from "../components/finance/FinanceUi";
 import {
   expenseDisplaySubtitle,
@@ -132,12 +132,10 @@ function PaymentsTab() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [dateRange, setDateRange] = useState<FinanceDateRange | null>(null);
-  const [periodOpen, setPeriodOpen] = useState(false);
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
-  const [sortOpen, setSortOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [methodFilters, setMethodFilters] = useState<PaymentMethod[]>([]);
   const [bankFilters, setBankFilters] = useState<PaymentBank[]>([]);
+  const [carFilters, setCarFilters] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean; discount?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -232,7 +230,7 @@ function PaymentsTab() {
     setSearchParams,
   ]);
 
-  // List + income cards share period + method/bank filters (search is list-only).
+  // List + income cards share period + method/bank/car filters (search is list-only).
   const scoped = useMemo(() => {
     return all.filter((p) => {
       if (!financeInPeriod(p.date, period, dateRange)) return false;
@@ -241,9 +239,13 @@ function PaymentsTab() {
         const bank = p.bank ?? PaymentBank.NONE;
         if (!bankFilters.includes(bank)) return false;
       }
+      if (carFilters.length > 0) {
+        const carId = p.carId ?? "";
+        if (!carFilters.includes(carId)) return false;
+      }
       return true;
     });
-  }, [all, period, dateRange, methodFilters, bankFilters]);
+  }, [all, period, dateRange, methodFilters, bankFilters, carFilters]);
 
   const incomeItems = scoped.filter((p) => isIncomePayment(p.type));
   const totalIncome = incomeItems.reduce((s, p) => s + p.amount, 0);
@@ -251,7 +253,7 @@ function PaymentsTab() {
   const depositSum = depositItems.reduce((s, p) => s + p.amount, 0);
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
 
-  // Calendar this-month KPI still respects method/bank filters.
+  // Calendar this-month KPI still respects method/bank/car filters.
   const monthItems = useMemo(() => {
     return all.filter((p) => {
       if (!financeInPeriod(p.date, "month")) return false;
@@ -260,9 +262,13 @@ function PaymentsTab() {
         const bank = p.bank ?? PaymentBank.NONE;
         if (!bankFilters.includes(bank)) return false;
       }
+      if (carFilters.length > 0) {
+        const carId = p.carId ?? "";
+        if (!carFilters.includes(carId)) return false;
+      }
       return true;
     });
-  }, [all, methodFilters, bankFilters]);
+  }, [all, methodFilters, bankFilters, carFilters]);
   const monthIncomeItems = monthItems.filter((p) => isIncomePayment(p.type));
   const monthIncomeSum = monthIncomeItems.reduce((s, p) => s + p.amount, 0);
   const monthDepositItems = monthItems.filter((p) => p.type === PaymentType.DEPOSIT);
@@ -275,7 +281,48 @@ function PaymentsTab() {
       ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
       : t(`finance.period_${period}`);
 
-  const activeFilterCount = methodFilters.length + bankFilters.length;
+  const extraFilterCount = methodFilters.length + bankFilters.length + carFilters.length;
+
+  const paymentFilterSections = useMemo((): FinanceFilterSection[] => {
+    const carOptions = [
+      {
+        key: "",
+        label: t("common.none"),
+        checked: carFilters.includes(""),
+        onToggle: () => setCarFilters((prev) => toggleFilterValue(prev, "")),
+      },
+      ...(cars.data ?? []).map((c) => ({
+        key: c.id,
+        label: c.plate,
+        checked: carFilters.includes(c.id),
+        onToggle: () => setCarFilters((prev) => toggleFilterValue(prev, c.id)),
+      })),
+    ];
+    return [
+      {
+        title: t("finance.filterByMethod"),
+        options: [PaymentMethod.CASH, PaymentMethod.BANK].map((method) => ({
+          key: method,
+          label: t(`finance.${method}`),
+          checked: methodFilters.includes(method),
+          onToggle: () => setMethodFilters((prev) => toggleFilterValue(prev, method)),
+        })),
+      },
+      {
+        title: t("finance.filterByBank"),
+        options: PAYMENT_BANKS.map((bank) => ({
+          key: bank,
+          label: bank === PaymentBank.NONE ? t("common.none") : t(`finance.bank_${bank}`),
+          checked: bankFilters.includes(bank),
+          onToggle: () => setBankFilters((prev) => toggleFilterValue(prev, bank)),
+        })),
+      },
+      {
+        title: t("finance.filterByCar"),
+        options: carOptions,
+      },
+    ];
+  }, [t, cars.data, methodFilters, bankFilters, carFilters]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -460,58 +507,18 @@ function PaymentsTab() {
         onSearchChange={setSearch}
         searchPlaceholder={t("finance.searchPayments")}
         period={period}
-        onPeriodChange={(v) => {
-          setPeriod(v);
-          setFilterOpen(false);
-        }}
+        onPeriodChange={setPeriod}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
-        periodOpen={periodOpen}
-        onPeriodOpenChange={(v) => {
-          setPeriodOpen(v);
-          if (v) setFilterOpen(false);
-        }}
         dateSort={dateSort}
         onDateSortChange={setDateSort}
-        sortOpen={sortOpen}
-        onSortOpenChange={(v) => {
-          setSortOpen(v);
-          if (v) setFilterOpen(false);
+        sections={paymentFilterSections}
+        extraFilterCount={extraFilterCount}
+        onClearExtraFilters={() => {
+          setMethodFilters([]);
+          setBankFilters([]);
+          setCarFilters([]);
         }}
-        filterActive={activeFilterCount > 0}
-        filterCount={activeFilterCount || undefined}
-        onFilterClick={() => setFilterOpen((v) => !v)}
-        filterMenu={
-          filterOpen ? (
-            <FinanceMultiFilterMenu
-              clearLabel={t("finance.clearFilters")}
-              onClear={() => {
-                setMethodFilters([]);
-                setBankFilters([]);
-              }}
-              sections={[
-                {
-                  title: t("finance.filterByMethod"),
-                  options: [PaymentMethod.CASH, PaymentMethod.BANK].map((method) => ({
-                    key: method,
-                    label: t(`finance.${method}`),
-                    checked: methodFilters.includes(method),
-                    onToggle: () => setMethodFilters((prev) => toggleFilterValue(prev, method)),
-                  })),
-                },
-                {
-                  title: t("finance.filterByBank"),
-                  options: PAYMENT_BANKS.map((bank) => ({
-                    key: bank,
-                    label: bank === PaymentBank.NONE ? t("common.none") : t(`finance.bank_${bank}`),
-                    checked: bankFilters.includes(bank),
-                    onToggle: () => setBankFilters((prev) => toggleFilterValue(prev, bank)),
-                  })),
-                },
-              ]}
-            />
-          ) : null
-        }
       />
 
       {!payments.isLoading && filtered.length === 0 ? (
@@ -617,11 +624,9 @@ function ExpensesTab() {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState<FinancePeriod>("all");
   const [dateRange, setDateRange] = useState<FinanceDateRange | null>(null);
-  const [periodOpen, setPeriodOpen] = useState(false);
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
-  const [sortOpen, setSortOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [payerFilters, setPayerFilters] = useState<Array<"PARTNER" | "MINE">>([]);
+  const [carFilters, setCarFilters] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -671,9 +676,13 @@ function ExpensesTab() {
         const matchMine = payerFilters.includes("MINE") && !isPartner;
         if (!matchPartner && !matchMine) return false;
       }
+      if (carFilters.length > 0) {
+        const carId = e.carId ?? "";
+        if (!carFilters.includes(carId)) return false;
+      }
       return true;
     });
-  }, [all, period, dateRange, payerFilters]);
+  }, [all, period, dateRange, payerFilters, carFilters]);
 
   const total = scoped.reduce((s, e) => s + e.amount, 0);
   const monthItems = useMemo(() => {
@@ -685,9 +694,13 @@ function ExpensesTab() {
         const matchMine = payerFilters.includes("MINE") && !isPartner;
         if (!matchPartner && !matchMine) return false;
       }
+      if (carFilters.length > 0) {
+        const carId = e.carId ?? "";
+        if (!carFilters.includes(carId)) return false;
+      }
       return true;
     });
-  }, [all, payerFilters]);
+  }, [all, payerFilters, carFilters]);
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
   const partnerUnsettled = all.filter((e) => e.paidByPartner && !e.partnerSettled);
   const partnerUnsettledSum = partnerUnsettled.reduce((s, e) => s + e.amount, 0);
@@ -695,7 +708,47 @@ function ExpensesTab() {
     period === "custom" && dateRange
       ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
       : t(`finance.period_${period}`);
-  const activeFilterCount = payerFilters.length;
+  const extraFilterCount = payerFilters.length + carFilters.length;
+
+  const expenseFilterSections = useMemo((): FinanceFilterSection[] => {
+    const carOptions = [
+      {
+        key: "",
+        label: t("common.none"),
+        checked: carFilters.includes(""),
+        onToggle: () => setCarFilters((prev) => toggleFilterValue(prev, "")),
+      },
+      ...(cars.data ?? []).map((c) => ({
+        key: c.id,
+        label: c.plate,
+        checked: carFilters.includes(c.id),
+        onToggle: () => setCarFilters((prev) => toggleFilterValue(prev, c.id)),
+      })),
+    ];
+    return [
+      {
+        title: t("finance.filterByPayer"),
+        options: [
+          {
+            key: "PARTNER",
+            label: t("finance.paidByPartner"),
+            checked: payerFilters.includes("PARTNER"),
+            onToggle: () => setPayerFilters((prev) => toggleFilterValue(prev, "PARTNER")),
+          },
+          {
+            key: "MINE",
+            label: t("finance.myPayment"),
+            checked: payerFilters.includes("MINE"),
+            onToggle: () => setPayerFilters((prev) => toggleFilterValue(prev, "MINE")),
+          },
+        ],
+      },
+      {
+        title: t("finance.filterByCar"),
+        options: carOptions,
+      },
+    ];
+  }, [t, cars.data, payerFilters, carFilters]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -801,54 +854,17 @@ function ExpensesTab() {
         onSearchChange={setSearch}
         searchPlaceholder={t("finance.searchExpenses")}
         period={period}
-        onPeriodChange={(v) => {
-          setPeriod(v);
-          setFilterOpen(false);
-        }}
+        onPeriodChange={setPeriod}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
-        periodOpen={periodOpen}
-        onPeriodOpenChange={(v) => {
-          setPeriodOpen(v);
-          if (v) setFilterOpen(false);
-        }}
         dateSort={dateSort}
         onDateSortChange={setDateSort}
-        sortOpen={sortOpen}
-        onSortOpenChange={(v) => {
-          setSortOpen(v);
-          if (v) setFilterOpen(false);
+        sections={expenseFilterSections}
+        extraFilterCount={extraFilterCount}
+        onClearExtraFilters={() => {
+          setPayerFilters([]);
+          setCarFilters([]);
         }}
-        filterActive={activeFilterCount > 0}
-        filterCount={activeFilterCount || undefined}
-        onFilterClick={() => setFilterOpen((v) => !v)}
-        filterMenu={
-          filterOpen ? (
-            <FinanceMultiFilterMenu
-              clearLabel={t("finance.clearFilters")}
-              onClear={() => setPayerFilters([])}
-              sections={[
-                {
-                  title: t("finance.filterByPayer"),
-                  options: [
-                    {
-                      key: "PARTNER",
-                      label: t("finance.paidByPartner"),
-                      checked: payerFilters.includes("PARTNER"),
-                      onToggle: () => setPayerFilters((prev) => toggleFilterValue(prev, "PARTNER")),
-                    },
-                    {
-                      key: "MINE",
-                      label: t("finance.myPayment"),
-                      checked: payerFilters.includes("MINE"),
-                      onToggle: () => setPayerFilters((prev) => toggleFilterValue(prev, "MINE")),
-                    },
-                  ],
-                },
-              ]}
-            />
-          ) : null
-        }
       />
 
       {!expenses.isLoading && filtered.length === 0 ? (
