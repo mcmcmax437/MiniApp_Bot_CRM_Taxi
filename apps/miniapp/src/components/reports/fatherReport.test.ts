@@ -140,6 +140,13 @@ describe("assignFatherCar", () => {
     });
   });
 
+  it("moves a car from Max to Oleh without changing other assignments", () => {
+    expect(assignFatherCar("oleh", "c1", ["c1", "c2"], ["c3"])).toEqual({
+      maxCars: ["c2"],
+      olehCars: ["c3", "c1"],
+    });
+  });
+
   it("toggles off when already assigned to the same person", () => {
     expect(assignFatherCar("oleh", "c1", [], ["c1"])).toEqual({
       maxCars: [],
