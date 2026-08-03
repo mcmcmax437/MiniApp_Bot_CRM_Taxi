@@ -70,6 +70,8 @@ describe("sumFatherSelectedCars", () => {
       expenses,
       new Set(["a", "b"]),
       new Set(["2026-07"]),
+      "2026-07-01",
+      "2026-07-31",
     );
 
     expect(totals).toEqual({
@@ -89,6 +91,8 @@ describe("sumFatherSelectedCars", () => {
         [],
         new Set(["car-1"]),
         new Set(),
+        "2026-07-01",
+        "2026-07-31",
       ),
     ).toEqual({
       incomeCash: 0,
@@ -97,6 +101,44 @@ describe("sumFatherSelectedCars", () => {
       expensePartner: 0,
       expenseMine: 0,
       expenseSum: 0,
+    });
+  });
+
+  it("excludes rows outside the applied range even when their month is selected", () => {
+    const totals = sumFatherSelectedCars(
+      [
+        payment({
+          id: "1",
+          amount: 10,
+          date: "2026-08-03",
+          method: PaymentMethod.CASH,
+          type: PaymentType.RENT,
+        }),
+        payment({
+          id: "2",
+          amount: 90,
+          date: "2026-08-15",
+          method: PaymentMethod.BANK,
+          type: PaymentType.RENT,
+        }),
+      ],
+      [
+        expense({ id: "e1", amount: 5, date: "2026-08-03", paidByPartner: true }),
+        expense({ id: "e2", amount: 45, date: "2026-08-15", paidByPartner: false }),
+      ],
+      new Set(["car-1"]),
+      new Set(["2026-08"]),
+      "2026-08-01",
+      "2026-08-03",
+    );
+
+    expect(totals).toEqual({
+      incomeCash: 10,
+      incomeBank: 0,
+      incomeSum: 10,
+      expensePartner: 5,
+      expenseMine: 0,
+      expenseSum: 5,
     });
   });
 });

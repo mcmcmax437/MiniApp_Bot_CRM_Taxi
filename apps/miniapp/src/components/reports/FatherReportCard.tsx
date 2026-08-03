@@ -89,8 +89,10 @@ export function FatherReportCard() {
         expenseList,
         new Set(selectedCars),
         selectedMonths,
+        applied.from,
+        applied.to,
       ),
-    [paymentList, expenseList, selectedCars, selectedMonths],
+    [paymentList, expenseList, selectedCars, selectedMonths, applied.from, applied.to],
   );
 
   const hasAssignment = selectedCars.length > 0;

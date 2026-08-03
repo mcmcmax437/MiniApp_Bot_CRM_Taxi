@@ -68,6 +68,8 @@ export function sumFatherSelectedCars(
   expenses: Expense[],
   carIds: ReadonlySet<string>,
   selectedMonths: ReadonlySet<string>,
+  from: string,
+  to: string,
 ): FatherTotals {
   const out = emptyFatherTotals();
   if (carIds.size === 0 || selectedMonths.size === 0) return out;
@@ -75,6 +77,7 @@ export function sumFatherSelectedCars(
   for (const p of payments) {
     if (!p.carId || !carIds.has(p.carId)) continue;
     if (!selectedMonths.has(p.date.slice(0, 7))) continue;
+    if (!inInclusiveRange(p.date, from, to)) continue;
     if (!isIncomePayment(p.type as PaymentType)) continue;
     if (p.method === PaymentMethod.CASH) out.incomeCash += p.amount;
     else out.incomeBank += p.amount;
@@ -83,6 +86,7 @@ export function sumFatherSelectedCars(
   for (const e of expenses) {
     if (!e.carId || !carIds.has(e.carId)) continue;
     if (!selectedMonths.has(e.date.slice(0, 7))) continue;
+    if (!inInclusiveRange(e.date, from, to)) continue;
     if (e.category === ExpenseCategory.TAX) continue;
     if (e.paidByPartner) out.expensePartner += e.amount;
     else out.expenseMine += e.amount;
