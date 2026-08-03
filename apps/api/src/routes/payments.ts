@@ -36,6 +36,10 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
       const driver = await prisma.driver.findFirst({ where: { id: body.driverId, ownerId: oid } });
       if (!driver) return reply.code(400).send({ error: "invalid_driver" });
     }
+    if (body.carId) {
+      const car = await prisma.car.findFirst({ where: { id: body.carId, ownerId: oid } });
+      if (!car) return reply.code(400).send({ error: "invalid_car" });
+    }
     const data = toDates(body, ["date"]);
     if (data.method === "CASH") data.bank = "NONE";
     return prisma.payment.create({ data: { ...data, ownerId: oid } });
@@ -52,6 +56,12 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
         where: { id: body.driverId, ownerId: ownerId(req) },
       });
       if (!driver) return reply.code(400).send({ error: "invalid_driver" });
+    }
+    if (body.carId) {
+      const car = await prisma.car.findFirst({
+        where: { id: body.carId, ownerId: ownerId(req) },
+      });
+      if (!car) return reply.code(400).send({ error: "invalid_car" });
     }
     const data = toDates(body, ["date"]);
     const nextMethod = data.method ?? existing.method;
