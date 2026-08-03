@@ -7,7 +7,6 @@ import { Icon } from "../crm";
 import { DateInput } from "../ui";
 import { getAnchoredPortalMenuStyle } from "./anchoredPortalMenu";
 import {
-  financeInPeriod,
   type FinanceDateRange,
   type FinancePeriod,
 } from "./financePeriod";
