@@ -157,6 +157,8 @@ export function FinanceSearchRow(props: {
   onSortOpenChange?: (v: boolean) => void;
   filterLabel?: string;
   filterActive?: boolean;
+  /** Number of active multi-select filter chips (shown as a badge). */
+  filterCount?: number;
   onFilterClick?: () => void;
   filterMenu?: ReactNode;
 }) {
@@ -313,12 +315,68 @@ export function FinanceSearchRow(props: {
           >
             <Icon name="filter" size={18} color="rgba(255,255,255,0.7)" />
             <span className="crm-finance-filter-btn__label">{props.filterLabel ?? t("finance.filter")}</span>
+            {props.filterActive && props.filterCount ? (
+              <span className="crm-finance-filter-btn__count">{props.filterCount}</span>
+            ) : null}
+            <Icon name="arrow-down-01" size={16} color="rgba(255,255,255,0.5)" />
           </button>
           {props.filterMenu}
         </div>
       ) : null}
     </div>
   );
+}
+
+/** Multi-select filter dropdown: toggle options without closing; combine sections. */
+export function FinanceMultiFilterMenu(props: {
+  sections: Array<{
+    title: string;
+    options: Array<{
+      key: string;
+      label: string;
+      checked: boolean;
+      onToggle: () => void;
+    }>;
+  }>;
+  onClear?: () => void;
+  clearLabel?: string;
+}) {
+  return (
+    <div className="crm-filter-menu crm-finance-filter-menu crm-finance-multi-filter">
+      {props.sections.map((section, i) => (
+        <div key={section.title}>
+          {i > 0 ? <div className="crm-filter-menu__divider" /> : null}
+          <div className="crm-filter-menu__heading">{section.title}</div>
+          {section.options.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              className={`crm-filter-menu__item crm-filter-menu__item--check${opt.checked ? " crm-filter-menu__item--active" : ""}`}
+              onClick={opt.onToggle}
+            >
+              <span className={`crm-filter-check${opt.checked ? " crm-filter-check--on" : ""}`} aria-hidden>
+                {opt.checked ? "✓" : ""}
+              </span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      ))}
+      {props.onClear ? (
+        <>
+          <div className="crm-filter-menu__divider" />
+          <button type="button" className="crm-filter-menu__item crm-filter-menu__item--clear" onClick={props.onClear}>
+            {props.clearLabel}
+          </button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+/** Toggle a value in a multi-select list (empty list = no filter / all). */
+export function toggleFilterValue<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
 }
 
 export function FinanceEmptyState(props: {

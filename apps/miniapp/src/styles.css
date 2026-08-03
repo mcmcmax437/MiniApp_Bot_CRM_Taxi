@@ -2669,6 +2669,50 @@ button.crm-stat {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.crm-filter-menu__item--check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.crm-filter-check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+}
+
+.crm-filter-check--on {
+  border-color: rgba(47, 125, 255, 0.7);
+  background: rgba(47, 125, 255, 0.35);
+}
+
+.crm-filter-menu__item--clear {
+  color: rgba(255, 180, 180, 0.9);
+  text-align: center;
+}
+
+.crm-finance-filter-btn__count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(47, 125, 255, 0.35);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 .crm-driver-list {
   display: flex;
   flex-direction: column;
@@ -3863,6 +3907,12 @@ button.crm-driver-stat:hover {
 .crm-finance-filter-menu {
   right: 0;
   left: auto;
+}
+
+.crm-finance-multi-filter {
+  min-width: 220px;
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
 }
 
 .crm-finance-period-custom {
