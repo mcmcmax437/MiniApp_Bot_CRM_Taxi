@@ -1,8 +1,21 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AgreementStatus, RentPeriod, agreementDriverDisplayName, agreementIsTemporaryDriver, inferAgreementStatus, validateAgreementDates } from "@taxi/shared";
+import {
+  AgreementStatus,
+  RentPeriod,
+  agreementDriverDisplayName,
+  inferAgreementStatus,
+  validateAgreementDates,
+} from "@taxi/shared";
 import { confirmAction, showAlert } from "../../telegram";
-import { useAgreements, useCars, useDrivers, useCreateAgreement, useEndAgreement } from "../../hooks";
+import {
+  useAgreements,
+  useCars,
+  useCarCoverPhotos,
+  useDrivers,
+  useCreateAgreement,
+  useEndAgreement,
+} from "../../hooks";
 import type { Agreement, Car } from "../../types";
 import {
   Modal,
@@ -12,7 +25,6 @@ import {
   SearchableSelect,
   TextInput,
   FormActions,
-  formatMoney,
   formatDate,
   MoneyNumberInput,
   todayInput,
@@ -26,8 +38,14 @@ import {
   FinanceList,
 } from "./FinanceUi";
 import { CarDriverHistoryModal } from "./CarDriverHistoryModal";
+import { FleetCarCard } from "./FleetCarCard";
 import { useReadOnly } from "../../readOnly";
-import { findAgreementDateConflict, rentalOverlapMessage, agreementDateValidationMessage, agreementApiErrorMessage } from "../../agreementOverlap";
+import {
+  findAgreementDateConflict,
+  rentalOverlapMessage,
+  agreementDateValidationMessage,
+  agreementApiErrorMessage,
+} from "../../agreementOverlap";
 import { ApiError } from "../../api";
 
 export function FleetTab() {
@@ -35,6 +53,7 @@ export function FleetTab() {
   const readOnly = useReadOnly();
   const agreements = useAgreements();
   const cars = useCars();
+  const covers = useCarCoverPhotos();
   const drivers = useDrivers();
   const create = useCreateAgreement();
   const end = useEndAgreement();
@@ -271,85 +290,26 @@ export function FleetTab() {
         />
       ) : (
         <FinanceList loading={cars.isLoading || agreements.isLoading} className="crm-fleet-list">
-          {fleetRows.map(({ car, agreement }) =>
-            agreement ? (
-              <div key={car.id} className="crm-fleet-card">
-                <button
-                  type="button"
-                  className="crm-fleet-card__body"
-                  onClick={() => setHistoryCar(car)}
-                >
-                  <div className="crm-fleet-card__head">
-                    <span className="crm-fleet-card__plate">{car.plate}</span>
-                    <span className="crm-fleet-card__amount crm-fleet-card__amount--income">
-                      {formatMoney(agreement.rentAmount)} / {t(`drivers.${agreement.period}`)}
-                    </span>
-                  </div>
-                  <p className="crm-fleet-card__meta">
-                    <span>{agreementDriverDisplayName(agreement)}</span>
-                    {agreementIsTemporaryDriver(agreement) ? (
-                      <span className="crm-fleet-card__temp-badge">{t("fleet.temporaryDriver")}</span>
-                    ) : null}
-                    <span> · {t("fleet.since")} {formatDate(agreement.startDate)}</span>
-                  </p>
-                  {agreement.endDate ? (
-                    <p className="crm-fleet-card__meta crm-fleet-card__meta--end">
-                      {t("fleet.endsOn", { date: formatDate(agreement.endDate) })}
-                    </p>
-                  ) : null}
-                  <span className="crm-fleet-card__history-link">
-                    {t("fleet.viewDriverHistory")}
-                    <Icon name="arrow-right-01" size={14} color="rgba(255,255,255,0.45)" />
-                  </span>
-                </button>
-                {!readOnly ? (
-                  <button
-                    type="button"
-                    className="crm-btn-outline crm-fleet-card__action"
-                    disabled={end.isPending}
-                    onClick={() => {
-                      void confirmAction(t("fleet.endConfirm"), t("common.delete"), t("common.cancel")).then(
-                        (ok) => {
-                          if (ok) end.mutate(agreement.id);
-                        },
-                      );
-                    }}
-                  >
-                    {t("fleet.returnCar")}
-                  </button>
-                ) : null}
-              </div>
-            ) : (
-              <div key={car.id} className="crm-fleet-card">
-                <button
-                  type="button"
-                  className="crm-fleet-card__body"
-                  onClick={() => setHistoryCar(car)}
-                >
-                  <div className="crm-fleet-card__head">
-                    <span className="crm-fleet-card__plate">{car.plate}</span>
-                    <span className="crm-fleet-card__amount">{t(`cars.${car.status}`)}</span>
-                  </div>
-                  <p className="crm-fleet-card__meta">
-                    {[car.make, car.model].filter(Boolean).join(" ") || t("fleet.available")}
-                  </p>
-                  <span className="crm-fleet-card__history-link">
-                    {t("fleet.viewDriverHistory")}
-                    <Icon name="arrow-right-01" size={14} color="rgba(255,255,255,0.45)" />
-                  </span>
-                </button>
-                {!readOnly ? (
-                  <button
-                    type="button"
-                    className="crm-btn-primary crm-fleet-card__action"
-                    onClick={() => handleAssign(car.id)}
-                  >
-                    {t("fleet.assignCar")}
-                  </button>
-                ) : null}
-              </div>
-            ),
-          )}
+          {fleetRows.map(({ car, agreement }) => (
+            <FleetCarCard
+              key={car.id}
+              car={car}
+              agreement={agreement}
+              coverDocumentId={covers.data?.get(car.id)}
+              readOnly={readOnly}
+              ending={end.isPending}
+              onOpenHistory={() => setHistoryCar(car)}
+              onAssign={() => handleAssign(car.id)}
+              onReturn={() => {
+                if (!agreement) return;
+                void confirmAction(t("fleet.endConfirm"), t("common.delete"), t("common.cancel")).then(
+                  (ok) => {
+                    if (ok) end.mutate(agreement.id);
+                  },
+                );
+              }}
+            />
+          ))}
         </FinanceList>
       )}
 

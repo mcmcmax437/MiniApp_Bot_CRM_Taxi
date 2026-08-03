@@ -210,7 +210,13 @@ function FinanceFilterSidebar(props: {
     return () => document.removeEventListener("keydown", onKey);
   }, [props.open, props.onClose]);
 
-  const customReady = Boolean(draftFrom && draftTo);
+  function commitCustomRange(fromRaw: string, toRaw: string) {
+    if (!fromRaw || !toRaw) return;
+    const from = fromRaw <= toRaw ? fromRaw : toRaw;
+    const to = fromRaw <= toRaw ? toRaw : fromRaw;
+    props.onDateRangeChange?.({ from, to });
+    props.onPeriodChange("custom");
+  }
 
   function pickPeriod(p: FinancePeriod) {
     if (p === "custom") {
@@ -221,12 +227,11 @@ function FinanceFilterSidebar(props: {
     props.onDateRangeChange?.(null);
   }
 
-  function applyCustomRange() {
-    if (!draftFrom || !draftTo) return;
-    const from = draftFrom <= draftTo ? draftFrom : draftTo;
-    const to = draftFrom <= draftTo ? draftTo : draftFrom;
-    props.onDateRangeChange?.({ from, to });
-    props.onPeriodChange("custom");
+  function closeSidebar() {
+    if (props.period === "custom" && draftFrom && draftTo) {
+      commitCustomRange(draftFrom, draftTo);
+    }
+    props.onClose();
   }
 
   if (!props.open) return null;
@@ -236,13 +241,13 @@ function FinanceFilterSidebar(props: {
       className="crm-finance-filter-overlay crm-finance-filter-overlay--open"
       role="presentation"
       onClick={(e) => {
-        if (e.target === e.currentTarget) props.onClose();
+        if (e.target === e.currentTarget) closeSidebar();
       }}
     >
       <aside className="crm-finance-filter-sidebar" role="dialog" aria-label={t("finance.filter")}>
         <div className="crm-finance-sidebar__head">
           <h2 className="crm-finance-sidebar__title">{t("finance.filter")}</h2>
-          <button type="button" className="crm-modal-close" onClick={props.onClose} aria-label={t("common.cancel")}>
+          <button type="button" className="crm-modal-close" onClick={closeSidebar} aria-label={t("common.cancel")}>
             ×
           </button>
         </div>
@@ -264,20 +269,26 @@ function FinanceFilterSidebar(props: {
               <div className="crm-finance-period-custom crm-finance-period-custom--sidebar">
                 <label className="crm-finance-period-custom__field">
                   <span>{t("reports.from")}</span>
-                  <DateInput value={draftFrom} onChange={setDraftFrom} max={draftTo || undefined} />
+                  <DateInput
+                    value={draftFrom}
+                    onChange={(v) => {
+                      setDraftFrom(v);
+                      if (v && draftTo) commitCustomRange(v, draftTo);
+                    }}
+                    max={draftTo || undefined}
+                  />
                 </label>
                 <label className="crm-finance-period-custom__field">
                   <span>{t("reports.to")}</span>
-                  <DateInput value={draftTo} onChange={setDraftTo} min={draftFrom || undefined} />
+                  <DateInput
+                    value={draftTo}
+                    onChange={(v) => {
+                      setDraftTo(v);
+                      if (draftFrom && v) commitCustomRange(draftFrom, v);
+                    }}
+                    min={draftFrom || undefined}
+                  />
                 </label>
-                <button
-                  type="button"
-                  className="crm-btn-primary crm-finance-period-custom__apply"
-                  disabled={!customReady}
-                  onClick={applyCustomRange}
-                >
-                  {t("reports.apply")}
-                </button>
               </div>
             ) : null}
           </section>
@@ -321,7 +332,7 @@ function FinanceFilterSidebar(props: {
               {t("finance.clearFilters")}
             </button>
           ) : null}
-          <button type="button" className="crm-btn-primary" onClick={props.onClose}>
+          <button type="button" className="crm-btn-primary" onClick={closeSidebar}>
             {t("finance.doneFilters")}
           </button>
         </div>

@@ -3014,8 +3014,8 @@ button.crm-driver-stat:hover {
 }
 
 .crm-fleet-list {
-  gap: 8px;
-  padding: 8px;
+  gap: 12px;
+  padding: 8px 0;
   background: transparent;
   border: none;
   overflow: visible;
@@ -3024,33 +3024,151 @@ button.crm-driver-stat:hover {
 .crm-fleet-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding: 12px 14px;
-  border-radius: 14px;
+  padding: 12px;
+  border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(135deg, rgba(19, 35, 58, 0.95), rgba(10, 20, 36, 0.95));
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(68, 138, 255, 0.14), transparent 55%),
+    linear-gradient(145deg, rgba(22, 38, 62, 0.98), rgba(8, 16, 30, 0.98));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.crm-fleet-card--available {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(68, 138, 255, 0.16), transparent 55%),
+    linear-gradient(145deg, rgba(22, 38, 62, 0.98), rgba(8, 16, 30, 0.98));
+}
+
+.crm-fleet-card--rented {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(105, 240, 174, 0.12), transparent 55%),
+    linear-gradient(145deg, rgba(22, 38, 62, 0.98), rgba(8, 16, 30, 0.98));
+}
+
+.crm-fleet-card__body {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.crm-fleet-card__body:active {
+  opacity: 0.92;
+}
+
+.crm-fleet-card__media {
+  width: 92px;
+  height: 92px;
+  border-radius: 18px;
+  background: #08121f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.crm-fleet-card__art,
+.crm-fleet-card__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.crm-fleet-card__art-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, rgba(68, 138, 255, 0.16), rgba(8, 18, 31, 0.9));
+}
+
+.crm-fleet-card__media .crm-doc-thumb,
+.crm-fleet-card__media .crm-doc-thumb--placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.crm-fleet-card__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .crm-fleet-card__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
+.crm-fleet-card__identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .crm-fleet-card__plate {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.crm-fleet-card__model {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.58);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-fleet-card__status {
+  flex-shrink: 0;
+  max-width: 42%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.crm-fleet-card__status--rented {
+  color: #69f0ae;
+  background: rgba(105, 240, 174, 0.14);
+  border: 1px solid rgba(105, 240, 174, 0.28);
+}
+
+.crm-fleet-card__status--free {
+  color: #90caf9;
+  background: rgba(68, 138, 255, 0.14);
+  border: 1px solid rgba(68, 138, 255, 0.28);
 }
 
 .crm-fleet-card__amount {
@@ -3072,20 +3190,41 @@ button.crm-driver-stat:hover {
   margin: 0;
   font-size: 12px;
   line-height: 1.35;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.52);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* The "Ends DD/MM/YY" line on an active rental card is the most
-   useful detail for a fleet manager scanning the list ("which cars
-   come off the road soon?"). Give it a slightly warmer accent so
-   it stands out from the generic driver/since meta line above it. */
+.crm-fleet-card__driver {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 600;
+}
+
 .crm-fleet-card__meta--end {
   margin-top: 2px;
   color: rgba(255, 193, 7, 0.85);
   font-weight: 500;
+}
+
+.crm-fleet-card__rent {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.crm-fleet-card__rent-amount {
+  font-size: 15px;
+  font-weight: 800;
+  color: #69f0ae;
+  letter-spacing: -0.02em;
+}
+
+.crm-fleet-card__rent-period {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(105, 240, 174, 0.72);
 }
 
 .crm-fleet-card__temp-badge {
@@ -3100,6 +3239,31 @@ button.crm-driver-stat:hover {
   vertical-align: middle;
   background: rgba(255, 193, 7, 0.18);
   color: #ffc107;
+}
+
+.crm-fleet-card__history-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.42);
+  margin-top: 4px;
+}
+
+.crm-fleet-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.crm-fleet-card__action {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 12px;
+  font-size: 13px;
 }
 
 .crm-fleet-driver-mode {
@@ -3137,42 +3301,6 @@ button.crm-driver-stat:hover {
 .crm-car-detail-head__driver-pill--temp .crm-fleet-card__temp-badge {
   margin-left: 4px;
   flex-shrink: 0;
-}
-
-.crm-fleet-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  font: inherit;
-}
-
-.crm-fleet-card__body:active {
-  opacity: 0.88;
-}
-
-.crm-fleet-card__history-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.42);
-  margin-top: 2px;
-}
-
-.crm-fleet-card__action {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  justify-content: center;
-  margin-top: 2px;
 }
 
 .crm-fleet-history-head {
