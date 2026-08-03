@@ -9,6 +9,7 @@ import {
   type FinanceDateRange,
   type FinancePeriod,
 } from "./financePeriod";
+export { toggleFilterValue } from "./financeFilters";
 
 export type { FinanceDateRange, FinancePeriod } from "./financePeriod";
 export { financeDateKey, financeInPeriod } from "./financePeriod";
@@ -372,11 +373,6 @@ export function FinanceMultiFilterMenu(props: {
       ) : null}
     </div>
   );
-}
-
-/** Toggle a value in a multi-select list (empty list = no filter / all). */
-export function toggleFilterValue<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
 }
 
 export function FinanceEmptyState(props: {

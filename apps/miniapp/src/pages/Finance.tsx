@@ -55,12 +55,17 @@ import {
   PartnerAlertMark,
   financeInPeriod,
   sortFinanceByDate,
-  toggleFilterValue,
   type FinanceTabId,
   type FinancePeriod,
   type FinanceDateRange,
   type FinanceDateSort,
 } from "../components/finance/FinanceUi";
+import {
+  expenseMatchesPayerFilters,
+  paymentMatchesFinanceFilters,
+  toggleFilterValue,
+  type FinancePayerFilter,
+} from "../components/finance/financeFilters";
 import {
   expenseDisplaySubtitle,
   expenseDisplayTitle,
@@ -236,12 +241,7 @@ function PaymentsTab() {
   const scoped = useMemo(() => {
     return all.filter((p) => {
       if (!financeInPeriod(p.date, period, dateRange)) return false;
-      if (methodFilters.length > 0 && !methodFilters.includes(p.method)) return false;
-      if (bankFilters.length > 0) {
-        const bank = p.bank ?? PaymentBank.NONE;
-        if (!bankFilters.includes(bank)) return false;
-      }
-      return true;
+      return paymentMatchesFinanceFilters(p, { methods: methodFilters, banks: bankFilters });
     });
   }, [all, period, dateRange, methodFilters, bankFilters]);
 
@@ -255,12 +255,7 @@ function PaymentsTab() {
   const monthItems = useMemo(() => {
     return all.filter((p) => {
       if (!financeInPeriod(p.date, "month")) return false;
-      if (methodFilters.length > 0 && !methodFilters.includes(p.method)) return false;
-      if (bankFilters.length > 0) {
-        const bank = p.bank ?? PaymentBank.NONE;
-        if (!bankFilters.includes(bank)) return false;
-      }
-      return true;
+      return paymentMatchesFinanceFilters(p, { methods: methodFilters, banks: bankFilters });
     });
   }, [all, methodFilters, bankFilters]);
   const monthIncomeItems = monthItems.filter((p) => isIncomePayment(p.type));
@@ -621,7 +616,7 @@ function ExpensesTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [payerFilters, setPayerFilters] = useState<Array<"PARTNER" | "MINE">>([]);
+  const [payerFilters, setPayerFilters] = useState<FinancePayerFilter[]>([]);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -665,13 +660,7 @@ function ExpensesTab() {
   const scoped = useMemo(() => {
     return all.filter((e) => {
       if (!financeInPeriod(e.date, period, dateRange)) return false;
-      if (payerFilters.length > 0) {
-        const isPartner = e.paidByPartner;
-        const matchPartner = payerFilters.includes("PARTNER") && isPartner;
-        const matchMine = payerFilters.includes("MINE") && !isPartner;
-        if (!matchPartner && !matchMine) return false;
-      }
-      return true;
+      return expenseMatchesPayerFilters(e, payerFilters);
     });
   }, [all, period, dateRange, payerFilters]);
 
@@ -679,13 +668,7 @@ function ExpensesTab() {
   const monthItems = useMemo(() => {
     return all.filter((e) => {
       if (!financeInPeriod(e.date, "month")) return false;
-      if (payerFilters.length > 0) {
-        const isPartner = e.paidByPartner;
-        const matchPartner = payerFilters.includes("PARTNER") && isPartner;
-        const matchMine = payerFilters.includes("MINE") && !isPartner;
-        if (!matchPartner && !matchMine) return false;
-      }
-      return true;
+      return expenseMatchesPayerFilters(e, payerFilters);
     });
   }, [all, payerFilters]);
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
