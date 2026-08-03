@@ -60,20 +60,24 @@ export function fatherMonthKeysInRange(
 }
 
 /**
- * One combined total for all selected cars in the selected months.
- * Income = rent + fines; expenses exclude tax; partner vs mine by paidByPartner.
+ * Totals for selected months.
+ * - `carIds` set → only those cars (Max + Oleh selection)
+ * - `carIds` null/undefined → entire fleet (any car, including unassigned)
  */
-export function sumFatherSelectedCars(
+export function sumFatherInMonths(
   payments: Payment[],
   expenses: Expense[],
-  carIds: ReadonlySet<string>,
   selectedMonths: ReadonlySet<string>,
+  carIds?: ReadonlySet<string> | null,
 ): FatherTotals {
   const out = emptyFatherTotals();
-  if (carIds.size === 0 || selectedMonths.size === 0) return out;
+  if (selectedMonths.size === 0) return out;
+  if (carIds && carIds.size === 0) return out;
 
   for (const p of payments) {
-    if (!p.carId || !carIds.has(p.carId)) continue;
+    if (carIds) {
+      if (!p.carId || !carIds.has(p.carId)) continue;
+    }
     if (!selectedMonths.has(p.date.slice(0, 7))) continue;
     if (!isIncomePayment(p.type as PaymentType)) continue;
     if (p.method === PaymentMethod.CASH) out.incomeCash += p.amount;
@@ -81,7 +85,9 @@ export function sumFatherSelectedCars(
   }
 
   for (const e of expenses) {
-    if (!e.carId || !carIds.has(e.carId)) continue;
+    if (carIds) {
+      if (!e.carId || !carIds.has(e.carId)) continue;
+    }
     if (!selectedMonths.has(e.date.slice(0, 7))) continue;
     if (e.category === ExpenseCategory.TAX) continue;
     if (e.paidByPartner) out.expensePartner += e.amount;
@@ -95,4 +101,14 @@ export function sumFatherSelectedCars(
   out.expenseMine = round2(out.expenseMine);
   out.expenseSum = round2(out.expensePartner + out.expenseMine);
   return out;
+}
+
+/** @deprecated Use sumFatherInMonths */
+export function sumFatherSelectedCars(
+  payments: Payment[],
+  expenses: Expense[],
+  carIds: ReadonlySet<string>,
+  selectedMonths: ReadonlySet<string>,
+): FatherTotals {
+  return sumFatherInMonths(payments, expenses, selectedMonths, carIds);
 }

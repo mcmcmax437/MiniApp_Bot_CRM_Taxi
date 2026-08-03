@@ -6,7 +6,7 @@ import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
 import {
   fatherMonthKeysInRange,
-  sumFatherSelectedCars,
+  sumFatherInMonths,
   toggleFatherCar,
   type FatherTotals,
 } from "./fatherReport";
@@ -49,8 +49,8 @@ function SimpleTotalsTable(props: {
 }
 
 /**
- * “For Father” (Max + Oleh): year/month picker, shared car selection, then
- * one combined income (cash/bank/sum) and expenses (partner/mine/sum).
+ * “For Father”: year/months → all-cars income/expenses → Max+Oleh car pick →
+ * selected-cars income/expenses.
  */
 export function FatherReportCard() {
   const { t, i18n } = useTranslation();
@@ -82,13 +82,18 @@ export function FatherReportCard() {
     syncAvailableMonths(monthKeys);
   }, [applied.from, applied.to, monthKeys.join("|")]);
 
-  const totals = useMemo(
+  const allCarsTotals = useMemo(
+    () => sumFatherInMonths(paymentList, expenseList, selectedMonths, null),
+    [paymentList, expenseList, selectedMonths],
+  );
+
+  const selectedTotals = useMemo(
     () =>
-      sumFatherSelectedCars(
+      sumFatherInMonths(
         paymentList,
         expenseList,
-        new Set(selectedCars),
         selectedMonths,
+        new Set(selectedCars),
       ),
     [paymentList, expenseList, selectedCars, selectedMonths],
   );
@@ -123,36 +128,6 @@ export function FatherReportCard() {
           loading={loading}
         />
 
-        <section className="crm-father-report__ownership">
-          <div className="crm-father-report__table-title">{t("reports.fatherWhoOwns")}</div>
-          <p className="crm-form-hint crm-father-report__hint">{t("reports.fatherWhoOwnsHint")}</p>
-          <div className="crm-father-report__owner-badge">
-            {t("reports.fatherMax")} + {t("reports.fatherOleh")}
-          </div>
-          <div className="crm-father-report__car-list crm-father-report__car-list--shared">
-            {carList.length === 0 && !cars.isLoading ? (
-              <p className="crm-form-hint">{t("reports.fatherNoCars")}</p>
-            ) : (
-              carList.map((c) => {
-                const checked = selectedCars.includes(c.id);
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`crm-father-report__car-chip${checked ? " crm-father-report__car-chip--active" : ""}`}
-                    onClick={() => setSelectedCars((prev) => toggleFatherCar(c.id, prev))}
-                  >
-                    <span className={`crm-filter-check${checked ? " crm-filter-check--on" : ""}`} aria-hidden>
-                      {checked ? "✓" : ""}
-                    </span>
-                    <span>{c.plate}</span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </section>
-
         {loading ? (
           <div className="crm-report-section__empty">
             <span className="crm-spinner" />
@@ -166,34 +141,85 @@ export function FatherReportCard() {
           <div className="crm-report-section__empty">
             <p className="crm-form-hint">{t("reports.accountantNoMonthsSelected")}</p>
           </div>
-        ) : !hasAssignment ? (
-          <div className="crm-report-section__empty">
-            <div className="crm-report-section__empty-icon">
-              <Icon name="car-01" size={28} color="rgba(255,255,255,0.7)" />
-            </div>
-            <div>
-              <div className="crm-report-section__empty-title">{t("reports.fatherPickCarsTitle")}</div>
-              <div className="crm-report-section__empty-subtitle">{t("reports.fatherPickCars")}</div>
-            </div>
-          </div>
         ) : (
           <>
             <SimpleTotalsTable
-              title={t("reports.fatherIncomeTitle")}
+              title={t("reports.fatherIncomeAllCars")}
               colA={t("finance.CASH")}
               colB={t("finance.BANK")}
               colSum={t("common.total")}
-              values={totals}
+              values={allCarsTotals}
               pick={(row) => ({ a: row.incomeCash, b: row.incomeBank, sum: row.incomeSum })}
             />
             <SimpleTotalsTable
-              title={t("reports.fatherExpensesTitle")}
+              title={t("reports.fatherExpensesAllCars")}
               colA={t("reports.fatherExpensePartner")}
               colB={t("reports.fatherExpenseMine")}
               colSum={t("common.total")}
-              values={totals}
+              values={allCarsTotals}
               pick={(row) => ({ a: row.expensePartner, b: row.expenseMine, sum: row.expenseSum })}
             />
+
+            <section className="crm-father-report__ownership">
+              <div className="crm-father-report__table-title">{t("reports.fatherWhoOwns")}</div>
+              <p className="crm-form-hint crm-father-report__hint">{t("reports.fatherWhoOwnsHint")}</p>
+              <div className="crm-father-report__owner-badge">
+                {t("reports.fatherMax")} + {t("reports.fatherOleh")}
+              </div>
+              <div className="crm-father-report__car-list crm-father-report__car-list--shared">
+                {carList.length === 0 && !cars.isLoading ? (
+                  <p className="crm-form-hint">{t("reports.fatherNoCars")}</p>
+                ) : (
+                  carList.map((c) => {
+                    const checked = selectedCars.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`crm-father-report__car-chip${checked ? " crm-father-report__car-chip--active" : ""}`}
+                        onClick={() => setSelectedCars((prev) => toggleFatherCar(c.id, prev))}
+                      >
+                        <span className={`crm-filter-check${checked ? " crm-filter-check--on" : ""}`} aria-hidden>
+                          {checked ? "✓" : ""}
+                        </span>
+                        <span>{c.plate}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+
+            {!hasAssignment ? (
+              <div className="crm-report-section__empty">
+                <div className="crm-report-section__empty-icon">
+                  <Icon name="car-01" size={28} color="rgba(255,255,255,0.7)" />
+                </div>
+                <div>
+                  <div className="crm-report-section__empty-title">{t("reports.fatherPickCarsTitle")}</div>
+                  <div className="crm-report-section__empty-subtitle">{t("reports.fatherPickCars")}</div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <SimpleTotalsTable
+                  title={t("reports.fatherIncomeSelected")}
+                  colA={t("finance.CASH")}
+                  colB={t("finance.BANK")}
+                  colSum={t("common.total")}
+                  values={selectedTotals}
+                  pick={(row) => ({ a: row.incomeCash, b: row.incomeBank, sum: row.incomeSum })}
+                />
+                <SimpleTotalsTable
+                  title={t("reports.fatherExpensesSelected")}
+                  colA={t("reports.fatherExpensePartner")}
+                  colB={t("reports.fatherExpenseMine")}
+                  colSum={t("common.total")}
+                  values={selectedTotals}
+                  pick={(row) => ({ a: row.expensePartner, b: row.expenseMine, sum: row.expenseSum })}
+                />
+              </>
+            )}
           </>
         )}
       </div>

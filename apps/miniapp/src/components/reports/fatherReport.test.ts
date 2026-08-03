@@ -3,6 +3,7 @@ import { ExpenseCategory, PaymentMethod, PaymentType } from "@taxi/shared";
 import type { Expense, Payment } from "../../types";
 import {
   fatherMonthKeysInRange,
+  sumFatherInMonths,
   sumFatherSelectedCars,
   toggleFatherCar,
 } from "./fatherReport";
@@ -98,6 +99,35 @@ describe("sumFatherSelectedCars", () => {
       expenseMine: 0,
       expenseSum: 0,
     });
+  });
+
+  it("sums the whole fleet when carIds is null", () => {
+    const totals = sumFatherInMonths(
+      [
+        payment({
+          id: "1",
+          carId: "a",
+          amount: 100,
+          date: "2026-07-10",
+          method: PaymentMethod.CASH,
+          type: PaymentType.RENT,
+        }),
+        payment({
+          id: "2",
+          carId: null,
+          amount: 50,
+          date: "2026-07-11",
+          method: PaymentMethod.BANK,
+          type: PaymentType.RENT,
+        }),
+      ],
+      [],
+      new Set(["2026-07"]),
+      null,
+    );
+    expect(totals.incomeCash).toBe(100);
+    expect(totals.incomeBank).toBe(50);
+    expect(totals.incomeSum).toBe(150);
   });
 });
 
