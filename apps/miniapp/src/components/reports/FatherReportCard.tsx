@@ -10,6 +10,7 @@ import {
   toggleFatherCar,
   type FatherTotals,
 } from "./fatherReport";
+import { SingleTotalBlock } from "./fatherReportDisplay";
 import { ReportYearMonthPicker } from "./ReportYearMonthPicker";
 import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import { useReportYearMonths } from "./useReportYearMonths";
@@ -44,16 +45,6 @@ function SimpleTotalsTable(props: {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-/** One amount only — Max+Oleh income / expenses (no Cash·Bank or Partner·My split). */
-function SingleTotalBlock(props: { title: string; amount: number }) {
-  return (
-    <div className="crm-father-report__table-block">
-      <div className="crm-father-report__table-title">{props.title}</div>
-      <div className="crm-father-report__single-total">{formatMoney(props.amount)}</div>
     </div>
   );
 }
