@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const prismaMock = {
+const prismaMock = vi.hoisted(() => ({
   driver: { findFirst: vi.fn() },
   car: { findFirst: vi.fn() },
   payment: {
@@ -11,7 +11,7 @@ const prismaMock = {
     findMany: vi.fn(),
     delete: vi.fn(),
   },
-};
+}));
 
 vi.mock("../prisma.js", () => ({
   prisma: prismaMock,
