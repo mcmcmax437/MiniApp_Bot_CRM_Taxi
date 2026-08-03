@@ -6,6 +6,7 @@ import { formatMoney } from "../../currency";
 import { Icon } from "../crm";
 import { DateInput } from "../ui";
 import {
+  commitFinanceCustomRange,
   financeInPeriod,
   type FinanceDateRange,
   type FinancePeriod,
@@ -211,11 +212,7 @@ function FinanceFilterSidebar(props: {
   }, [props.open, props.onClose]);
 
   function commitCustomRange(fromRaw: string, toRaw: string) {
-    if (!fromRaw || !toRaw) return;
-    const from = fromRaw <= toRaw ? fromRaw : toRaw;
-    const to = fromRaw <= toRaw ? toRaw : fromRaw;
-    props.onDateRangeChange?.({ from, to });
-    props.onPeriodChange("custom");
+    commitFinanceCustomRange(fromRaw, toRaw, props.onDateRangeChange, props.onPeriodChange);
   }
 
   function pickPeriod(p: FinancePeriod) {
