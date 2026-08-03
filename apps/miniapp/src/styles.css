@@ -7086,6 +7086,17 @@ select.crm-input option {
   gap: 4px;
 }
 
+.crm-father-report__single-total {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #7ec8ff;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(8, 18, 31, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .crm-father-report__row--total td {
   font-weight: 700;
   border-top: 1px solid rgba(255, 255, 255, 0.12);

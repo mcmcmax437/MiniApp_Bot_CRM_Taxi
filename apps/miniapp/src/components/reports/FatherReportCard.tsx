@@ -48,6 +48,16 @@ function SimpleTotalsTable(props: {
   );
 }
 
+/** One amount only — Max+Oleh income / expenses (no Cash·Bank or Partner·My split). */
+function SingleTotalBlock(props: { title: string; amount: number }) {
+  return (
+    <div className="crm-father-report__table-block">
+      <div className="crm-father-report__table-title">{props.title}</div>
+      <div className="crm-father-report__single-total">{formatMoney(props.amount)}</div>
+    </div>
+  );
+}
+
 /**
  * “For Father”: year/months → all-cars income/expenses → Max+Oleh car pick →
  * selected-cars income/expenses.
@@ -202,21 +212,13 @@ export function FatherReportCard() {
               </div>
             ) : (
               <>
-                <SimpleTotalsTable
+                <SingleTotalBlock
                   title={t("reports.fatherIncomeSelected")}
-                  colA={t("finance.CASH")}
-                  colB={t("finance.BANK")}
-                  colSum={t("common.total")}
-                  values={selectedTotals}
-                  pick={(row) => ({ a: row.incomeCash, b: row.incomeBank, sum: row.incomeSum })}
+                  amount={selectedTotals.incomeSum}
                 />
-                <SimpleTotalsTable
+                <SingleTotalBlock
                   title={t("reports.fatherExpensesSelected")}
-                  colA={t("reports.fatherExpensePartner")}
-                  colB={t("reports.fatherExpenseMine")}
-                  colSum={t("common.total")}
-                  values={selectedTotals}
-                  pick={(row) => ({ a: row.expensePartner, b: row.expenseMine, sum: row.expenseSum })}
+                  amount={selectedTotals.expenseSum}
                 />
               </>
             )}
