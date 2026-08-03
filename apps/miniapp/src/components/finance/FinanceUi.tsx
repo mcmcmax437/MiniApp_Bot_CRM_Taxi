@@ -5,8 +5,8 @@ import { showAlert } from "../../telegram";
 import { formatMoney } from "../../currency";
 import { Icon } from "../crm";
 import { DateInput } from "../ui";
+import { getAnchoredPortalMenuStyle } from "./anchoredPortalMenu";
 import {
-  financeInPeriod,
   type FinanceDateRange,
   type FinancePeriod,
 } from "./financePeriod";
@@ -164,27 +164,15 @@ function AnchoredPortalMenu(props: {
     const anchor = props.anchorRef.current;
     const menu = menuRef.current;
     if (!anchor) return;
-    const r = anchor.getBoundingClientRect();
-    const gap = 8;
-    const pad = 10;
-    const menuHeight = menu?.offsetHeight ?? 280;
-    const spaceBelow = window.innerHeight - r.bottom - gap - pad;
-    const spaceAbove = r.top - gap - pad;
-    const openUp = spaceBelow < Math.min(220, menuHeight) && spaceAbove > spaceBelow;
-    const maxHeight = Math.max(140, Math.min(window.innerHeight * 0.7, 420, openUp ? spaceAbove : spaceBelow));
-    const right = Math.max(pad, window.innerWidth - r.right);
 
-    setStyle({
-      position: "fixed",
-      zIndex: 1200,
-      right,
-      maxHeight,
-      overflowY: "auto",
-      visibility: "visible",
-      ...(openUp
-        ? { bottom: window.innerHeight - r.top + gap, top: "auto" }
-        : { top: r.bottom + gap, bottom: "auto" }),
-    });
+    setStyle(
+      getAnchoredPortalMenuStyle({
+        anchorRect: anchor.getBoundingClientRect(),
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        menuHeight: menu?.offsetHeight,
+      }),
+    );
   }, [props.anchorRef]);
 
   useEffect(() => {
