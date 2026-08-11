@@ -12,6 +12,24 @@ function carLabel(c: { plate: string; make: string | null; model: string | null 
   return m ? `${c.plate} (${m})` : c.plate;
 }
 
+/**
+ * Whether a date-based reminder (insurance / inspection / document) should
+ * surface today.
+ *
+ * Rules:
+ *  - always when due today or overdue
+ *  - on each configured "N days before" day
+ *  - every day after the earliest configured threshold until due
+ *    (so a missed cron run still notifies the next morning)
+ */
+export function shouldEmitDateReminder(daysLeft: number, daysBeforeList: number[]): boolean {
+  if (daysLeft <= 0) return true;
+  if (daysBeforeList.length === 0) return false;
+  if (daysBeforeList.includes(daysLeft)) return true;
+  // Catch-up: already inside the reminder window (past at least one threshold).
+  return daysBeforeList.some((d) => d > daysLeft);
+}
+
 function startOfCurrentWeek(now: Date, weekday: number): Date {
   const day = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
   const diff = (day - weekday + 7) % 7;
@@ -89,29 +107,20 @@ function pushDateReminders(
   carId?: string,
 ): void {
   const left = daysUntil(dueDate);
-  if (left < 0) {
-    items.push({
-      kind,
-      refId,
-      carId,
-      label,
-      dueDate: dueDate.toISOString(),
-      daysUntil: left,
-      detail: "overdue",
-    });
-    return;
-  }
-  if (daysBeforeList.includes(left)) {
-    items.push({
-      kind,
-      refId,
-      carId,
-      label,
-      dueDate: dueDate.toISOString(),
-      daysUntil: left,
-      detail: `${left}d`,
-    });
-  }
+  if (!shouldEmitDateReminder(left, daysBeforeList)) return;
+
+  const detail =
+    left < 0 ? "overdue" : left === 0 ? "today" : `${left}d`;
+
+  items.push({
+    kind,
+    refId,
+    carId,
+    label,
+    dueDate: dueDate.toISOString(),
+    daysUntil: left,
+    detail,
+  });
 }
 
 /** Build the reminder list for a single owner. */
@@ -305,20 +314,29 @@ export async function unskipWeeklyMileageReport(ownerId: string): Promise<void> 
 
 function formatReminderLine(item: ReminderItem): string {
   const date = item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : "";
-  const extra = item.daysUntil != null ? ` (${item.daysUntil}d)` : item.detail ? ` (${item.detail})` : "";
+  const timing =
+    item.daysUntil != null
+      ? item.daysUntil < 0
+        ? ` (${Math.abs(item.daysUntil)}d overdue)`
+        : item.daysUntil === 0
+          ? " (today)"
+          : ` (${item.daysUntil}d)`
+      : item.detail
+        ? ` (${item.detail})`
+        : "";
   switch (item.kind) {
     case "INSURANCE":
-      return `🛡️ Insurance: <b>${item.label}</b> — ${date}${extra}`;
+      return `🛡️ Insurance: <b>${item.label}</b> — ${date}${timing}`;
     case "INSPECTION":
-      return `🔧 Inspection: <b>${item.label}</b> — ${date}${extra}`;
+      return `🔧 Inspection: <b>${item.label}</b> — ${date}${timing}`;
     case "DOCUMENT":
-      return `📄 Document: <b>${item.label}</b> — ${date}${extra}`;
+      return `📄 Document: <b>${item.label}</b> — ${date}${timing}`;
     case "MILEAGE_REPORT":
       return `📊 Mileage update needed: <b>${item.label}</b>`;
     case "OVERDUE_PAYMENT":
       return `💸 Outstanding balance: <b>${item.label}</b> — ${item.amount?.toFixed(2)}`;
     case "RENTAL_ENDING":
-      return `🚗 Rental ending: <b>${item.label}</b> — ${date}${extra}`;
+      return `🚗 Rental ending: <b>${item.label}</b> — ${date}${timing}`;
     default:
       return item.label;
   }

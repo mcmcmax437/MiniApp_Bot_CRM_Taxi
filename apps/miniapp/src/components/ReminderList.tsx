@@ -33,7 +33,8 @@ export function reminderPath(r: ReminderItem): string | null {
 
 function formatReminderDetail(detail: string, t: (key: string) => string): string {
   if (detail === "weekly") return t("reminders.weekly");
-  if (detail === "overdue") return t("reminders.dueToday");
+  if (detail === "today") return t("reminders.dueToday");
+  if (detail === "overdue") return t("reminders.dueNow");
   if (detail === "due") return t("reminders.dueNow");
   if (/^\d+d$/.test(detail)) return detail;
   if (detail.endsWith(" km")) return detail;
