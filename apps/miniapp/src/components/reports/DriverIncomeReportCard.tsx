@@ -12,6 +12,7 @@ import {
   buildAccountantEmailText,
   buildDriverIncomeCsv,
   downloadTextFile,
+  driverVisibleForChannel,
   filterDriverIncomeByMonths,
   type AccountantMoneyChannel,
 } from "./driverIncomeExport";
@@ -101,6 +102,7 @@ export function DriverIncomeReportCard() {
         greeting: t("reports.accountantEmailGreeting"),
         intro: t("reports.accountantEmailIntro"),
         driversHeading: t("reports.accountantEmailDriversHeading"),
+        totalLine: t("reports.accountantEmailTotal"),
         thanks: t("reports.accountantEmailThanks"),
         signature: t("reports.accountantEmailSignature"),
       },
@@ -265,6 +267,9 @@ function MonthBlock(props: {
   const showCash = props.channel === "both" || props.channel === "cash";
   const showBank = props.channel === "both" || props.channel === "bank";
   const showTotal = props.channel === "both";
+  const drivers = props.section.drivers.filter((row) =>
+    driverVisibleForChannel(row, props.channel),
+  );
 
   return (
     <div className="crm-driver-income-report__month">
@@ -281,7 +286,14 @@ function MonthBlock(props: {
             </tr>
           </thead>
           <tbody>
-            {props.section.drivers.map((row, idx) => {
+            {drivers.length === 0 ? (
+              <tr>
+                <td colSpan={2 + (showCash ? 1 : 0) + (showBank ? 1 : 0) + (showTotal ? 1 : 0)}>
+                  <span className="crm-form-hint">{t("common.empty")}</span>
+                </td>
+              </tr>
+            ) : (
+              drivers.map((row, idx) => {
               const name = driverDisplayName(row.driverName, row.driverId, props.unassignedLabel);
               const idDoc = row.pesel?.trim() || row.passportNumber?.trim() || "—";
               const idLabel = row.pesel?.trim()
@@ -314,7 +326,8 @@ function MonthBlock(props: {
                   ) : null}
                 </tr>
               );
-            })}
+            })
+            )}
           </tbody>
           <tfoot>
             <tr>

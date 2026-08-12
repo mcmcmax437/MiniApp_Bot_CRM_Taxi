@@ -22,6 +22,15 @@ export function amountForChannel(
   return row.total;
 }
 
+/** Hide zero rows when filtering to cash-only or bank-only. */
+export function driverVisibleForChannel(
+  row: { cash: number; bank: number; total: number },
+  channel: AccountantMoneyChannel,
+): boolean {
+  if (channel === "both") return true;
+  return amountForChannel(row, channel) !== 0;
+}
+
 export function filterDriverIncomeByMonths(
   report: DriverIncomeReport,
   selectedMonths: Set<string>,
@@ -88,6 +97,7 @@ export function buildDriverIncomeCsv(
 
   for (const section of report.months) {
     for (const row of section.drivers) {
+      if (!driverVisibleForChannel(row, channel)) continue;
       const pesel = row.pesel?.trim() ?? "";
       const passport = row.pesel?.trim() ? "" : (row.passportNumber?.trim() ?? "");
       lines.push(
@@ -142,7 +152,7 @@ export function buildDriverIncomeCsv(
 
 /**
  * Plain-text email body for the accountant: greeting, month close, driver
- * lines (name / PESEL or passport / address = amount), signature.
+ * lines (name / PESEL or passport / address = amount), filtered total, signature.
  */
 export function buildAccountantEmailText(
   report: DriverIncomeReport,
@@ -155,6 +165,8 @@ export function buildAccountantEmailText(
       greeting: string;
       intro: string; // contains {{month}}
       driversHeading: string;
+      /** Contains {{amount}} — sum of drivers under the active cash/bank filter. */
+      totalLine: string;
       thanks: string;
       signature: string;
     };
@@ -163,11 +175,13 @@ export function buildAccountantEmailText(
   const months = report.months.map((m) => opts.monthLabel(m.month));
   const monthText = months.join(", ");
   const driverLines: string[] = [];
+  let sum = 0;
 
   for (const section of report.months) {
     for (const row of section.drivers) {
       const amount = amountForChannel(row, opts.channel);
       if (amount === 0) continue;
+      sum += amount;
       const name = opts.driverLabel(row.driverName, row.driverId);
       const idDoc = row.pesel?.trim() || row.passportNumber?.trim() || "—";
       const address = row.address?.trim() || "—";
@@ -178,12 +192,20 @@ export function buildAccountantEmailText(
     }
   }
 
+  const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
   const intro = opts.template.intro.replace("{{month}}", monthText);
+  const totalLine = opts.template.totalLine.replace(
+    "{{amount}}",
+    opts.formatAmount(round2(sum)),
+  );
+
   return [
     opts.template.greeting,
     intro,
     opts.template.driversHeading,
     ...(driverLines.length > 0 ? driverLines : ["—"]),
+    "",
+    totalLine,
     "",
     opts.template.thanks,
     opts.template.signature,

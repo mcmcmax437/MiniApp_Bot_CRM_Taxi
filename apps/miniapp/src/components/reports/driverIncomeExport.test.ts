@@ -3,6 +3,7 @@ import type { DriverIncomeReport } from "@taxi/shared";
 import {
   amountForChannel,
   buildAccountantEmailText,
+  driverVisibleForChannel,
 } from "./driverIncomeExport";
 
 const sample: DriverIncomeReport = {
@@ -48,6 +49,17 @@ describe("amountForChannel", () => {
   });
 });
 
+describe("driverVisibleForChannel", () => {
+  it("hides zero cash/bank rows for single-channel filters", () => {
+    const cashOnly = sample.months[0]!.drivers[0]!;
+    const bankOnly = sample.months[0]!.drivers[1]!;
+    expect(driverVisibleForChannel(cashOnly, "bank")).toBe(false);
+    expect(driverVisibleForChannel(bankOnly, "cash")).toBe(false);
+    expect(driverVisibleForChannel(cashOnly, "cash")).toBe(true);
+    expect(driverVisibleForChannel(cashOnly, "both")).toBe(true);
+  });
+});
+
 describe("buildAccountantEmailText", () => {
   it("builds Ukrainian email with driver lines for cash channel", () => {
     const text = buildAccountantEmailText(sample, {
@@ -59,6 +71,7 @@ describe("buildAccountantEmailText", () => {
         greeting: "Доброго дня,",
         intro: "Надсилаю дані для закриття місяця {{month}}.",
         driversHeading: "Дані водіїв:",
+        totalLine: "Загальна сума: {{amount}}",
         thanks: "Дякую,",
         signature: "Максим Терешкович",
       },
@@ -68,6 +81,7 @@ describe("buildAccountantEmailText", () => {
     expect(text).toContain("липень 2026 р.");
     expect(text).toContain("---- Ivan Dekol 94041815090 Wrocław, Kumasa 43B ---- = 3800 zł");
     expect(text).not.toContain("Dmytro Dehtiar"); // bank-only, skipped for cash
+    expect(text).toContain("Загальна сума: 3800 zł");
     expect(text).toContain("Максим Терешкович");
   });
 
@@ -81,11 +95,13 @@ describe("buildAccountantEmailText", () => {
         greeting: "Доброго дня,",
         intro: "Надсилаю дані для закриття місяця {{month}}.",
         driversHeading: "Дані водіїв:",
+        totalLine: "Загальна сума: {{amount}}",
         thanks: "Дякую,",
         signature: "Максим Терешкович",
       },
     });
     expect(text).toContain("Dmytro Dehtiar");
     expect(text).not.toContain("Ivan Dekol");
+    expect(text).toContain("Загальна сума: 2850 zł");
   });
 });
