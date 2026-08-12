@@ -1,5 +1,7 @@
 import type { DriverIncomeReport } from "@taxi/shared";
 
+export type AccountantMoneyChannel = "both" | "cash" | "bank";
+
 function fmtAmount(n: number): string {
   return n.toFixed(2);
 }
@@ -9,6 +11,15 @@ function csvEscape(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
+}
+
+export function amountForChannel(
+  row: { cash: number; bank: number; total: number },
+  channel: AccountantMoneyChannel,
+): number {
+  if (channel === "cash") return row.cash;
+  if (channel === "bank") return row.bank;
+  return row.total;
 }
 
 export function filterDriverIncomeByMonths(
@@ -55,24 +66,25 @@ export function buildDriverIncomeCsv(
     driverLabel: (name: string, id: string) => string;
     monthLabel: (monthKey: string) => string;
   },
+  channel: AccountantMoneyChannel = "both",
 ): string {
   const lines: string[] = [];
   const sep = ";";
+  const showCash = channel === "both" || channel === "cash";
+  const showBank = channel === "both" || channel === "bank";
+  const showTotal = channel === "both";
 
-  lines.push(
-    [
-      labels.month,
-      labels.driver,
-      labels.pesel,
-      labels.passport,
-      labels.address,
-      labels.cash,
-      labels.bank,
-      labels.total,
-    ]
-      .map(csvEscape)
-      .join(sep),
-  );
+  const header = [
+    labels.month,
+    labels.driver,
+    labels.pesel,
+    labels.passport,
+    labels.address,
+    ...(showCash ? [labels.cash] : []),
+    ...(showBank ? [labels.bank] : []),
+    ...(showTotal ? [labels.total] : []),
+  ];
+  lines.push(header.map(csvEscape).join(sep));
 
   for (const section of report.months) {
     for (const row of section.drivers) {
@@ -85,9 +97,9 @@ export function buildDriverIncomeCsv(
           pesel,
           passport,
           row.address,
-          fmtAmount(row.cash),
-          fmtAmount(row.bank),
-          fmtAmount(row.total),
+          ...(showCash ? [fmtAmount(row.cash)] : []),
+          ...(showBank ? [fmtAmount(row.bank)] : []),
+          ...(showTotal ? [fmtAmount(row.total)] : []),
         ]
           .map(csvEscape)
           .join(sep),
@@ -100,9 +112,9 @@ export function buildDriverIncomeCsv(
         "",
         "",
         "",
-        fmtAmount(section.totals.cash),
-        fmtAmount(section.totals.bank),
-        fmtAmount(section.totals.total),
+        ...(showCash ? [fmtAmount(section.totals.cash)] : []),
+        ...(showBank ? [fmtAmount(section.totals.bank)] : []),
+        ...(showTotal ? [fmtAmount(section.totals.total)] : []),
       ]
         .map(csvEscape)
         .join(sep),
@@ -117,15 +129,65 @@ export function buildDriverIncomeCsv(
       "",
       "",
       "",
-      fmtAmount(report.grandTotals.cash),
-      fmtAmount(report.grandTotals.bank),
-      fmtAmount(report.grandTotals.total),
+      ...(showCash ? [fmtAmount(report.grandTotals.cash)] : []),
+      ...(showBank ? [fmtAmount(report.grandTotals.bank)] : []),
+      ...(showTotal ? [fmtAmount(report.grandTotals.total)] : []),
     ]
       .map(csvEscape)
       .join(sep),
   );
 
   return lines.join("\r\n");
+}
+
+/**
+ * Plain-text email body for the accountant: greeting, month close, driver
+ * lines (name / PESEL or passport / address = amount), signature.
+ */
+export function buildAccountantEmailText(
+  report: DriverIncomeReport,
+  opts: {
+    channel: AccountantMoneyChannel;
+    monthLabel: (monthKey: string) => string;
+    driverLabel: (name: string, id: string) => string;
+    formatAmount: (n: number) => string;
+    template: {
+      greeting: string;
+      intro: string; // contains {{month}}
+      driversHeading: string;
+      thanks: string;
+      signature: string;
+    };
+  },
+): string {
+  const months = report.months.map((m) => opts.monthLabel(m.month));
+  const monthText = months.join(", ");
+  const driverLines: string[] = [];
+
+  for (const section of report.months) {
+    for (const row of section.drivers) {
+      const amount = amountForChannel(row, opts.channel);
+      if (amount === 0) continue;
+      const name = opts.driverLabel(row.driverName, row.driverId);
+      const idDoc = row.pesel?.trim() || row.passportNumber?.trim() || "—";
+      const address = row.address?.trim() || "—";
+      const prefix = report.months.length > 1 ? `[${opts.monthLabel(section.month)}] ` : "";
+      driverLines.push(
+        `${prefix}---- ${name} ${idDoc} ${address} ---- = ${opts.formatAmount(amount)}`,
+      );
+    }
+  }
+
+  const intro = opts.template.intro.replace("{{month}}", monthText);
+  return [
+    opts.template.greeting,
+    intro,
+    opts.template.driversHeading,
+    ...(driverLines.length > 0 ? driverLines : ["—"]),
+    "",
+    opts.template.thanks,
+    opts.template.signature,
+  ].join("\n");
 }
 
 export function downloadTextFile(filename: string, content: string, mime = "text/csv;charset=utf-8"): void {

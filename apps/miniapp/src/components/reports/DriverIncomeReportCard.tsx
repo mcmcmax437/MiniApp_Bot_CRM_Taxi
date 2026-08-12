@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DriverIncomeReport } from "@taxi/shared";
 import { useDriverIncomeReport } from "../../hooks";
@@ -8,9 +8,12 @@ import { formatFinanceMonthLabel } from "../finance/FinanceUi";
 import { formatMoney } from "../ui";
 import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import {
+  amountForChannel,
+  buildAccountantEmailText,
   buildDriverIncomeCsv,
   downloadTextFile,
   filterDriverIncomeByMonths,
+  type AccountantMoneyChannel,
 } from "./driverIncomeExport";
 import { ReportYearMonthPicker } from "./ReportYearMonthPicker";
 import { useReportYearMonths } from "./useReportYearMonths";
@@ -24,8 +27,11 @@ function driverDisplayName(
   return name || "—";
 }
 
+const CHANNELS: AccountantMoneyChannel[] = ["both", "cash", "bank"];
+
 export function DriverIncomeReportCard() {
   const { t, i18n } = useTranslation();
+  const [channel, setChannel] = useState<AccountantMoneyChannel>("both");
   const {
     year,
     changeYear,
@@ -76,9 +82,29 @@ export function DriverIncomeReportCard() {
     [t, i18n.language],
   );
 
+  const hasRows = Boolean(visibleReport && visibleReport.months.length > 0);
+  const actionsDisabled = !hasRows || report.isFetching;
+
   function buildCsv(): string | null {
     if (!visibleReport || visibleReport.months.length === 0) return null;
-    return buildDriverIncomeCsv(visibleReport, csvLabels);
+    return buildDriverIncomeCsv(visibleReport, csvLabels, channel);
+  }
+
+  function buildEmail(): string | null {
+    if (!visibleReport || visibleReport.months.length === 0) return null;
+    return buildAccountantEmailText(visibleReport, {
+      channel,
+      monthLabel,
+      driverLabel: (name, id) => driverDisplayName(name, id, t("reports.unassignedDriver")),
+      formatAmount: formatMoney,
+      template: {
+        greeting: t("reports.accountantEmailGreeting"),
+        intro: t("reports.accountantEmailIntro"),
+        driversHeading: t("reports.accountantEmailDriversHeading"),
+        thanks: t("reports.accountantEmailThanks"),
+        signature: t("reports.accountantEmailSignature"),
+      },
+    });
   }
 
   async function copyCsv() {
@@ -87,6 +113,17 @@ export function DriverIncomeReportCard() {
     try {
       await navigator.clipboard.writeText(csv);
       showAlert(t("reports.accountantCopied"));
+    } catch {
+      showAlert(t("common.error"));
+    }
+  }
+
+  async function copyEmail() {
+    const text = buildEmail();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      showAlert(t("reports.accountantEmailCopied"));
     } catch {
       showAlert(t("common.error"));
     }
@@ -125,12 +162,39 @@ export function DriverIncomeReportCard() {
         loading={report.isFetching}
       />
 
+      <div className="crm-driver-income-report__channel">
+        <span className="crm-driver-income-report__channel-label">
+          {t("reports.accountantShowMoney")}
+        </span>
+        <div className="crm-period-toggle crm-period-toggle--triple" role="group">
+          {CHANNELS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={`crm-period-toggle__btn${channel === c ? " crm-period-toggle__btn--active" : ""}`}
+              onClick={() => setChannel(c)}
+            >
+              {t(`reports.accountantChannel_${c}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="crm-driver-income-report__actions">
+        <button
+          type="button"
+          className="crm-btn-primary crm-driver-income-report__btn"
+          onClick={() => void copyEmail()}
+          disabled={actionsDisabled}
+        >
+          <Icon name="clipboard" size={16} color="#fff" />
+          <span>{t("reports.accountantCopyEmail")}</span>
+        </button>
         <button
           type="button"
           className="crm-btn-outline crm-driver-income-report__btn"
           onClick={() => void copyCsv()}
-          disabled={!visibleReport || visibleReport.months.length === 0 || report.isFetching}
+          disabled={actionsDisabled}
         >
           <Icon name="clipboard" size={16} color="#ffc107" />
           <span>{t("reports.accountantCopy")}</span>
@@ -139,7 +203,7 @@ export function DriverIncomeReportCard() {
           type="button"
           className="crm-btn-outline crm-driver-income-report__btn"
           onClick={downloadCsv}
-          disabled={!visibleReport || visibleReport.months.length === 0 || report.isFetching}
+          disabled={actionsDisabled}
         >
           <Icon name="download-01" size={16} color="#82b1ff" />
           <span>{t("reports.accountantDownload")}</span>
@@ -176,9 +240,14 @@ export function DriverIncomeReportCard() {
                 section={section}
                 monthLabel={monthLabel(section.month)}
                 unassignedLabel={t("reports.unassignedDriver")}
+                channel={channel}
               />
             ))}
-            <GrandTotalRow totals={visibleReport.grandTotals} label={t("reports.accountantGrandTotal")} />
+            <GrandTotalRow
+              totals={visibleReport.grandTotals}
+              label={t("reports.accountantGrandTotal")}
+              channel={channel}
+            />
           </div>
         )}
       </div>
@@ -190,8 +259,12 @@ function MonthBlock(props: {
   section: DriverIncomeReport["months"][number];
   monthLabel: string;
   unassignedLabel: string;
+  channel: AccountantMoneyChannel;
 }) {
   const { t } = useTranslation();
+  const showCash = props.channel === "both" || props.channel === "cash";
+  const showBank = props.channel === "both" || props.channel === "bank";
+  const showTotal = props.channel === "both";
 
   return (
     <div className="crm-driver-income-report__month">
@@ -202,9 +275,9 @@ function MonthBlock(props: {
             <tr>
               <th>{t("reports.accountantDriver")}</th>
               <th>{t("drivers.pesel")}</th>
-              <th>{t("finance.CASH")}</th>
-              <th>{t("finance.BANK")}</th>
-              <th>{t("reports.accountantTotal")}</th>
+              {showCash ? <th>{t("finance.CASH")}</th> : null}
+              {showBank ? <th>{t("finance.BANK")}</th> : null}
+              {showTotal ? <th>{t("reports.accountantTotal")}</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -234,9 +307,11 @@ function MonthBlock(props: {
                       <span>{idDoc}</span>
                     </div>
                   </td>
-                  <td>{formatMoney(row.cash)}</td>
-                  <td>{formatMoney(row.bank)}</td>
-                  <td className="crm-driver-income-report__total-cell">{formatMoney(row.total)}</td>
+                  {showCash ? <td>{formatMoney(row.cash)}</td> : null}
+                  {showBank ? <td>{formatMoney(row.bank)}</td> : null}
+                  {showTotal ? (
+                    <td className="crm-driver-income-report__total-cell">{formatMoney(row.total)}</td>
+                  ) : null}
                 </tr>
               );
             })}
@@ -244,11 +319,21 @@ function MonthBlock(props: {
           <tfoot>
             <tr>
               <td colSpan={2}>{t("reports.accountantMonthTotal")}</td>
-              <td>{formatMoney(props.section.totals.cash)}</td>
-              <td>{formatMoney(props.section.totals.bank)}</td>
-              <td className="crm-driver-income-report__total-cell">
-                {formatMoney(props.section.totals.total)}
-              </td>
+              {showCash ? (
+                <td className={!showTotal ? "crm-driver-income-report__total-cell" : undefined}>
+                  {formatMoney(props.section.totals.cash)}
+                </td>
+              ) : null}
+              {showBank ? (
+                <td className={!showTotal ? "crm-driver-income-report__total-cell" : undefined}>
+                  {formatMoney(props.section.totals.bank)}
+                </td>
+              ) : null}
+              {showTotal ? (
+                <td className="crm-driver-income-report__total-cell">
+                  {formatMoney(props.section.totals.total)}
+                </td>
+              ) : null}
             </tr>
           </tfoot>
         </table>
@@ -260,21 +345,29 @@ function MonthBlock(props: {
 function GrandTotalRow(props: {
   totals: DriverIncomeReport["grandTotals"];
   label: string;
+  channel: AccountantMoneyChannel;
 }) {
   const { t } = useTranslation();
+  const showCash = props.channel === "both" || props.channel === "cash";
+  const showBank = props.channel === "both" || props.channel === "bank";
 
   return (
     <div className="crm-driver-income-report__grand">
       <div className="crm-driver-income-report__grand-label">{props.label}</div>
       <div className="crm-driver-income-report__grand-values">
-        <span>
-          {t("finance.CASH")}: <strong>{formatMoney(props.totals.cash)}</strong>
-        </span>
-        <span>
-          {t("finance.BANK")}: <strong>{formatMoney(props.totals.bank)}</strong>
-        </span>
+        {showCash ? (
+          <span>
+            {t("finance.CASH")}: <strong>{formatMoney(props.totals.cash)}</strong>
+          </span>
+        ) : null}
+        {showBank ? (
+          <span>
+            {t("finance.BANK")}: <strong>{formatMoney(props.totals.bank)}</strong>
+          </span>
+        ) : null}
         <span className="crm-driver-income-report__grand-total">
-          {t("reports.accountantTotal")}: <strong>{formatMoney(props.totals.total)}</strong>
+          {t("reports.accountantTotal")}:{" "}
+          <strong>{formatMoney(amountForChannel(props.totals, props.channel))}</strong>
         </span>
       </div>
     </div>
