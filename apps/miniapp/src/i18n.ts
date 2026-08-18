@@ -478,6 +478,10 @@ const en = {
     contractNoAgreement: "No active agreement for this driver + car — the amount is up to you.",
     contractNoAgreementForCar: "This car has no rental agreement on file — enter the amount yourself.",
     contractNoAgreementForDriver: "This driver has no rental agreement on file — enter the amount yourself.",
+    workedLastWeek_one: "Last week: {{count}} day on this car",
+    workedLastWeek_few: "Last week: {{count}} days on this car",
+    workedLastWeek_many: "Last week: {{count}} days on this car",
+    workedLastWeek_other: "Last week: {{count}} days on this car",
     // Lowercase labels used inside the contract-requires sentence
     // ("per day", "per week", "per month", "per year"). Kept separate
     // from the capitalised reminder labels so the two contexts can use
@@ -1370,6 +1374,10 @@ const uk: Resources = {
     contractNoAgreement: "Немає активного договору для цього водія + авто — суму визначаєте ви.",
     contractNoAgreementForCar: "Для цього авто немає договору оренди — введіть суму самі.",
     contractNoAgreementForDriver: "Для цього водія немає договору оренди — введіть суму самі.",
+    workedLastWeek_one: "Минулого тижня: {{count}} день на цьому авто",
+    workedLastWeek_few: "Минулого тижня: {{count}} дні на цьому авто",
+    workedLastWeek_many: "Минулого тижня: {{count}} днів на цьому авто",
+    workedLastWeek_other: "Минулого тижня: {{count}} днів на цьому авто",
     periodDay: "день",
     periodWeek: "тиждень",
     periodMonth: "місяць",
@@ -2250,6 +2258,10 @@ const ru: Resources = {
     contractNoAgreement: "Для этого водителя + авто нет активного договора — сумму определяете вы.",
     contractNoAgreementForCar: "Для этого авто нет договора аренды — укажите сумму сами.",
     contractNoAgreementForDriver: "Для этого водителя нет договора аренды — укажите сумму сами.",
+    workedLastWeek_one: "На прошлой неделе: {{count}} день на этом авто",
+    workedLastWeek_few: "На прошлой неделе: {{count}} дня на этом авто",
+    workedLastWeek_many: "На прошлой неделе: {{count}} дней на этом авто",
+    workedLastWeek_other: "На прошлой неделе: {{count}} дней на этом авто",
     periodDay: "день",
     periodWeek: "неделю",
     periodMonth: "месяц",

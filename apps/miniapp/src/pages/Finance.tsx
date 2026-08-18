@@ -22,6 +22,7 @@ import {
 } from "../driverCarSuggestions";
 import type { Agreement } from "../types";
 import { isIncomePayment } from "../components/reports/partnerSettlementFormat";
+import { daysWorkedLastWeek } from "../components/finance/paymentWorkDays";
 import { FleetTab } from "../components/finance/FleetTab";
 import { TaxesTab } from "../components/finance/TaxesTab";
 import { ExpenseTagInput } from "../components/finance/ExpenseTagInput";
@@ -1253,6 +1254,15 @@ function PaymentModal(props: {
     return form.amount + form.discount;
   }, [contractAgreement, form.amount, form.discount]);
 
+  const lastWeekWorked = useMemo(() => {
+    if (!form.driverId || !form.carId || !form.date) return null;
+    const pairAgreements = props.agreements.filter(
+      (a) => a.driverId === form.driverId && a.carId === form.carId,
+    );
+    if (pairAgreements.length === 0) return null;
+    return daysWorkedLastWeek(pairAgreements, form.date);
+  }, [props.agreements, form.driverId, form.carId, form.date]);
+
   const driverOptions = useMemo(() => {
     const driverById = new Map(props.drivers.map((d) => [d.id, d]));
     const { orderedDriverIds } = rankDriversForCar(
@@ -1428,6 +1438,16 @@ function PaymentModal(props: {
               </span>
             </div>
           )}
+          {lastWeekWorked ? (
+            <div className="crm-contract-note__row crm-contract-note__row--meta">
+              <Icon name="clock-01" size={14} color="rgba(255, 255, 255, 0.55)" />
+              <span>
+                {t("finance.workedLastWeek", { count: lastWeekWorked.days })}
+                {" · "}
+                {formatDate(lastWeekWorked.from)} – {formatDate(lastWeekWorked.to)}
+              </span>
+            </div>
+          ) : null}
         </div>
       ) : null}
       <Field
