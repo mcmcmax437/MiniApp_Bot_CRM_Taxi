@@ -113,6 +113,7 @@ export function AgreementEditModal(props: {
       return;
     }
 
+    const hasTemp = useTemporaryDriver && Boolean(temporaryDriverName.trim());
     const inferredStatus = inferAgreementStatus(end || null, asOf);
 
     const body: Record<string, unknown> = {
