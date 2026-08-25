@@ -48,6 +48,17 @@ import {
 } from "../../agreementOverlap";
 import { ApiError } from "../../api";
 
+type AssignFormField = "driver" | "car" | "rentAmount" | "startDate";
+
+function scrollToFirstFieldError() {
+  requestAnimationFrame(() => {
+    document.querySelector(".crm-field--error")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  });
+}
+
 export function FleetTab() {
   const { t } = useTranslation();
   const readOnly = useReadOnly();
@@ -73,6 +84,7 @@ export function FleetTab() {
     depositAmount: "" as number | "",
     period: RentPeriod.DAILY as RentPeriod,
   });
+  const [fieldErrors, setFieldErrors] = useState<Set<AssignFormField>>(new Set());
 
   const active = useMemo(
     () => (agreements.data ?? []).filter((a) => a.status === AgreementStatus.ACTIVE),
@@ -153,18 +165,58 @@ export function FleetTab() {
       depositAmount: "",
       period: RentPeriod.DAILY,
     });
+    setFieldErrors(new Set());
     setOpen(true);
   }
 
   function closeAssign() {
     setOpen(false);
     setLockedCarId(null);
+    setFieldErrors(new Set());
+  }
+
+  function patchForm(patch: Partial<typeof form>) {
+    setForm((prev) => ({ ...prev, ...patch }));
+    if (fieldErrors.size === 0) return;
+    setFieldErrors((prev) => {
+      const next = new Set(prev);
+      if (
+        "useTemporaryDriver" in patch ||
+        "driverId" in patch ||
+        "temporaryDriverName" in patch
+      ) {
+        next.delete("driver");
+      }
+      if ("carId" in patch) next.delete("car");
+      if ("rentAmount" in patch) next.delete("rentAmount");
+      if ("startDate" in patch) next.delete("startDate");
+      return next;
+    });
+  }
+
+  function collectAssignErrors(): Set<AssignFormField> {
+    const errors = new Set<AssignFormField>();
+    const hasDriver = !form.useTemporaryDriver && Boolean(form.driverId);
+    const hasTemp = form.useTemporaryDriver && Boolean(form.temporaryDriverName.trim());
+    if (!hasDriver && !hasTemp) errors.add("driver");
+    if (!form.carId) errors.add("car");
+    if (form.rentAmount === "") errors.add("rentAmount");
+    if (!form.startDate.trim()) errors.add("startDate");
+    return errors;
+  }
+
+  function fieldInvalid(name: AssignFormField): boolean {
+    return fieldErrors.has(name);
   }
 
   function submit() {
-    const hasDriver = !form.useTemporaryDriver && Boolean(form.driverId);
+    const errors = collectAssignErrors();
+    if (errors.size > 0) {
+      setFieldErrors(errors);
+      scrollToFirstFieldError();
+      return;
+    }
     const hasTemp = form.useTemporaryDriver && Boolean(form.temporaryDriverName.trim());
-    if ((!hasDriver && !hasTemp) || !form.carId || form.rentAmount === "") return;
     const endDate = form.endDate.trim();
     const asOf = todayInput();
     const dateCheck = validateAgreementDates(form.startDate, endDate || null, {
@@ -337,12 +389,16 @@ export function FleetTab() {
         onClose={closeAssign}
         footer={<FormActions onCancel={closeAssign} onSave={submit} saving={create.isPending} />}
       >
-        <Field label={t("finance.driver")}>
+        <Field
+          label={t("finance.driver")}
+          invalid={fieldInvalid("driver")}
+          errorMessage={fieldInvalid("driver") ? t("fleet.driverOrTempRequired") : undefined}
+        >
           <div className="crm-fleet-driver-mode">
             <button
               type="button"
               className={`crm-fleet-driver-mode__btn${!form.useTemporaryDriver ? " crm-fleet-driver-mode__btn--active" : ""}`}
-              onClick={() => setForm({ ...form, useTemporaryDriver: false })}
+              onClick={() => patchForm({ useTemporaryDriver: false })}
             >
               {t("fleet.registeredDriver")}
             </button>
@@ -350,8 +406,7 @@ export function FleetTab() {
               type="button"
               className={`crm-fleet-driver-mode__btn${form.useTemporaryDriver ? " crm-fleet-driver-mode__btn--active" : ""}`}
               onClick={() =>
-                setForm({
-                  ...form,
+                patchForm({
                   useTemporaryDriver: true,
                   driverId: "",
                 })
@@ -365,16 +420,18 @@ export function FleetTab() {
               <TextInput
                 value={form.temporaryDriverName}
                 placeholder={t("fleet.temporaryDriverPlaceholder")}
-                onChange={(v) => setForm({ ...form, temporaryDriverName: v })}
+                invalid={fieldInvalid("driver")}
+                onChange={(v) => patchForm({ temporaryDriverName: v })}
               />
               <p className="crm-form-hint">{t("fleet.temporaryDriverHint")}</p>
             </>
           ) : (drivers.data?.length ?? 0) > 0 ? (
             <SearchableSelect
               value={form.driverId}
-              onChange={(v) => setForm({ ...form, driverId: v })}
+              onChange={(v) => patchForm({ driverId: v })}
               options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
               placeholder={t("common.searchToFilter")}
+              invalid={fieldInvalid("driver")}
             />
           ) : (
             <p className="crm-form-hint">{t("fleet.noDriversUseTemporary")}</p>
@@ -385,37 +442,61 @@ export function FleetTab() {
             <div className="crm-form-readonly">{lockedCar.plate}</div>
           </Field>
         ) : (
-          <Field label={t("finance.car")}>
+          <Field
+            label={t("finance.car")}
+            invalid={fieldInvalid("car")}
+            errorMessage={fieldInvalid("car") ? t("common.requiredField") : undefined}
+          >
             <SearchableSelect
               value={form.carId}
-              onChange={(v) => setForm({ ...form, carId: v })}
+              onChange={(v) => patchForm({ carId: v })}
               options={assignCarOptions}
               placeholder={t("common.searchToFilter")}
+              invalid={fieldInvalid("car")}
             />
           </Field>
         )}
-        <Field label={t("drivers.startDate")}>
-          <DateInput value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} />
+        <Field
+          label={t("drivers.startDate")}
+          invalid={fieldInvalid("startDate")}
+          errorMessage={fieldInvalid("startDate") ? t("common.requiredField") : undefined}
+        >
+          <DateInput
+            value={form.startDate}
+            invalid={fieldInvalid("startDate")}
+            onChange={(v) => patchForm({ startDate: v })}
+          />
         </Field>
         <Field label={t("drivers.endDate")}>
           <DateInput
             value={form.endDate}
             clearable
             min={form.startDate}
-            onChange={(v) => setForm({ ...form, endDate: v })}
+            onChange={(v) => patchForm({ endDate: v })}
           />
         </Field>
         <p className="crm-form-hint">{t("fleet.endDateHint")}</p>
-        <Field label={t("drivers.rentAmount")}>
-          <MoneyNumberInput value={form.rentAmount} onChange={(v) => setForm({ ...form, rentAmount: v })} />
+        <Field
+          label={t("drivers.rentAmount")}
+          invalid={fieldInvalid("rentAmount")}
+          errorMessage={fieldInvalid("rentAmount") ? t("common.requiredField") : undefined}
+        >
+          <MoneyNumberInput
+            value={form.rentAmount}
+            invalid={fieldInvalid("rentAmount")}
+            onChange={(v) => patchForm({ rentAmount: v })}
+          />
         </Field>
         <Field label={t("drivers.deposit")}>
-          <MoneyNumberInput value={form.depositAmount} onChange={(v) => setForm({ ...form, depositAmount: v })} />
+          <MoneyNumberInput
+            value={form.depositAmount}
+            onChange={(v) => patchForm({ depositAmount: v })}
+          />
         </Field>
         <Field label={t("drivers.period")}>
           <SelectInput
             value={form.period}
-            onChange={(v) => setForm({ ...form, period: v })}
+            onChange={(v) => patchForm({ period: v })}
             options={Object.values(RentPeriod).map((p) => ({ value: p, label: t(`drivers.${p}`) }))}
           />
         </Field>

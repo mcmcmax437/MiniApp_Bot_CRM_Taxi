@@ -26,6 +26,17 @@ import {
   todayInput,
 } from "../ui";
 
+type EditFormField = "driver" | "rentAmount" | "startDate";
+
+function scrollToFirstFieldError() {
+  requestAnimationFrame(() => {
+    document.querySelector(".crm-field--error")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  });
+}
+
 export function AgreementEditModal(props: {
   agreement: Agreement | null;
   open: boolean;
@@ -44,6 +55,7 @@ export function AgreementEditModal(props: {
   const [period, setPeriod] = useState<RentPeriod>(RentPeriod.DAILY);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Set<EditFormField>>(new Set());
 
   useEffect(() => {
     const a = props.agreement;
@@ -57,13 +69,35 @@ export function AgreementEditModal(props: {
     setPeriod(a.period);
     setStartDate(isoDateOnly(a.startDate));
     setEndDate(a.endDate ? isoDateOnly(a.endDate) : "");
+    setFieldErrors(new Set());
   }, [props.agreement]);
 
+  function clearError(name: EditFormField) {
+    if (!fieldErrors.has(name)) return;
+    setFieldErrors((prev) => {
+      const next = new Set(prev);
+      next.delete(name);
+      return next;
+    });
+  }
+
+  function fieldInvalid(name: EditFormField): boolean {
+    return fieldErrors.has(name);
+  }
+
   function submit() {
-    if (!props.agreement || rentAmount === "" || !startDate) return;
+    if (!props.agreement) return;
+    const errors = new Set<EditFormField>();
     const hasDriver = !useTemporaryDriver && Boolean(driverId);
     const hasTemp = useTemporaryDriver && Boolean(temporaryDriverName.trim());
-    if (!hasDriver && !hasTemp) return;
+    if (!hasDriver && !hasTemp) errors.add("driver");
+    if (rentAmount === "") errors.add("rentAmount");
+    if (!startDate) errors.add("startDate");
+    if (errors.size > 0) {
+      setFieldErrors(errors);
+      scrollToFirstFieldError();
+      return;
+    }
 
     const end = endDate.trim();
     const asOf = todayInput();
@@ -146,12 +180,19 @@ export function AgreementEditModal(props: {
         <FormActions onCancel={props.onClose} onSave={submit} saving={update.isPending} />
       }
     >
-      <Field label={t("finance.driver")}>
+      <Field
+        label={t("finance.driver")}
+        invalid={fieldInvalid("driver")}
+        errorMessage={fieldInvalid("driver") ? t("fleet.driverOrTempRequired") : undefined}
+      >
         <div className="crm-fleet-driver-mode">
           <button
             type="button"
             className={`crm-fleet-driver-mode__btn${!useTemporaryDriver ? " crm-fleet-driver-mode__btn--active" : ""}`}
-            onClick={() => setUseTemporaryDriver(false)}
+            onClick={() => {
+              setUseTemporaryDriver(false);
+              clearError("driver");
+            }}
           >
             {t("fleet.registeredDriver")}
           </button>
@@ -161,6 +202,7 @@ export function AgreementEditModal(props: {
             onClick={() => {
               setUseTemporaryDriver(true);
               setDriverId("");
+              clearError("driver");
             }}
           >
             {t("fleet.temporaryDriver")}
@@ -171,30 +213,60 @@ export function AgreementEditModal(props: {
             <TextInput
               value={temporaryDriverName}
               placeholder={t("fleet.temporaryDriverPlaceholder")}
-              onChange={setTemporaryDriverName}
+              invalid={fieldInvalid("driver")}
+              onChange={(v) => {
+                setTemporaryDriverName(v);
+                clearError("driver");
+              }}
             />
             <p className="crm-form-hint">{t("fleet.temporaryDriverHint")}</p>
           </>
         ) : (drivers.data?.length ?? 0) > 0 ? (
           <SearchableSelect
             value={driverId}
-            onChange={setDriverId}
+            onChange={(v) => {
+              setDriverId(v);
+              clearError("driver");
+            }}
             options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
             placeholder={t("common.searchToFilter")}
+            invalid={fieldInvalid("driver")}
           />
         ) : (
           <p className="crm-form-hint">{t("fleet.noDriversUseTemporary")}</p>
         )}
       </Field>
-      <Field label={t("drivers.startDate")}>
-        <DateInput value={startDate} onChange={setStartDate} />
+      <Field
+        label={t("drivers.startDate")}
+        invalid={fieldInvalid("startDate")}
+        errorMessage={fieldInvalid("startDate") ? t("common.requiredField") : undefined}
+      >
+        <DateInput
+          value={startDate}
+          invalid={fieldInvalid("startDate")}
+          onChange={(v) => {
+            setStartDate(v);
+            clearError("startDate");
+          }}
+        />
       </Field>
       <Field label={t("drivers.endDate")}>
         <DateInput value={endDate} clearable min={startDate} onChange={setEndDate} />
       </Field>
       <p className="crm-form-hint">{t("fleet.endDateHint")}</p>
-      <Field label={t("drivers.rentAmount")}>
-        <MoneyNumberInput value={rentAmount} onChange={setRentAmount} />
+      <Field
+        label={t("drivers.rentAmount")}
+        invalid={fieldInvalid("rentAmount")}
+        errorMessage={fieldInvalid("rentAmount") ? t("common.requiredField") : undefined}
+      >
+        <MoneyNumberInput
+          value={rentAmount}
+          invalid={fieldInvalid("rentAmount")}
+          onChange={(v) => {
+            setRentAmount(v);
+            clearError("rentAmount");
+          }}
+        />
       </Field>
       <Field label={t("drivers.deposit")}>
         <MoneyNumberInput value={depositAmount} onChange={setDepositAmount} />

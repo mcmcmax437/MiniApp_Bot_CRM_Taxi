@@ -132,6 +132,25 @@ export function sumIncomeByMethod(
   };
 }
 
+/** Operating + tax expenses split by who paid (partner vs owner). */
+export function sumExpensesByPayer(
+  expenses: Expense[],
+  period: DashboardStatsPeriod,
+  carId: string,
+): { partner: number; mine: number; total: number } {
+  let partner = 0;
+  let mine = 0;
+  for (const e of filterDashboardExpenses(expenses, period, carId)) {
+    if (e.paidByPartner) partner += e.amount;
+    else mine += e.amount;
+  }
+  return {
+    partner: round2(partner),
+    mine: round2(mine),
+    total: round2(partner + mine),
+  };
+}
+
 export function filterDashboardExpenses(
   expenses: Expense[],
   period: DashboardStatsPeriod,

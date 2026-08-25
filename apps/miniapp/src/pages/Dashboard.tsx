@@ -33,7 +33,12 @@ import {
 import i18n from "../i18n";
 import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
 import { closeTelegramApp } from "../telegram";
-import { buildDashboardByCar, dateInStatsPeriod, reportDateRange, sumIncomeByMethod } from "../utils/dashboardStats";
+import {
+  buildDashboardByCar,
+  reportDateRange,
+  sumExpensesByPayer,
+  sumIncomeByMethod,
+} from "../utils/dashboardStats";
 
 const STATS_PERIOD_KEY = "dashboard-stats-period";
 const STATS_CAR_KEY = "dashboard-stats-car";
@@ -137,51 +142,39 @@ export function Dashboard() {
   const setCurrency = useSetCurrency();
 
   const stats = useMemo(() => {
-    if (!report.data) {
-      return {
-        income: 0,
-        expenses: 0,
-        profit: 0,
-        roiPercent: null as number | null,
-        cash: 0,
-        bank: 0,
-        showMethodSplit: false,
-      };
-    }
+    const empty = {
+      income: 0,
+      expenses: 0,
+      profit: 0,
+      roiPercent: null as number | null,
+      cash: 0,
+      bank: 0,
+      partnerExpenses: 0,
+      mineExpenses: 0,
+      showMethodSplit: false,
+    };
+    if (!report.data) return empty;
 
-    // Cash/bank split only for this month / previous month — not all-time.
+    // Cash/bank split is shown only for this month / previous month.
     const showMethodSplit = statsPeriod === "month" || statsPeriod === "previous";
-
-    // For month/previous, recompute expenses locally so the number covers the
-    // whole calendar month and respects the car filter (including taxes).
-    let localExpenses: number | null = null;
-    if (statsPeriod === "month" || statsPeriod === "previous") {
-      const list = (expensesQuery.data ?? []).filter(
-        (e) =>
-          dateInStatsPeriod(e.date, statsPeriod) &&
-          (!statsCarId || e.carId === statsCarId),
-      );
-      localExpenses = round2(list.reduce((s, e) => s + e.amount, 0));
-    }
-
-    const byMethod = showMethodSplit
-      ? sumIncomeByMethod(paymentsQuery.data ?? [], statsPeriod, statsCarId)
-      : { cash: 0, bank: 0, total: 0 };
+    const byPayer = sumExpensesByPayer(expensesQuery.data ?? [], statsPeriod, statsCarId);
+    const byMethod = sumIncomeByMethod(paymentsQuery.data ?? [], statsPeriod, statsCarId);
 
     if (!statsCarId) {
-      const expensesValue =
-        localExpenses != null ? localExpenses : report.data.expenses;
       // Prefer local rent+fines total when showing method split so cash+bank
-      // matches the headline income figure.
+      // matches the headline income figure. Expenses always come from the
+      // local list so partner + mine equals the number on the card.
       const income = showMethodSplit ? byMethod.total : report.data.income;
-      const profitValue = round2(income - expensesValue);
+      const profitValue = round2(income - byPayer.total);
       return {
         income,
-        expenses: expensesValue,
+        expenses: byPayer.total,
         profit: profitValue,
-        roiPercent: calcRoi(income, expensesValue),
+        roiPercent: calcRoi(income, byPayer.total),
         cash: byMethod.cash,
         bank: byMethod.bank,
+        partnerExpenses: byPayer.partner,
+        mineExpenses: byPayer.mine,
         showMethodSplit,
       };
     }
@@ -189,19 +182,17 @@ export function Dashboard() {
     // Per-car income from payments so we can split cash vs bank (report
     // byCar only returns a single total).
     const income = byMethod.total;
-    const expenses =
-      localExpenses != null
-        ? localExpenses
-        : (report.data.byCar.find((row) => row.carId === statsCarId)?.expenses ?? 0);
-    const profit = round2(income - expenses);
+    const profit = round2(income - byPayer.total);
 
     return {
       income,
-      expenses,
+      expenses: byPayer.total,
       profit,
-      roiPercent: calcRoi(income, expenses),
+      roiPercent: calcRoi(income, byPayer.total),
       cash: byMethod.cash,
       bank: byMethod.bank,
+      partnerExpenses: byPayer.partner,
+      mineExpenses: byPayer.mine,
       showMethodSplit,
     };
   }, [report.data, statsCarId, expensesQuery.data, paymentsQuery.data, statsPeriod]);
@@ -326,7 +317,10 @@ export function Dashboard() {
           label={t("dashboard.expenses")}
           value={expenses}
           suffix={periodSuffix}
-          detail={t("dashboard.expensesIncludesTaxes")}
+          detail={t("dashboard.expensesPartnerMine", {
+            partner: formatMoney(stats.partnerExpenses),
+            mine: formatMoney(stats.mineExpenses),
+          })}
           tone="expense"
           icon={<Icon name="chart-decrease" size={24} color="var(--taxi-expense)" />}
           onClick={() => goToStatBreakdown("expenses")}

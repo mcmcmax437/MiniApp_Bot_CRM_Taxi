@@ -17,6 +17,7 @@ import {
   filterDashboardIncomePayments,
   parseStatBreakdownKind,
   parseStatsPeriod,
+  sumExpensesByPayer,
 } from "../utils/dashboardStats";
 
 function round2(n: number): number {
@@ -54,6 +55,14 @@ export function StatBreakdownPage() {
       : period === "previous"
         ? t("dashboard.previousMonthSuffix")
         : t("dashboard.allTimeSuffix");
+
+  const expensePayer = useMemo(
+    () =>
+      kind === "expenses"
+        ? sumExpensesByPayer(expenses.data ?? [], period, carId)
+        : null,
+    [kind, expenses.data, period, carId],
+  );
 
   const { items, total, loading } = useMemo(() => {
     if (kind === "income") {
@@ -128,6 +137,12 @@ export function StatBreakdownPage() {
         <span className="crm-stat-breakdown-total__value">{formatMoney(total)}</span>
         <span className="crm-stat-breakdown-total__meta">
           {t("dashboard.statBreakdownCount", { count: items.length })}
+          {expensePayer
+            ? ` · ${t("dashboard.expensesPartnerMine", {
+                partner: formatMoney(expensePayer.partner),
+                mine: formatMoney(expensePayer.mine),
+              })}`
+            : ""}
         </span>
       </div>
 

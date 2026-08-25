@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PaymentType } from "@taxi/shared";
+import { ExpenseCategory } from "@taxi/shared";
 import {
   DASHBOARD_FLEET_OTHER_CAR_ID,
   filterDashboardIncomePayments,
@@ -7,9 +8,10 @@ import {
   matchesDashboardCar,
   paymentInStatsPeriod,
   reportDateRange,
+  sumExpensesByPayer,
   sumIncomeByMethod,
 } from "./dashboardStats.js";
-import type { Payment } from "../types";
+import type { Expense, Payment } from "../types";
 
 describe("isDashboardIncomePayment", () => {
   it("matches rent and fines only", () => {
@@ -172,6 +174,63 @@ describe("sumIncomeByMethod", () => {
       cash: 550,
       bank: 700,
       total: 1250,
+    });
+  });
+});
+
+describe("sumExpensesByPayer", () => {
+  const expenses: Expense[] = [
+    {
+      id: "e1",
+      carId: "car-1",
+      category: ExpenseCategory.FUEL,
+      amount: 200,
+      date: "2001-01-10",
+      note: null,
+      tag: null,
+      paidByPartner: true,
+      partnerSettled: false,
+      paidByFather: false,
+    },
+    {
+      id: "e2",
+      carId: "car-1",
+      category: ExpenseCategory.TAX,
+      amount: 50,
+      date: "2001-01-12",
+      note: null,
+      tag: null,
+      paidByPartner: false,
+      partnerSettled: false,
+      paidByFather: false,
+    },
+    {
+      id: "e3",
+      carId: "car-2",
+      category: ExpenseCategory.MAINTENANCE,
+      amount: 80,
+      date: "2001-01-15",
+      note: null,
+      tag: null,
+      paidByPartner: true,
+      partnerSettled: false,
+      paidByFather: false,
+    },
+  ];
+
+  it("splits partner vs owner expenses for one car", () => {
+    expect(sumExpensesByPayer(expenses, "all", "car-1")).toEqual({
+      partner: 200,
+      mine: 50,
+      total: 250,
+    });
+  });
+
+  it("includes taxes in the owner bucket when the partner did not pay", () => {
+    expect(sumExpensesByPayer(expenses, "all", "")).toEqual({
+      partner: 280,
+      mine: 50,
+      total: 330,
     });
   });
 });
