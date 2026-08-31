@@ -28,4 +28,4 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
             "${VPS_USER}@${VPS_HOST}" \
-            "cd '${VPS_APP_DIR}' && chmod +x scripts/vps-update.sh && VPS_APP_DIR='${VPS_APP_DIR}' bash scripts/vps-update.sh"
+            "cd '${VPS_APP_DIR}' && git fetch origin main && git checkout main && git pull --ff-only origin main && chmod +x scripts/vps-update.sh && VPS_APP_DIR='${VPS_APP_DIR}' bash scripts/vps-update.sh"

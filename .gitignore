@@ -11,6 +11,7 @@ npm-debug.log*
 
 deploy/.deploy-bundle.tgz
 deploy/.nginx-ip.conf
+.deploy-npm-lock-sha
 
 # Prisma
 apps/api/prisma/*.db

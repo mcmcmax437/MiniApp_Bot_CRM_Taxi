@@ -4,6 +4,7 @@ set -euo pipefail
 
 APP_DIR="${VPS_APP_DIR:-/usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi}"
 BRANCH="${DEPLOY_BRANCH:-main}"
+LOCK_SHA_FILE=".deploy-npm-lock-sha"
 
 cd "$APP_DIR"
 
@@ -25,8 +26,65 @@ git pull --ff-only origin "$BRANCH"
 echo "==> Apply production .env (VPS_MYSQL_* → MYSQL_*)"
 node scripts/vps-apply-production-env.mjs
 
-echo "==> Install dependencies"
-npm ci
+lockfile_sha() {
+  sha256sum package-lock.json | awk '{print $1}'
+}
+
+deps_current() {
+  [[ -d node_modules ]] || return 1
+  [[ -f node_modules/.package-lock.json ]] || return 1
+  [[ -f "$LOCK_SHA_FILE" ]] || return 1
+  [[ "$(cat "$LOCK_SHA_FILE")" == "$(lockfile_sha)" ]]
+}
+
+# Small VPS (1 GB) OOM-kills `npm ci` (exit 137). Swap lets install/build finish.
+ensure_swap() {
+  local mem_kb swap_kb
+  mem_kb=$(awk '/MemTotal:/ {print $2}' /proc/meminfo)
+  swap_kb=$(awk '/SwapTotal:/ {print $2}' /proc/meminfo)
+  if [[ "${swap_kb:-0}" -ge 1048576 ]]; then
+    return 0
+  fi
+  if [[ "${mem_kb:-0}" -ge 2097152 ]]; then
+    return 0
+  fi
+  if [[ "$(id -u)" -ne 0 ]]; then
+    echo "==> Low RAM ($((mem_kb / 1024)) MB) and not root — cannot add swap"
+    return 0
+  fi
+  echo "==> Adding 2G swap ($((mem_kb / 1024)) MB RAM, $((swap_kb / 1024)) MB swap)"
+  if [[ ! -f /swapfile ]]; then
+    if command -v fallocate >/dev/null 2>&1; then
+      fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+    else
+      dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+    fi
+    chmod 600 /swapfile
+    mkswap /swapfile
+  fi
+  swapon /swapfile 2>/dev/null || true
+  if [[ -w /etc/fstab ]] && ! grep -q '^/swapfile ' /etc/fstab; then
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  fi
+}
+
+# Cap Node so one process cannot eat the whole box; swap covers the rest.
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=384}"
+export npm_config_audit=false
+export npm_config_fund=false
+export npm_config_progress=false
+
+ensure_swap || true
+
+if deps_current; then
+  echo "==> Dependencies unchanged — skip npm install"
+else
+  echo "==> Install dependencies (pause app to free RAM)"
+  pm2 stop all || true
+  # Incremental install: `npm ci` deletes node_modules first and often OOM-kills 1 GB boxes.
+  npm install --no-audit --no-fund --no-progress
+  lockfile_sha > "$LOCK_SHA_FILE"
+fi
 
 echo "==> Prisma + database"
 npm run prisma:generate -w @taxi/api

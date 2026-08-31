@@ -240,7 +240,8 @@ function remoteBuildAndStart() {
   const script = [
     `set -e`,
     `cd '${appDir}'`,
-    `npm ci`,
+    `export NODE_OPTIONS="\${NODE_OPTIONS:---max-old-space-size=384}"`,
+    `npm install --no-audit --no-fund --no-progress`,
     `npm run prisma:generate -w @taxi/api`,
     `NODE_ENV=production npm run db:sync -w @taxi/api`,
     `VITE_API_BASE=/api npm run build -w @taxi/miniapp`,
