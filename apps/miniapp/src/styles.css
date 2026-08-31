@@ -7648,6 +7648,11 @@ select.crm-input option {
   flex-shrink: 0;
 }
 
+.crm-fleet-timeline__nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .crm-fleet-timeline__chevron {
   display: block;
   width: 9px;
@@ -7718,8 +7723,7 @@ select.crm-input option {
   align-items: start;
 }
 
-.crm-fleet-gantt__side,
-.crm-fleet-gantt__mid {
+.crm-fleet-gantt__side {
   display: grid;
   grid-auto-rows: 44px;
 }
@@ -7732,15 +7736,30 @@ select.crm-input option {
   scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
 }
 
-.crm-fleet-gantt__axis,
-.crm-fleet-gantt__track {
+.crm-fleet-gantt__canvas {
+  position: relative;
+  display: grid;
+  grid-auto-rows: 44px;
   min-width: max(100%, calc(var(--gantt-cols, 7) * 28px));
+}
+
+.crm-fleet-gantt__axis,
+.crm-fleet-gantt__track,
+.crm-fleet-gantt__guides {
   height: 44px;
   display: grid;
   grid-template-columns: repeat(var(--gantt-cols, 7), minmax(0, 1fr));
   column-gap: 3px;
   padding: 0 2px;
   box-sizing: border-box;
+}
+
+.crm-fleet-gantt__guides {
+  position: absolute;
+  inset: 36px 0 0;
+  height: auto;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .crm-fleet-gantt__axis {
@@ -7766,6 +7785,24 @@ select.crm-input option {
   align-items: center;
   background: rgba(255, 255, 255, 0.035);
   border-radius: 8px;
+}
+
+.crm-fleet-gantt__guide {
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.22);
+}
+
+.crm-fleet-gantt__guide:first-child {
+  border-left: none;
+  box-shadow: none;
+}
+
+.crm-fleet-gantt__guide:last-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.crm-fleet-gantt__guide--weekend {
+  background: rgba(255, 193, 7, 0.05);
 }
 
 .crm-fleet-gantt__bar {

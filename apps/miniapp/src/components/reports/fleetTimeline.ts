@@ -143,6 +143,15 @@ export function defaultTimelineRange(scale: TimelineScale, asOfYmd: string): Tim
   return rangeForScale(scale, asOfYmd);
 }
 
+/** True when the next calendar period starts on or before as-of (never navigate into the future). */
+export function canShiftTimelineForward(
+  scale: TimelineScale,
+  range: TimelineRange,
+  asOfYmd: string,
+): boolean {
+  return shiftTimelineRange(scale, range, 1).from <= asOfYmd.slice(0, 10);
+}
+
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
@@ -206,22 +215,52 @@ function monthKey(ymd: string): string {
   return ymd.slice(0, 7);
 }
 
+export function clipRangeToAsOf(range: TimelineRange, asOfYmd: string): TimelineRange | null {
+  const asOf = asOfYmd.slice(0, 10);
+  const from = range.from.slice(0, 10);
+  const to = range.to.slice(0, 10);
+  if (from > asOf) return null;
+  return { from, to: to < asOf ? to : asOf };
+}
+
+function yearMonthColumns(
+  range: TimelineRange,
+  columnLabel: (ymd: string) => string,
+): { key: string; label: string; weekend: boolean }[] {
+  const out: { key: string; label: string; weekend: boolean }[] = [];
+  const start = parseLocalYmd(range.from);
+  const end = parseLocalYmd(range.to);
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const last = new Date(end.getFullYear(), end.getMonth(), 1);
+  while (cursor <= last) {
+    const key = `${cursor.getFullYear()}-${pad2(cursor.getMonth() + 1)}`;
+    out.push({ key, label: columnLabel(`${key}-01`), weekend: false });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return out;
+}
+
 function barPlacement(
   overlapFrom: string,
   overlapTo: string,
   range: TimelineRange,
   scale: TimelineScale,
+  columns: { key: string }[],
 ): { leftPct: number; widthPct: number; colStart: number; colSpan: number } {
+  const n = Math.max(1, columns.length);
   if (scale === "year") {
-    const startM = Number(overlapFrom.slice(5, 7));
-    const endM = Number(overlapTo.slice(5, 7));
-    const colStart = Math.min(12, Math.max(1, startM));
-    const colSpan = Math.max(1, endM - startM + 1);
+    const fromKey = monthKey(overlapFrom);
+    const toKey = monthKey(overlapTo);
+    const startIdx = columns.findIndex((c) => c.key === fromKey);
+    const endIdx = columns.findIndex((c) => c.key === toKey);
+    const colStart = startIdx >= 0 ? startIdx + 1 : 1;
+    const colEnd = endIdx >= 0 ? endIdx + 1 : n;
+    const colSpan = Math.max(1, colEnd - colStart + 1);
     return {
       colStart,
       colSpan,
-      leftPct: round2(((colStart - 1) / 12) * 100),
-      widthPct: round2((colSpan / 12) * 100),
+      leftPct: round2(((colStart - 1) / n) * 100),
+      widthPct: round2((colSpan / n) * 100),
     };
   }
   const total = daysInclusive(range.from, range.to);
@@ -242,20 +281,35 @@ function plateOf(agreement: Agreement): string {
   return agreement.car?.plate ?? agreement.carId;
 }
 
+function emptyTimelineModel(asOfYmd: string, idleCars: number): TimelineModel {
+  const asOf = asOfYmd.slice(0, 10);
+  return {
+    range: { from: asOf, to: asOf },
+    columns: [],
+    heat: [],
+    rows: [],
+    activeCars: 0,
+    carDays: 0,
+    expectedRent: 0,
+    idleCars,
+  };
+}
+
 export function buildFleetTimeline(
   agreements: Agreement[],
   cars: { id: string; plate: string }[],
   range: TimelineRange,
   scale: TimelineScale,
   columnLabel: (ymd: string) => string,
+  asOfYmd: string = toYmd(new Date()),
 ): TimelineModel {
-  const days = eachYmd(range.from, range.to);
+  const visible = clipRangeToAsOf(range, asOfYmd);
+  if (!visible) return emptyTimelineModel(asOfYmd, cars.length);
+
+  const days = eachYmd(visible.from, visible.to);
   const columns =
     scale === "year"
-      ? Array.from({ length: 12 }, (_, i) => {
-          const key = `${range.from.slice(0, 4)}-${pad2(i + 1)}`;
-          return { key, label: columnLabel(`${key}-01`), weekend: false };
-        })
+      ? yearMonthColumns(visible, columnLabel)
       : days.map((ymd) => {
           const dow = parseLocalYmd(ymd).getDay();
           return { key: ymd, label: columnLabel(ymd), weekend: dow === 0 || dow === 6 };
@@ -264,7 +318,7 @@ export function buildFleetTimeline(
   const carLabel = new Map(cars.map((c) => [c.id, c.plate]));
   const rawClips: RawClip[] = [];
   for (const a of agreements) {
-    const clip = clipAgreementToRange(a.startDate, a.endDate, range);
+    const clip = clipAgreementToRange(a.startDate, a.endDate, visible);
     if (!clip) continue;
     rawClips.push({
       agreementId: a.id,
@@ -291,7 +345,7 @@ export function buildFleetTimeline(
       const separated = separateSequentialBars(clips);
       const bars: TimelineBar[] = separated.map((clip) => {
         const days = daysInclusive(clip.overlapFrom, clip.overlapTo);
-        const place = barPlacement(clip.overlapFrom, clip.overlapTo, range, scale);
+        const place = barPlacement(clip.overlapFrom, clip.overlapTo, visible, scale, columns);
         return {
           agreementId: clip.agreementId,
           carId: clip.carId,
@@ -357,7 +411,7 @@ export function buildFleetTimeline(
   const idleCars = cars.filter((c) => !byCar.has(c.id)).length;
 
   return {
-    range,
+    range: visible,
     columns,
     heat,
     rows,

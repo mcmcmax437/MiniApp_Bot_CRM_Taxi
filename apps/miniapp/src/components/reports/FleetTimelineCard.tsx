@@ -8,6 +8,7 @@ import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import {
   barColor,
   buildFleetTimeline,
+  canShiftTimelineForward,
   defaultTimelineRange,
   shiftTimelineRange,
   toYmd,
@@ -40,6 +41,8 @@ export function FleetTimelineCard() {
   }
 
   const locale = i18n.language;
+  const asOf = todayLocal();
+  const canGoNext = canShiftTimelineForward(scale, range, asOf);
 
   const model = useMemo(() => {
     return buildFleetTimeline(
@@ -58,8 +61,9 @@ export function FleetTimelineCard() {
         }
         return String(d.getDate());
       },
+      asOf,
     );
-  }, [agreements.data, cars.data, range, scale, locale]);
+  }, [agreements.data, cars.data, range, scale, locale, asOf]);
 
   const loading = agreements.isLoading || cars.isLoading;
   const maxHeat = Math.max(1, ...model.heat.map((c) => c.cars));
@@ -109,13 +113,14 @@ export function FleetTimelineCard() {
             <span className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--left" aria-hidden />
           </button>
           <div className="crm-fleet-timeline__range">
-            {formatDate(range.from)}
-            {range.from !== range.to ? ` – ${formatDate(range.to)}` : ""}
+            {formatDate(model.range.from)}
+            {model.range.from !== model.range.to ? ` – ${formatDate(model.range.to)}` : ""}
           </div>
           <button
             type="button"
             className="crm-fleet-timeline__nav-btn"
             onClick={() => setRange((prev) => shiftTimelineRange(scale, prev, 1))}
+            disabled={!canGoNext}
             aria-label={t("reports.fleetTimelineNext")}
           >
             <span className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--right" aria-hidden />
@@ -178,6 +183,7 @@ export function FleetTimelineCard() {
 
               <div
                 className="crm-fleet-gantt__mid"
+                style={{ ["--gantt-cols" as string]: String(colCount) }}
                 onWheel={(e) => {
                   const el = e.currentTarget;
                   if (el.scrollWidth <= el.clientWidth) return;
@@ -186,42 +192,48 @@ export function FleetTimelineCard() {
                   el.scrollLeft += e.deltaY;
                 }}
               >
-                <div className="crm-fleet-gantt__axis" style={{ ["--gantt-cols" as string]: String(colCount) }}>
-                  {model.columns.map((col) => (
-                    <span
-                      key={col.key}
-                      className={`crm-fleet-gantt__tick${col.weekend ? " crm-fleet-gantt__tick--weekend" : ""}`}
-                    >
-                      {col.label}
-                    </span>
-                  ))}
-                </div>
-                {model.rows.map((row) => (
-                  <div
-                    key={row.carId}
-                    className="crm-fleet-gantt__track"
-                    style={{ ["--gantt-cols" as string]: String(colCount) }}
-                  >
-                    {row.bars.map((bar) => (
-                      <div
-                        key={bar.agreementId}
-                        className="crm-fleet-gantt__bar"
-                        style={{
-                          gridColumn: `${bar.colStart} / span ${bar.colSpan}`,
-                          background: barColor(bar.driverName + bar.carId),
-                        }}
-                        title={t("reports.fleetTimelineBar", {
-                          driver: bar.driverName,
-                          plate: bar.plate,
-                          days: bar.days,
-                          amount: formatMoney(bar.expectedRent),
-                        })}
+                <div className="crm-fleet-gantt__canvas">
+                  <div className="crm-fleet-gantt__axis">
+                    {model.columns.map((col) => (
+                      <span
+                        key={col.key}
+                        className={`crm-fleet-gantt__tick${col.weekend ? " crm-fleet-gantt__tick--weekend" : ""}`}
                       >
-                        <span className="crm-fleet-gantt__bar-label">{bar.driverName}</span>
-                      </div>
+                        {col.label}
+                      </span>
                     ))}
                   </div>
-                ))}
+                  {model.rows.map((row) => (
+                    <div key={row.carId} className="crm-fleet-gantt__track">
+                      {row.bars.map((bar) => (
+                        <div
+                          key={bar.agreementId}
+                          className="crm-fleet-gantt__bar"
+                          style={{
+                            gridColumn: `${bar.colStart} / span ${bar.colSpan}`,
+                            background: barColor(bar.driverName + bar.carId),
+                          }}
+                          title={t("reports.fleetTimelineBar", {
+                            driver: bar.driverName,
+                            plate: bar.plate,
+                            days: bar.days,
+                            amount: formatMoney(bar.expectedRent),
+                          })}
+                        >
+                          <span className="crm-fleet-gantt__bar-label">{bar.driverName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <div className="crm-fleet-gantt__guides" aria-hidden>
+                    {model.columns.map((col) => (
+                      <span
+                        key={col.key}
+                        className={`crm-fleet-gantt__guide${col.weekend ? " crm-fleet-gantt__guide--weekend" : ""}`}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}

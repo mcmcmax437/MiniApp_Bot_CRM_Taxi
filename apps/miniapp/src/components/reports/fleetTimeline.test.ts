@@ -4,7 +4,9 @@ import type { Agreement } from "../../types";
 import {
   barColor,
   buildFleetTimeline,
+  canShiftTimelineForward,
   clipAgreementToRange,
+  clipRangeToAsOf,
   defaultTimelineRange,
   expectedRentForDays,
   isoWeekRangeContaining,
@@ -67,6 +69,18 @@ describe("range helpers", () => {
       to: "2026-12-31",
     });
   });
+
+  it("does not allow shifting into a period that starts after as-of", () => {
+    expect(
+      canShiftTimelineForward("week", { from: "2026-08-31", to: "2026-09-06" }, "2026-08-31"),
+    ).toBe(false);
+    expect(
+      canShiftTimelineForward("week", { from: "2026-08-24", to: "2026-08-30" }, "2026-08-31"),
+    ).toBe(true);
+    expect(
+      canShiftTimelineForward("month", { from: "2026-08-01", to: "2026-08-31" }, "2026-08-31"),
+    ).toBe(false);
+  });
 });
 
 describe("clipAgreementToRange", () => {
@@ -82,6 +96,16 @@ describe("clipAgreementToRange", () => {
 
   it("returns null when there is no overlap", () => {
     expect(clipAgreementToRange("2026-07-01", "2026-07-31", week)).toBeNull();
+  });
+});
+
+describe("clipRangeToAsOf", () => {
+  it("caps the range end at as-of and rejects a range that starts later", () => {
+    expect(clipRangeToAsOf({ from: "2026-08-31", to: "2026-09-06" }, "2026-08-31")).toEqual({
+      from: "2026-08-31",
+      to: "2026-08-31",
+    });
+    expect(clipRangeToAsOf({ from: "2026-09-07", to: "2026-09-13" }, "2026-08-31")).toBeNull();
   });
 });
 
@@ -129,6 +153,7 @@ describe("buildFleetTimeline", () => {
       { from: "2026-08-10", to: "2026-08-16" },
       "week",
       (ymd) => ymd.slice(8),
+      "2026-12-31",
     );
 
     expect(model.columns).toHaveLength(7);
@@ -177,6 +202,7 @@ describe("buildFleetTimeline", () => {
       { from: "2026-08-10", to: "2026-08-16" },
       "week",
       (ymd) => ymd.slice(8),
+      "2026-12-31",
     );
 
     const bars = model.rows[0]?.bars ?? [];
@@ -186,5 +212,60 @@ describe("buildFleetTimeline", () => {
     expect(bars[0]?.colSpan).toBe(4);
     expect(bars[1]?.colSpan).toBe(3);
     expect((bars[0]?.leftPct ?? 0) + (bars[0]?.widthPct ?? 0)).toBeLessThanOrEqual(bars[1]?.leftPct ?? 0);
+  });
+
+  it("does not extend axis or bars past as-of", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          startDate: "2026-08-01",
+          endDate: null,
+        }),
+      ],
+      [{ id: "c1", plate: "DX1" }],
+      { from: "2026-08-31", to: "2026-09-06" },
+      "week",
+      (ymd) => ymd.slice(8),
+      "2026-08-31",
+    );
+
+    expect(model.range).toEqual({ from: "2026-08-31", to: "2026-08-31" });
+    expect(model.columns.map((c) => c.key)).toEqual(["2026-08-31"]);
+    expect(model.rows[0]?.bars[0]?.overlapTo).toBe("2026-08-31");
+    expect(model.rows[0]?.bars[0]?.colSpan).toBe(1);
+    expect(model.carDays).toBe(1);
+  });
+
+  it("stops year columns at the as-of month", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          startDate: "2026-01-01",
+          endDate: null,
+        }),
+      ],
+      [{ id: "c1", plate: "DX1" }],
+      { from: "2026-01-01", to: "2026-12-31" },
+      "year",
+      (ymd) => ymd.slice(5, 7),
+      "2026-08-31",
+    );
+
+    expect(model.range.to).toBe("2026-08-31");
+    expect(model.columns.map((c) => c.key)).toEqual([
+      "2026-01",
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05",
+      "2026-06",
+      "2026-07",
+      "2026-08",
+    ]);
+    expect(model.rows[0]?.bars[0]?.colSpan).toBe(8);
   });
 });
