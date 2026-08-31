@@ -94,6 +94,11 @@ describe("expectedRentForDays", () => {
   it("multiplies daily rent by days", () => {
     expect(expectedRentForDays(100, RentPeriod.DAILY, 3)).toBe(300);
   });
+
+  it("pro-rates monthly and yearly rent over calendar days", () => {
+    expect(expectedRentForDays(3000, RentPeriod.MONTHLY, 15)).toBe(1500);
+    expect(expectedRentForDays(3650, RentPeriod.YEARLY, 10)).toBe(100);
+  });
 });
 
 describe("buildFleetTimeline", () => {
@@ -145,5 +150,81 @@ describe("buildFleetTimeline", () => {
   it("picks a stable color per driver", () => {
     expect(barColor("Andrzej")).toBe(barColor("Andrzej"));
     expect(barColor("Andrzej")).not.toBe(barColor("Piotr"));
+  });
+
+  it("deduplicates same-car active days while keeping each agreement bar", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          car: { id: "c1", plate: "DX90680" },
+          driver: { id: "d1", fullName: "Andrzej" },
+          driverId: "d1",
+          temporaryDriverName: null,
+          rentAmount: 700,
+          startDate: "2026-08-10",
+          endDate: "2026-08-16",
+        }),
+        agreement({
+          id: "a2",
+          carId: "c1",
+          car: { id: "c1", plate: "DX90680" },
+          temporaryDriverName: "Overlap driver",
+          rentAmount: 350,
+          startDate: "2026-08-14",
+          endDate: "2026-08-16",
+        }),
+      ],
+      [
+        { id: "c1", plate: "DX90680" },
+        { id: "c2", plate: "IDLE" },
+      ],
+      { from: "2026-08-10", to: "2026-08-16" },
+      "week",
+      (ymd) => ymd.slice(8),
+    );
+
+    expect(model.activeCars).toBe(1);
+    expect(model.idleCars).toBe(1);
+    expect(model.carDays).toBe(7);
+    expect(model.expectedRent).toBe(700 + 150);
+    expect(model.heat.map((cell) => cell.cars)).toEqual([1, 1, 1, 1, 1, 1, 1]);
+    expect(model.rows[0]?.days).toBe(7);
+    expect(model.rows[0]?.bars.map((bar) => bar.agreementId)).toEqual(["a1", "a2"]);
+  });
+
+  it("counts unique cars per month in yearly heat cells", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "jan-span",
+          carId: "c1",
+          car: { id: "c1", plate: "DX90680" },
+          startDate: "2026-01-20",
+          endDate: "2026-02-10",
+        }),
+        agreement({
+          id: "feb-other",
+          carId: "c2",
+          car: { id: "c2", plate: "DX12345" },
+          startDate: "2026-02-05",
+          endDate: "2026-02-20",
+        }),
+      ],
+      [
+        { id: "c1", plate: "DX90680" },
+        { id: "c2", plate: "DX12345" },
+        { id: "c3", plate: "IDLE" },
+      ],
+      { from: "2026-01-01", to: "2026-12-31" },
+      "year",
+      (ymd) => ymd.slice(5, 7),
+    );
+
+    expect(model.columns).toHaveLength(12);
+    expect(model.heat.map((cell) => cell.cars)).toEqual([1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(model.activeCars).toBe(2);
+    expect(model.idleCars).toBe(1);
   });
 });
