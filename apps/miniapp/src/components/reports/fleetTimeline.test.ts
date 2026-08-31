@@ -187,4 +187,86 @@ describe("buildFleetTimeline", () => {
     expect(bars[1]?.colSpan).toBe(3);
     expect((bars[0]?.leftPct ?? 0) + (bars[0]?.widthPct ?? 0)).toBeLessThanOrEqual(bars[1]?.leftPct ?? 0);
   });
+
+  it("places annual bars on month columns and aggregates heat by distinct cars per month", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          car: { id: "c1", plate: "DX90680" },
+          temporaryDriverName: "Jan-Mar driver",
+          rentAmount: 3000,
+          period: RentPeriod.MONTHLY,
+          startDate: "2026-01-15",
+          endDate: "2026-03-05",
+        }),
+        agreement({
+          id: "a2",
+          carId: "c2",
+          car: { id: "c2", plate: "DX12345" },
+          temporaryDriverName: "November driver",
+          rentAmount: 100,
+          period: RentPeriod.DAILY,
+          startDate: "2026-11-20",
+          endDate: null,
+        }),
+        agreement({
+          id: "a3",
+          carId: "c3",
+          car: { id: "c3", plate: "CLIPPED" },
+          temporaryDriverName: "Clipped driver",
+          rentAmount: 100,
+          period: RentPeriod.DAILY,
+          startDate: "2025-12-20",
+          endDate: "2026-01-05",
+        }),
+      ],
+      [
+        { id: "c1", plate: "DX90680" },
+        { id: "c2", plate: "DX12345" },
+        { id: "c3", plate: "CLIPPED" },
+        { id: "c4", plate: "IDLE" },
+      ],
+      { from: "2026-01-01", to: "2026-12-31" },
+      "year",
+      (ymd) => `M${ymd.slice(5, 7)}`,
+    );
+
+    expect(model.columns).toEqual(
+      Array.from({ length: 12 }, (_, i) => {
+        const month = String(i + 1).padStart(2, "0");
+        return { key: `2026-${month}`, label: `M${month}`, weekend: false };
+      }),
+    );
+    expect(model.idleCars).toBe(1);
+
+    const janToMar = model.rows.find((row) => row.carId === "c1")?.bars[0];
+    expect(janToMar).toMatchObject({
+      overlapFrom: "2026-01-15",
+      overlapTo: "2026-03-05",
+      colStart: 1,
+      colSpan: 3,
+      leftPct: 0,
+      widthPct: 25,
+    });
+
+    const clipped = model.rows.find((row) => row.carId === "c3")?.bars[0];
+    expect(clipped).toMatchObject({
+      overlapFrom: "2026-01-01",
+      overlapTo: "2026-01-05",
+      colStart: 1,
+      colSpan: 1,
+    });
+
+    const novToDec = model.rows.find((row) => row.carId === "c2")?.bars[0];
+    expect(novToDec).toMatchObject({
+      overlapFrom: "2026-11-20",
+      overlapTo: "2026-12-31",
+      colStart: 11,
+      colSpan: 2,
+    });
+
+    expect(model.heat.map((cell) => cell.cars)).toEqual([2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1]);
+  });
 });
