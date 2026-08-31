@@ -80,6 +80,12 @@ describe("range helpers", () => {
     expect(
       canShiftTimelineForward("month", { from: "2026-08-01", to: "2026-08-31" }, "2026-08-31"),
     ).toBe(false);
+    expect(
+      canShiftTimelineForward("year", { from: "2025-01-01", to: "2025-12-31" }, "2026-01-01"),
+    ).toBe(true);
+    expect(
+      canShiftTimelineForward("year", { from: "2026-01-01", to: "2026-12-31" }, "2026-08-31"),
+    ).toBe(false);
   });
 });
 
@@ -238,6 +244,38 @@ describe("buildFleetTimeline", () => {
     expect(model.carDays).toBe(1);
   });
 
+  it("returns an empty model when the whole requested range is after as-of", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          startDate: "2026-09-07",
+          endDate: null,
+        }),
+      ],
+      [
+        { id: "c1", plate: "DX1" },
+        { id: "c2", plate: "DX2" },
+      ],
+      { from: "2026-09-07", to: "2026-09-13" },
+      "week",
+      (ymd) => ymd.slice(8),
+      "2026-08-31",
+    );
+
+    expect(model).toMatchObject({
+      range: { from: "2026-08-31", to: "2026-08-31" },
+      columns: [],
+      heat: [],
+      rows: [],
+      activeCars: 0,
+      carDays: 0,
+      expectedRent: 0,
+      idleCars: 2,
+    });
+  });
+
   it("stops year columns at the as-of month", () => {
     const model = buildFleetTimeline(
       [
@@ -267,5 +305,33 @@ describe("buildFleetTimeline", () => {
       "2026-08",
     ]);
     expect(model.rows[0]?.bars[0]?.colSpan).toBe(8);
+  });
+
+  it("places year bars against the visible month columns when the range starts mid-year", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          startDate: "2026-07-15",
+          endDate: null,
+        }),
+      ],
+      [{ id: "c1", plate: "DX1" }],
+      { from: "2026-07-01", to: "2026-12-31" },
+      "year",
+      (ymd) => ymd.slice(5, 7),
+      "2026-08-31",
+    );
+
+    expect(model.columns.map((c) => c.key)).toEqual(["2026-07", "2026-08"]);
+    expect(model.rows[0]?.bars[0]).toMatchObject({
+      overlapFrom: "2026-07-15",
+      overlapTo: "2026-08-31",
+      colStart: 1,
+      colSpan: 2,
+      leftPct: 0,
+      widthPct: 100,
+    });
   });
 });
