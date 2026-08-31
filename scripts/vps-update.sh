@@ -5,6 +5,7 @@ set -euo pipefail
 APP_DIR="${VPS_APP_DIR:-/usr/src/taxi-crm-miniApp/MiniApp_Bot_CRM_Taxi}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 LOCK_SHA_FILE=".deploy-npm-lock-sha"
+PM2_APP_NAMES=(taxi-api taxi-bot)
 
 cd "$APP_DIR"
 
@@ -80,7 +81,9 @@ if deps_current; then
   echo "==> Dependencies unchanged — skip npm install"
 else
   echo "==> Install dependencies (pause app to free RAM)"
-  pm2 stop all || true
+  for pm2_app in "${PM2_APP_NAMES[@]}"; do
+    pm2 stop "$pm2_app" || true
+  done
   # Incremental install: `npm ci` deletes node_modules first and often OOM-kills 1 GB boxes.
   npm install --no-audit --no-fund --no-progress
   lockfile_sha > "$LOCK_SHA_FILE"
