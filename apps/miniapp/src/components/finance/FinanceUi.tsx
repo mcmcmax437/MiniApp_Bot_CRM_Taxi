@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
@@ -45,11 +45,85 @@ const TAB_META: Record<
 export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: FinanceTabId) => void }) {
   const { t } = useTranslation();
   const tabs: FinanceTabId[] = ["payments", "expenses", "taxes", "fleet", "balances"];
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScroll, setCanScroll] = useState({ left: false, right: false });
+
+  function updateOverflow() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanScroll({
+      left: el.scrollLeft > 2,
+      right: max - el.scrollLeft > 2,
+    });
+  }
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateOverflow();
+    const onScroll = () => updateOverflow();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(() => updateOverflow());
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const activeBtn = el.querySelector<HTMLButtonElement>(".crm-finance-tab--active");
+    activeBtn?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    updateOverflow();
+  }, [props.active]);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const scroller: HTMLDivElement = node;
+    function onWheel(e: WheelEvent) {
+      if (scroller.scrollWidth <= scroller.clientWidth) return;
+      const mostlyVertical = Math.abs(e.deltaY) > Math.abs(e.deltaX);
+      if (!mostlyVertical) return;
+      e.preventDefault();
+      scroller.scrollLeft += e.deltaY;
+    }
+    scroller.addEventListener("wheel", onWheel, { passive: false });
+    return () => scroller.removeEventListener("wheel", onWheel);
+  }, []);
+
+  function scrollByDir(dir: -1 | 1) {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(120, el.clientWidth * 0.6), behavior: "smooth" });
+  }
+
+  function onTabKeyDown(index: number, e: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const next = e.key === "ArrowRight" ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length;
+    props.onChange(tabs[next]!);
+    const buttons = scrollRef.current?.querySelectorAll<HTMLButtonElement>(".crm-finance-tab");
+    buttons?.[next]?.focus();
+  }
 
   return (
-    <div className="crm-finance-tabs glass-card">
-      <div className="crm-finance-tabs__scroll">
-        {tabs.map((id) => {
+    <div className={`crm-finance-tabs glass-card${canScroll.left || canScroll.right ? " crm-finance-tabs--overflow" : ""}`}>
+      <button
+        type="button"
+        className="crm-finance-tabs__chevron crm-finance-tabs__chevron--left"
+        onClick={() => scrollByDir(-1)}
+        disabled={!canScroll.left}
+        aria-label={t("common.scrollLeft")}
+        tabIndex={-1}
+      >
+        <Icon name="arrow-left-01" size={16} color="currentColor" />
+      </button>
+      <div className="crm-finance-tabs__scroll" ref={scrollRef} role="tablist" aria-label={t("nav.finance")}>
+        {tabs.map((id, index) => {
           const meta = TAB_META[id];
           const active = props.active === id;
           const label =
@@ -67,8 +141,14 @@ export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: Finan
             <button
               key={id}
               type="button"
+              role="tab"
               className={`crm-finance-tab${active ? " crm-finance-tab--active" : ""}`}
               onClick={() => props.onChange(id)}
+              onKeyDown={(e) => onTabKeyDown(index, e)}
+              onFocus={(e) => {
+                e.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest" });
+              }}
+              aria-selected={active}
               aria-current={active ? "page" : undefined}
             >
               <span className="crm-finance-tab__icon">{meta.icon(active ? "#fff" : meta.color)}</span>
@@ -77,6 +157,16 @@ export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: Finan
           );
         })}
       </div>
+      <button
+        type="button"
+        className="crm-finance-tabs__chevron crm-finance-tabs__chevron--right"
+        onClick={() => scrollByDir(1)}
+        disabled={!canScroll.right}
+        aria-label={t("common.scrollRight")}
+        tabIndex={-1}
+      >
+        <Icon name="arrow-right-01" size={16} color="currentColor" />
+      </button>
     </div>
   );
 }

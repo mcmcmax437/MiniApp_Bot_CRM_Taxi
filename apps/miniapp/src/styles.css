@@ -3847,6 +3847,9 @@ button.crm-driver-stat:hover {
   margin-top: 12px;
   padding: 6px;
   overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
 }
 
 .crm-finance-tabs__scroll {
@@ -3854,12 +3857,32 @@ button.crm-driver-stat:hover {
   flex-wrap: nowrap;
   gap: 6px;
   overflow-x: auto;
+  min-width: 0;
+  flex: 1;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 
 .crm-finance-tabs__scroll::-webkit-scrollbar {
   display: none;
+}
+
+.crm-finance-tabs__chevron {
+  display: none;
+  flex-shrink: 0;
+  width: 28px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  place-items: center;
+  padding: 0;
+}
+
+.crm-finance-tabs__chevron:disabled {
+  opacity: 0.28;
+  cursor: default;
 }
 
 .crm-finance-tab {
@@ -3880,6 +3903,11 @@ button.crm-driver-stat:hover {
   text-align: left;
   line-height: 1.15;
   white-space: nowrap;
+}
+
+.crm-finance-tab:focus-visible {
+  outline: 2px solid rgba(91, 157, 255, 0.85);
+  outline-offset: 2px;
 }
 
 .crm-finance-tab__icon {
@@ -3905,6 +3933,28 @@ button.crm-driver-stat:hover {
 
 .crm-finance-tab--active .crm-finance-tab__icon {
   background: rgba(255, 255, 255, 0.14);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .crm-finance-tabs__scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+    padding-bottom: 2px;
+  }
+
+  .crm-finance-tabs__scroll::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  .crm-finance-tabs__scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 99px;
+  }
+
+  .crm-finance-tabs--overflow .crm-finance-tabs__chevron {
+    display: grid;
+  }
 }
 
 .crm-finance-add-btn {
@@ -7540,5 +7590,212 @@ select.crm-input option {
     gap: 2px;
     padding: 8px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* Fleet timeline (Reports) */
+.crm-fleet-timeline__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.crm-fleet-timeline__scales {
+  display: flex;
+  gap: 6px;
+}
+
+.crm-fleet-timeline__scale {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.crm-fleet-timeline__scale--active {
+  background: linear-gradient(135deg, #1a4f9c, #153d7a);
+  border-color: rgba(91, 157, 255, 0.45);
+  color: #fff;
+}
+
+.crm-fleet-timeline__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crm-fleet-timeline__nav-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.crm-fleet-timeline__range {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+}
+
+.crm-fleet-timeline__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.crm-fleet-timeline__expected {
+  color: var(--taxi-income);
+  font-weight: 700;
+}
+
+.crm-fleet-timeline__heat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-fleet-timeline__heat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--taxi-text-muted);
+}
+
+.crm-fleet-timeline__heat-row {
+  display: flex;
+  gap: 3px;
+  min-height: 14px;
+}
+
+.crm-fleet-timeline__heat-cell {
+  flex: 1;
+  min-width: 6px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.crm-fleet-gantt {
+  display: grid;
+  grid-template-columns: minmax(4.6rem, 22%) minmax(0, 1fr) minmax(5.4rem, 26%);
+  column-gap: 8px;
+  align-items: start;
+}
+
+.crm-fleet-gantt__side,
+.crm-fleet-gantt__mid {
+  display: grid;
+  grid-auto-rows: 36px;
+}
+
+.crm-fleet-gantt__mid {
+  overflow-x: auto;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+.crm-fleet-gantt__axis,
+.crm-fleet-gantt__track {
+  position: relative;
+  min-width: max(100%, calc(var(--gantt-cols, 7) * 28px));
+  height: 36px;
+}
+
+.crm-fleet-gantt__axis {
+  display: grid;
+  grid-template-columns: repeat(var(--gantt-cols, 7), minmax(0, 1fr));
+  align-items: end;
+}
+
+.crm-fleet-gantt__tick {
+  font-size: 10px;
+  color: var(--taxi-text-muted);
+  text-align: center;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 1px;
+}
+
+.crm-fleet-gantt__tick--weekend {
+  color: rgba(255, 193, 7, 0.7);
+}
+
+.crm-fleet-gantt__track {
+  background: rgba(255, 255, 255, 0.035);
+  border-radius: 8px;
+}
+
+.crm-fleet-gantt__bar {
+  position: absolute;
+  top: 6px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  min-width: 8px;
+  overflow: hidden;
+  padding: 0 6px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.crm-fleet-gantt__bar-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #08111f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-fleet-gantt__plate {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 4px;
+}
+
+.crm-fleet-gantt__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: right;
+}
+
+.crm-fleet-gantt__corner {
+  height: 36px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .crm-fleet-gantt__mid::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .crm-fleet-gantt__mid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 99px;
   }
 }

@@ -39,6 +39,7 @@ import {
 } from "./FinanceUi";
 import { CarDriverHistoryModal } from "./CarDriverHistoryModal";
 import { FleetCarCard } from "./FleetCarCard";
+import { FleetTimelineCard } from "../reports/FleetTimelineCard";
 import { useReadOnly } from "../../readOnly";
 import {
   findAgreementDateConflict,
@@ -317,6 +318,8 @@ export function FleetTab() {
           icon={<Icon name="garage" size={16} color="#448aff" />}
         />
       </FinanceStatsRow>
+
+      <FleetTimelineCard />
 
       <div className="crm-search-row crm-fleet-search">
         <label className="crm-search-input">
