@@ -7596,15 +7596,16 @@ select.crm-input option {
 /* Fleet timeline (Reports) */
 .crm-fleet-timeline__toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 10px;
   align-items: center;
-  justify-content: space-between;
 }
 
 .crm-fleet-timeline__scales {
   display: flex;
+  justify-content: center;
   gap: 6px;
+  width: 100%;
 }
 
 .crm-fleet-timeline__scale {
@@ -7627,21 +7628,42 @@ select.crm-input option {
 .crm-fleet-timeline__nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   min-width: 0;
+  width: 100%;
 }
 
 .crm-fleet-timeline__nav-btn {
   width: 36px;
   height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
   display: grid;
   place-items: center;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
+}
+
+.crm-fleet-timeline__chevron {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-top: 2px solid #fff;
+  border-right: 2px solid #fff;
+}
+
+.crm-fleet-timeline__chevron--left {
+  transform: rotate(-135deg);
+  margin-left: 3px;
+}
+
+.crm-fleet-timeline__chevron--right {
+  transform: rotate(45deg);
+  margin-right: 3px;
 }
 
 .crm-fleet-timeline__range {
@@ -7691,7 +7713,7 @@ select.crm-input option {
 
 .crm-fleet-gantt {
   display: grid;
-  grid-template-columns: minmax(4.6rem, 22%) minmax(0, 1fr) minmax(5.4rem, 26%);
+  grid-template-columns: minmax(5.2rem, 28%) minmax(0, 1fr);
   column-gap: 8px;
   align-items: start;
 }
@@ -7699,7 +7721,7 @@ select.crm-input option {
 .crm-fleet-gantt__side,
 .crm-fleet-gantt__mid {
   display: grid;
-  grid-auto-rows: 36px;
+  grid-auto-rows: 44px;
 }
 
 .crm-fleet-gantt__mid {
@@ -7712,14 +7734,16 @@ select.crm-input option {
 
 .crm-fleet-gantt__axis,
 .crm-fleet-gantt__track {
-  position: relative;
   min-width: max(100%, calc(var(--gantt-cols, 7) * 28px));
-  height: 36px;
+  height: 44px;
+  display: grid;
+  grid-template-columns: repeat(var(--gantt-cols, 7), minmax(0, 1fr));
+  column-gap: 3px;
+  padding: 0 2px;
+  box-sizing: border-box;
 }
 
 .crm-fleet-gantt__axis {
-  display: grid;
-  grid-template-columns: repeat(var(--gantt-cols, 7), minmax(0, 1fr));
   align-items: end;
 }
 
@@ -7739,21 +7763,23 @@ select.crm-input option {
 }
 
 .crm-fleet-gantt__track {
+  align-items: center;
   background: rgba(255, 255, 255, 0.035);
   border-radius: 8px;
 }
 
 .crm-fleet-gantt__bar {
-  position: absolute;
-  top: 6px;
-  height: 24px;
-  border-radius: 6px;
+  grid-row: 1;
+  height: 28px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
-  min-width: 8px;
+  min-width: 0;
+  max-width: 100%;
+  width: auto;
   overflow: hidden;
-  padding: 0 6px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  padding: 0 8px;
+  box-sizing: border-box;
 }
 
 .crm-fleet-gantt__bar-label {
@@ -7763,30 +7789,37 @@ select.crm-input option {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .crm-fleet-gantt__plate {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 4px;
+}
+
+.crm-fleet-gantt__plate-id {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding-right: 4px;
 }
 
-.crm-fleet-gantt__meta {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: 11px;
+.crm-fleet-gantt__plate-meta {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
   line-height: 1.2;
-  color: rgba(255, 255, 255, 0.7);
-  text-align: right;
 }
 
 .crm-fleet-gantt__corner {
-  height: 36px;
+  height: 44px;
 }
 
 @media (hover: hover) and (pointer: fine) {

@@ -106,7 +106,7 @@ export function FleetTimelineCard() {
             onClick={() => setRange((prev) => shiftTimelineRange(scale, prev, -1))}
             aria-label={t("reports.fleetTimelinePrev")}
           >
-            <Icon name="arrow-left-01" size={18} color="currentColor" />
+            <span className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--left" aria-hidden />
           </button>
           <div className="crm-fleet-timeline__range">
             {formatDate(range.from)}
@@ -118,7 +118,7 @@ export function FleetTimelineCard() {
             onClick={() => setRange((prev) => shiftTimelineRange(scale, prev, 1))}
             aria-label={t("reports.fleetTimelineNext")}
           >
-            <Icon name="arrow-right-01" size={18} color="currentColor" />
+            <span className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--right" aria-hidden />
           </button>
         </div>
       </div>
@@ -168,7 +168,10 @@ export function FleetTimelineCard() {
                 <div className="crm-fleet-gantt__corner" />
                 {model.rows.map((row) => (
                   <div key={row.carId} className="crm-fleet-gantt__plate" title={row.plate}>
-                    {row.plate}
+                    <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
+                    <span className="crm-fleet-gantt__plate-meta">
+                      {t("reports.fleetTimelineDayCount", { count: row.days })} · {formatMoney(row.expectedRent)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -204,8 +207,7 @@ export function FleetTimelineCard() {
                         key={bar.agreementId}
                         className="crm-fleet-gantt__bar"
                         style={{
-                          left: `${bar.leftPct}%`,
-                          width: `${bar.widthPct}%`,
+                          gridColumn: `${bar.colStart} / span ${bar.colSpan}`,
                           background: barColor(bar.driverName + bar.carId),
                         }}
                         title={t("reports.fleetTimelineBar", {
@@ -218,16 +220,6 @@ export function FleetTimelineCard() {
                         <span className="crm-fleet-gantt__bar-label">{bar.driverName}</span>
                       </div>
                     ))}
-                  </div>
-                ))}
-              </div>
-
-              <div className="crm-fleet-gantt__side crm-fleet-gantt__side--right">
-                <div className="crm-fleet-gantt__corner" />
-                {model.rows.map((row) => (
-                  <div key={row.carId} className="crm-fleet-gantt__meta">
-                    <span>{t("reports.fleetTimelineDayCount", { count: row.days })}</span>
-                    <span>{formatMoney(row.expectedRent)}</span>
                   </div>
                 ))}
               </div>

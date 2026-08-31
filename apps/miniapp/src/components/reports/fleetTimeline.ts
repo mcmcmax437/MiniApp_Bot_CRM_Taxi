@@ -16,6 +16,9 @@ export type TimelineBar = {
   expectedRent: number;
   leftPct: number;
   widthPct: number;
+  /** 1-based grid column; span equals the number of days (or months in year view). */
+  colStart: number;
+  colSpan: number;
 };
 
 export type TimelineRow = {
@@ -166,19 +169,70 @@ export function clipAgreementToRange(
   return { from, to, days: daysInclusive(from, to) };
 }
 
+type RawClip = {
+  agreementId: string;
+  carId: string;
+  plate: string;
+  driverName: string;
+  startDate: string;
+  overlapFrom: string;
+  overlapTo: string;
+  rentAmount: number;
+  period: RentPeriod;
+};
+
+/**
+ * One car, one driver at a time. If the next rental starts on the day the
+ * previous ends, that handover day belongs to the incoming driver so tags
+ * sit end-to-end instead of stacking on the same day.
+ */
+export function separateSequentialBars(clips: RawClip[]): RawClip[] {
+  const sorted = [...clips].sort((a, b) => {
+    const byFrom = a.overlapFrom.localeCompare(b.overlapFrom);
+    if (byFrom !== 0) return byFrom;
+    return a.startDate.localeCompare(b.startDate) || a.agreementId.localeCompare(b.agreementId);
+  });
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const cur = sorted[i]!;
+    const next = sorted[i + 1]!;
+    if (next.overlapFrom <= cur.overlapTo) {
+      cur.overlapTo = addDaysYmd(next.overlapFrom, -1);
+    }
+  }
+  return sorted.filter((c) => c.overlapFrom <= c.overlapTo);
+}
+
 function monthKey(ymd: string): string {
   return ymd.slice(0, 7);
 }
 
-function barPercents(overlapFrom: string, overlapTo: string, range: TimelineRange): {
-  leftPct: number;
-  widthPct: number;
-} {
+function barPlacement(
+  overlapFrom: string,
+  overlapTo: string,
+  range: TimelineRange,
+  scale: TimelineScale,
+): { leftPct: number; widthPct: number; colStart: number; colSpan: number } {
+  if (scale === "year") {
+    const startM = Number(overlapFrom.slice(5, 7));
+    const endM = Number(overlapTo.slice(5, 7));
+    const colStart = Math.min(12, Math.max(1, startM));
+    const colSpan = Math.max(1, endM - startM + 1);
+    return {
+      colStart,
+      colSpan,
+      leftPct: round2(((colStart - 1) / 12) * 100),
+      widthPct: round2((colSpan / 12) * 100),
+    };
+  }
   const total = daysInclusive(range.from, range.to);
-  if (total <= 0) return { leftPct: 0, widthPct: 0 };
-  const startOffset = daysInclusive(range.from, overlapFrom) - 1;
   const span = daysInclusive(overlapFrom, overlapTo);
+  const startOffset = daysInclusive(range.from, overlapFrom) - 1;
+  const colStart = startOffset + 1;
+  const colSpan = Math.max(1, span);
+  if (total <= 0) return { leftPct: 0, widthPct: 0, colStart: 1, colSpan };
   return {
+    colStart,
+    colSpan,
     leftPct: round2((startOffset / total) * 100),
     widthPct: round2((span / total) * 100),
   };
@@ -208,37 +262,51 @@ export function buildFleetTimeline(
         });
 
   const carLabel = new Map(cars.map((c) => [c.id, c.plate]));
-  const overlapping = agreements
-    .map((a) => {
-      const clip = clipAgreementToRange(a.startDate, a.endDate, range);
-      if (!clip) return null;
-      const pct = barPercents(clip.from, clip.to, range);
-      const bar: TimelineBar = {
-        agreementId: a.id,
-        carId: a.carId,
-        plate: plateOf(a),
-        driverName: agreementDriverDisplayName(a),
-        overlapFrom: clip.from,
-        overlapTo: clip.to,
-        days: clip.days,
-        expectedRent: expectedRentForDays(a.rentAmount, a.period, clip.days),
-        leftPct: pct.leftPct,
-        widthPct: Math.max(pct.widthPct, 1.2),
-      };
-      return bar;
-    })
-    .filter((b): b is TimelineBar => b != null);
+  const rawClips: RawClip[] = [];
+  for (const a of agreements) {
+    const clip = clipAgreementToRange(a.startDate, a.endDate, range);
+    if (!clip) continue;
+    rawClips.push({
+      agreementId: a.id,
+      carId: a.carId,
+      plate: plateOf(a),
+      driverName: agreementDriverDisplayName(a),
+      startDate: a.startDate.slice(0, 10),
+      overlapFrom: clip.from,
+      overlapTo: clip.to,
+      rentAmount: a.rentAmount,
+      period: a.period,
+    });
+  }
 
-  const byCar = new Map<string, TimelineBar[]>();
-  for (const bar of overlapping) {
-    const list = byCar.get(bar.carId) ?? [];
-    list.push(bar);
-    byCar.set(bar.carId, list);
+  const byCar = new Map<string, RawClip[]>();
+  for (const clip of rawClips) {
+    const list = byCar.get(clip.carId) ?? [];
+    list.push(clip);
+    byCar.set(clip.carId, list);
   }
 
   const rows: TimelineRow[] = [...byCar.entries()]
-    .map(([carId, bars]) => {
-      bars.sort((a, b) => a.overlapFrom.localeCompare(b.overlapFrom));
+    .map(([carId, clips]) => {
+      const separated = separateSequentialBars(clips);
+      const bars: TimelineBar[] = separated.map((clip) => {
+        const days = daysInclusive(clip.overlapFrom, clip.overlapTo);
+        const place = barPlacement(clip.overlapFrom, clip.overlapTo, range, scale);
+        return {
+          agreementId: clip.agreementId,
+          carId: clip.carId,
+          plate: clip.plate,
+          driverName: clip.driverName,
+          overlapFrom: clip.overlapFrom,
+          overlapTo: clip.overlapTo,
+          days,
+          expectedRent: expectedRentForDays(clip.rentAmount, clip.period, days),
+          leftPct: place.leftPct,
+          widthPct: place.widthPct,
+          colStart: place.colStart,
+          colSpan: place.colSpan,
+        };
+      });
       const daySet = new Set<string>();
       let expected = 0;
       for (const bar of bars) {
@@ -255,14 +323,17 @@ export function buildFleetTimeline(
         expectedRent: round2(expected),
       };
     })
+    .filter((row) => row.bars.length > 0)
     .sort((a, b) => a.plate.localeCompare(b.plate));
 
   const carsOnDay = new Map<string, Set<string>>();
-  for (const bar of overlapping) {
-    for (let cur = bar.overlapFrom; cur <= bar.overlapTo; cur = addDaysYmd(cur, 1)) {
-      const set = carsOnDay.get(cur) ?? new Set<string>();
-      set.add(bar.carId);
-      carsOnDay.set(cur, set);
+  for (const row of rows) {
+    for (const bar of row.bars) {
+      for (let cur = bar.overlapFrom; cur <= bar.overlapTo; cur = addDaysYmd(cur, 1)) {
+        const set = carsOnDay.get(cur) ?? new Set<string>();
+        set.add(bar.carId);
+        carsOnDay.set(cur, set);
+      }
     }
   }
 

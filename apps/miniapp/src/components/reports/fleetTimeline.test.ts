@@ -140,10 +140,51 @@ describe("buildFleetTimeline", () => {
     expect(model.rows[0]?.bars[0]?.driverName).toBe("New driver");
     expect(model.rows[1]?.bars[0]?.leftPct).toBe(0);
     expect(model.rows[1]?.bars[0]?.widthPct).toBe(100);
+    expect(model.rows[1]?.bars[0]?.colSpan).toBe(7);
+    expect(model.rows[0]?.bars[0]?.colSpan).toBe(3);
   });
 
   it("picks a stable color per driver", () => {
     expect(barColor("Andrzej")).toBe(barColor("Andrzej"));
     expect(barColor("Andrzej")).not.toBe(barColor("Piotr"));
+  });
+
+  it("does not overlap tags when the next driver starts on the previous end day", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          car: { id: "c1", plate: "DX90680" },
+          driver: { id: "d1", fullName: "First" },
+          driverId: "d1",
+          temporaryDriverName: null,
+          startDate: "2026-08-10",
+          endDate: "2026-08-14",
+        }),
+        agreement({
+          id: "a2",
+          carId: "c1",
+          car: { id: "c1", plate: "DX90680" },
+          driver: { id: "d2", fullName: "Second" },
+          driverId: "d2",
+          temporaryDriverName: null,
+          startDate: "2026-08-14",
+          endDate: null,
+        }),
+      ],
+      [{ id: "c1", plate: "DX90680" }],
+      { from: "2026-08-10", to: "2026-08-16" },
+      "week",
+      (ymd) => ymd.slice(8),
+    );
+
+    const bars = model.rows[0]?.bars ?? [];
+    expect(bars.map((b) => b.driverName)).toEqual(["First", "Second"]);
+    expect(bars[0]?.overlapTo).toBe("2026-08-13");
+    expect(bars[1]?.overlapFrom).toBe("2026-08-14");
+    expect(bars[0]?.colSpan).toBe(4);
+    expect(bars[1]?.colSpan).toBe(3);
+    expect((bars[0]?.leftPct ?? 0) + (bars[0]?.widthPct ?? 0)).toBeLessThanOrEqual(bars[1]?.leftPct ?? 0);
   });
 });
