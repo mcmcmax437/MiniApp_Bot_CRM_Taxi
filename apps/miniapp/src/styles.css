@@ -3204,8 +3204,11 @@ button.crm-driver-stat:hover {
 
 .crm-fleet-card__meta--end {
   margin-top: 2px;
-  color: rgba(255, 193, 7, 0.85);
   font-weight: 500;
+}
+
+.crm-fleet-card__end {
+  font-weight: 650;
 }
 
 .crm-fleet-card__rent {

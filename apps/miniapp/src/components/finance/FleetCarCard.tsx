@@ -5,6 +5,7 @@ import { DocumentThumbnail } from "../DocumentThumbnail";
 import { Icon } from "../crm";
 import { formatDate, formatMoney } from "../ui";
 import { resolveCarModelArt } from "./carModelArt";
+import { contractEndTextColor } from "../../utils/expiryUrgency";
 
 export function FleetCarCard(props: {
   car: Car;
@@ -66,9 +67,17 @@ export function FleetCarCard(props: {
               </p>
               <p className="crm-fleet-card__meta">
                 {t("fleet.since")} {formatDate(agreement.startDate)}
-                {agreement.endDate
-                  ? ` · ${t("fleet.endsOn", { date: formatDate(agreement.endDate) })}`
-                  : null}
+                {agreement.endDate ? (
+                  <>
+                    {" · "}
+                    <span
+                      className="crm-fleet-card__end"
+                      style={{ color: contractEndTextColor(agreement.endDate) }}
+                    >
+                      {t("fleet.endsOn", { date: formatDate(agreement.endDate) })}
+                    </span>
+                  </>
+                ) : null}
               </p>
               <div className="crm-fleet-card__rent">
                 <span className="crm-fleet-card__rent-amount">
