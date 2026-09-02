@@ -137,6 +137,7 @@ function PaymentsTab() {
   const [methodFilters, setMethodFilters] = useState<PaymentMethod[]>([]);
   const [bankFilters, setBankFilters] = useState<PaymentBank[]>([]);
   const [carFilters, setCarFilters] = useState<string[]>([]);
+  const [receiverFilters, setReceiverFilters] = useState<Array<"PARTNER" | "MINE">>([]);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean; discount?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -235,6 +236,11 @@ function PaymentsTab() {
   const scoped = useMemo(() => {
     return all.filter((p) => {
       if (!financeInPeriod(p.date, period, dateRange)) return false;
+      if (receiverFilters.length > 0) {
+        const matchPartner = receiverFilters.includes("PARTNER") && p.receivedByPartner;
+        const matchMine = receiverFilters.includes("MINE") && !p.receivedByPartner;
+        if (!matchPartner && !matchMine) return false;
+      }
       if (methodFilters.length > 0 && !methodFilters.includes(p.method)) return false;
       if (bankFilters.length > 0) {
         const bank = p.bank ?? PaymentBank.NONE;
@@ -246,7 +252,7 @@ function PaymentsTab() {
       }
       return true;
     });
-  }, [all, period, dateRange, methodFilters, bankFilters, carFilters]);
+  }, [all, period, dateRange, receiverFilters, methodFilters, bankFilters, carFilters]);
 
   const incomeItems = scoped.filter((p) => isIncomePayment(p.type));
   const totalIncome = incomeItems.reduce((s, p) => s + p.amount, 0);
@@ -258,6 +264,11 @@ function PaymentsTab() {
   const monthItems = useMemo(() => {
     return all.filter((p) => {
       if (!financeInPeriod(p.date, "month")) return false;
+      if (receiverFilters.length > 0) {
+        const matchPartner = receiverFilters.includes("PARTNER") && p.receivedByPartner;
+        const matchMine = receiverFilters.includes("MINE") && !p.receivedByPartner;
+        if (!matchPartner && !matchMine) return false;
+      }
       if (methodFilters.length > 0 && !methodFilters.includes(p.method)) return false;
       if (bankFilters.length > 0) {
         const bank = p.bank ?? PaymentBank.NONE;
@@ -269,7 +280,7 @@ function PaymentsTab() {
       }
       return true;
     });
-  }, [all, methodFilters, bankFilters, carFilters]);
+  }, [all, receiverFilters, methodFilters, bankFilters, carFilters]);
   const monthIncomeItems = monthItems.filter((p) => isIncomePayment(p.type));
   const monthIncomeSum = monthIncomeItems.reduce((s, p) => s + p.amount, 0);
   const monthDepositItems = monthItems.filter((p) => p.type === PaymentType.DEPOSIT);
@@ -282,7 +293,8 @@ function PaymentsTab() {
       ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
       : t(`finance.period_${period}`);
 
-  const extraFilterCount = methodFilters.length + bankFilters.length + carFilters.length;
+  const extraFilterCount =
+    receiverFilters.length + methodFilters.length + bankFilters.length + carFilters.length;
 
   const paymentFilterSections = useMemo((): FinanceFilterSection[] => {
     const carOptions = [
@@ -300,6 +312,23 @@ function PaymentsTab() {
       })),
     ];
     return [
+      {
+        title: t("finance.filterByReceiver"),
+        options: [
+          {
+            key: "MINE",
+            label: t("finance.receivedByMe"),
+            checked: receiverFilters.includes("MINE"),
+            onToggle: () => setReceiverFilters((prev) => toggleFilterValue(prev, "MINE")),
+          },
+          {
+            key: "PARTNER",
+            label: t("finance.receivedByPartner"),
+            checked: receiverFilters.includes("PARTNER"),
+            onToggle: () => setReceiverFilters((prev) => toggleFilterValue(prev, "PARTNER")),
+          },
+        ],
+      },
       {
         title: t("finance.filterByMethod"),
         options: [PaymentMethod.CASH, PaymentMethod.BANK].map((method) => ({
@@ -323,17 +352,17 @@ function PaymentsTab() {
         options: carOptions,
       },
     ];
-  }, [t, cars.data, methodFilters, bankFilters, carFilters]);
+  }, [t, cars.data, receiverFilters, methodFilters, bankFilters, carFilters]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = scoped.filter((p) => {
       if (!q) return true;
-      const hay = `${p.driver?.fullName ?? ""} ${p.car?.plate ?? ""} ${p.note ?? ""} ${p.amount} ${p.method === PaymentMethod.BANK && p.bank && p.bank !== PaymentBank.NONE ? p.bank : ""}`.toLowerCase();
+      const hay = `${p.driver?.fullName ?? ""} ${p.car?.plate ?? ""} ${p.note ?? ""} ${p.amount} ${p.method === PaymentMethod.BANK && p.bank && p.bank !== PaymentBank.NONE ? p.bank : ""} ${p.receivedByPartner ? t("finance.receivedByPartner") : t("finance.receivedByMe")}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (p) => p.date);
-  }, [scoped, search, dateSort]);
+  }, [scoped, search, dateSort, t]);
 
   function openCreate() {
     setEditId(null);
@@ -516,6 +545,7 @@ function PaymentsTab() {
         sections={paymentFilterSections}
         extraFilterCount={extraFilterCount}
         onClearExtraFilters={() => {
+          setReceiverFilters([]);
           setMethodFilters([]);
           setBankFilters([]);
           setCarFilters([]);
