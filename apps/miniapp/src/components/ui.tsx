@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { getCurrencySymbol, useAppCurrency } from "../currency";
 import { formatDate, isoDateOnly, todayInput } from "../dates";
+import { calculateSearchableSelectPopupBox, type SearchableSelectPopupBox } from "./searchableSelectPopup";
 
 export { formatMoney, getCurrencySymbol } from "../currency";
 export { formatDate, isoDateOnly, todayInput };
@@ -371,9 +372,7 @@ export function SearchableSelect<T extends string>(props: {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [listBox, setListBox] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(
-    null,
-  );
+  const [listBox, setListBox] = useState<SearchableSelectPopupBox | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Guards the option click from being eaten by the document-close handler
@@ -401,17 +400,7 @@ export function SearchableSelect<T extends string>(props: {
       const el = inputRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const gap = 8;
-      const spaceBelow = window.innerHeight - r.bottom - gap;
-      const spaceAbove = r.top - gap;
-      const openDown = spaceBelow >= 140 || spaceBelow >= spaceAbove;
-      const maxHeight = Math.max(120, Math.min(220, openDown ? spaceBelow : spaceAbove));
-      setListBox({
-        top: openDown ? r.bottom : Math.max(gap, r.top - maxHeight),
-        left: r.left,
-        width: r.width,
-        maxHeight,
-      });
+      setListBox(calculateSearchableSelectPopupBox(r, window.innerHeight));
     }
     sync();
     window.addEventListener("resize", sync);
