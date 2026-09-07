@@ -1904,6 +1904,14 @@ button.crm-stat {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
 }
 
+.crm-searchable-select__popup {
+  position: fixed;
+  z-index: 600;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 0 10px 10px;
+  box-sizing: border-box;
+}
+
 .crm-searchable-select__option {
   display: flex;
   align-items: center;
@@ -6147,17 +6155,18 @@ select.crm-input option {
   color: var(--taxi-text, #fff);
   width: 100%;
   max-width: 520px;
-  max-height: min(92vh, var(--tg-viewport-height, 100vh));
+  max-height: min(92vh, var(--tg-viewport-height, 100dvh));
   min-width: 0;
+  min-height: 0;
   box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   color-scheme: dark;
   border-top: 1px solid var(--taxi-border, rgba(255, 255, 255, 0.06));
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
-  padding: 16px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding: 16px 16px 0;
   transform: translateY(100%);
   transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
@@ -6269,14 +6278,29 @@ select.crm-input option {
 .crm-modal-body {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  min-height: 0;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 16px;
+}
+
+.crm-modal-sheet:not(:has(.crm-modal-footer)) .crm-modal-body {
+  padding-bottom: max(16px, env(safe-area-inset-bottom), var(--tg-safe-bottom, 0px));
 }
 
 .crm-modal-footer {
-  margin-top: 16px;
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding-top: 12px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom), var(--tg-safe-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, var(--taxi-glass-from, #13263e), var(--taxi-glass-to, #0b1627));
 }
 
 .crm-discount-hero {

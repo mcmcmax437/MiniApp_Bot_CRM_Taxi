@@ -122,15 +122,18 @@ export function Field(props: {
   // we want to clarify "what should I put here?".
   hint?: string;
 }) {
+  // A wrapping <label> steals taps on iOS/Android WebViews: choosing a
+  // dropdown option (driver, car) is treated as a label click and the
+  // search input is re-focused instead of the value being committed.
   return (
-    <label className={`form-stack${props.invalid ? " crm-field--error" : ""}`}>
+    <div className={`form-stack${props.invalid ? " crm-field--error" : ""}`}>
       <span className="crm-field-label">{props.label}</span>
       {props.hint ? <span className="crm-field-hint">{props.hint}</span> : null}
       {props.children}
       {props.invalid && props.errorMessage ? (
         <span className="crm-field-error">{props.errorMessage}</span>
       ) : null}
-    </label>
+    </div>
   );
 }
 
@@ -368,6 +371,9 @@ export function SearchableSelect<T extends string>(props: {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [listBox, setListBox] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(
+    null,
+  );
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Guards the option click from being eaten by the document-close handler
@@ -387,15 +393,45 @@ export function SearchableSelect<T extends string>(props: {
   }, [props.options, query]);
 
   useEffect(() => {
+    if (!open) {
+      setListBox(null);
+      return;
+    }
+    function sync() {
+      const el = inputRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const gap = 8;
+      const spaceBelow = window.innerHeight - r.bottom - gap;
+      const spaceAbove = r.top - gap;
+      const openDown = spaceBelow >= 140 || spaceBelow >= spaceAbove;
+      const maxHeight = Math.max(120, Math.min(220, openDown ? spaceBelow : spaceAbove));
+      setListBox({
+        top: openDown ? r.bottom : Math.max(gap, r.top - maxHeight),
+        left: r.left,
+        width: r.width,
+        maxHeight,
+      });
+    }
+    sync();
+    window.addEventListener("resize", sync);
+    document.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      document.removeEventListener("scroll", sync, true);
+    };
+  }, [open, filtered.length]);
+
+  useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent | TouchEvent) {
-      // Skip the synthetic mousedown iOS dispatches after a tap on an option
-      // we just handled. Otherwise the selection would be wiped out.
       if (Date.now() - justPickedRef.current < 800) return;
-      if (!rootRef.current?.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery("");
-      }
+      const node = e.target as Node | null;
+      const el = node instanceof Element ? node : node?.parentElement;
+      if (rootRef.current?.contains(node)) return;
+      if (el?.closest(".crm-searchable-select__popup")) return;
+      setOpen(false);
+      setQuery("");
     }
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("touchstart", onDoc, { passive: true });
@@ -421,8 +457,71 @@ export function SearchableSelect<T extends string>(props: {
     // They can dismiss the keyboard by tapping outside the input.
   }
 
+  function optionPointerDown(e: React.PointerEvent, value: T) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pick(value);
+  }
+
   const displayValue = open ? query : (selected?.label ?? "");
   const searchPh = props.searchPlaceholder ?? t("common.searchToFilter");
+  const popupStyle = listBox
+    ? {
+        top: listBox.top,
+        left: listBox.left,
+        width: listBox.width,
+        maxHeight: listBox.maxHeight,
+      }
+    : undefined;
+
+  const popup =
+    open && listBox
+      ? createPortal(
+          filtered.length > 0 ? (
+            <ul
+              className="crm-searchable-select__list crm-searchable-select__popup"
+              role="listbox"
+              style={popupStyle}
+            >
+              {filtered.map((o) => (
+                <li key={o.value || "__none"}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={o.value === props.value}
+                    data-stop-press="true"
+                    className={`crm-searchable-select__option${o.value === props.value ? " crm-searchable-select__option--active" : ""}`}
+                    onPointerDown={(e) => optionPointerDown(e, o.value)}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      pick(o.value);
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      pick(o.value);
+                    }}
+                  >
+                    <span className="crm-searchable-select__label">{o.label}</span>
+                    {o.hint ? <span className="crm-searchable-select__hint">{o.hint}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="crm-searchable-select__empty crm-searchable-select__popup" style={popupStyle}>
+              {t("common.empty")}
+            </div>
+          ),
+          document.body,
+        )
+      : null;
 
   return (
     <div className={`crm-searchable-select${open ? " crm-searchable-select--open" : ""}`} ref={rootRef}>
@@ -434,12 +533,6 @@ export function SearchableSelect<T extends string>(props: {
         autoComplete="off"
         autoCorrect="off"
         spellCheck={false}
-        // `enterkeyhint="done"` tells the on-screen keyboard to show a
-        // "Done" button instead of "Next". Combined with the fact that
-        // we don't blur the input after a selection (see `pick()`),
-        // this prevents iOS Safari from auto-advancing focus to the
-        // next field whenever the user picks a driver, a car, or any
-        // other option from the dropdown.
         enterKeyHint="done"
         onFocus={() => {
           setOpen(true);
@@ -462,46 +555,7 @@ export function SearchableSelect<T extends string>(props: {
           }
         }}
       />
-      {open ? (
-        filtered.length > 0 ? (
-          <ul className="crm-searchable-select__list" role="listbox">
-              {filtered.map((o) => (
-                <li key={o.value || "__none"}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={o.value === props.value}
-                    data-stop-press="true"
-                    className={`crm-searchable-select__option${o.value === props.value ? " crm-searchable-select__option--active" : ""}`}
-                    // touchstart fires first on iOS Safari and lets us commit
-                    // the selection before the input can lose focus. We
-                    // preventDefault to suppress the synthetic click/mousedown
-                    // that would otherwise collapse the just-picked option.
-                    onTouchStart={(e) => {
-                      e.preventDefault();
-                      pick(o.value);
-                    }}
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      pick(o.value);
-                    }}
-                  >
-                    <span className="crm-searchable-select__label">{o.label}</span>
-                    {o.hint ? <span className="crm-searchable-select__hint">{o.hint}</span> : null}
-                  </button>
-                </li>
-              ))}
-          </ul>
-        ) : (
-          <div className="crm-searchable-select__empty">{t("common.empty")}</div>
-        )
-      ) : null}
+      {popup}
     </div>
   );
 }

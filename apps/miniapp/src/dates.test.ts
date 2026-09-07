@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, isoDateOnly } from "./dates.js";
+import { formatDate, isoDateOnly, todayInput } from "./dates.js";
 
 describe("formatDate", () => {
   it("formats ISO date-only as DD/MM/YY", () => {
@@ -28,5 +28,13 @@ describe("isoDateOnly", () => {
 
   it("returns empty string for missing values", () => {
     expect(isoDateOnly(null)).toBe("");
+  });
+});
+
+describe("todayInput", () => {
+  it("returns the local calendar date, not UTC", () => {
+    const d = new Date();
+    const expected = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    expect(todayInput()).toBe(expected);
   });
 });
