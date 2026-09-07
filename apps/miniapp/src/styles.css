@@ -7846,6 +7846,14 @@ select.crm-input option {
   box-sizing: border-box;
 }
 
+.crm-fleet-gantt__bar--paid {
+  box-shadow: inset 0 0 0 2px rgba(8, 17, 31, 0.28);
+}
+
+.crm-fleet-gantt__bar--paid .crm-fleet-gantt__bar-label::after {
+  content: " ✓";
+}
+
 .crm-fleet-gantt__bar-label {
   font-size: 11px;
   font-weight: 700;
@@ -7866,6 +7874,13 @@ select.crm-input option {
   padding-right: 4px;
 }
 
+.crm-fleet-gantt__plate-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .crm-fleet-gantt__plate-id {
   font-size: 12px;
   font-weight: 700;
@@ -7873,6 +7888,38 @@ select.crm-input option {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.crm-fleet-gantt__paid-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.crm-fleet-gantt__paid {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  color: #08111f;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.crm-fleet-gantt__paid--on {
+  border-color: #69f0ae;
+  background: #69f0ae;
+  color: #08111f;
 }
 
 .crm-fleet-gantt__plate-meta {

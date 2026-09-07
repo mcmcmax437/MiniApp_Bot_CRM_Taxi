@@ -16,6 +16,7 @@ import {
 } from "./fleetTimeline";
 
 const SCALE_KEY = "reports-fleet-timeline-scale";
+const PAID_KEY = "reports-fleet-timeline-paid";
 
 function todayLocal(): string {
   return toYmd(new Date());
@@ -27,12 +28,65 @@ function loadScale(): TimelineScale {
   return "week";
 }
 
+function paidMarkId(from: string, to: string, agreementId: string): string {
+  return `${from}|${to}|${agreementId}`;
+}
+
+function loadPaidMarks(): Record<string, true> {
+  try {
+    const raw = localStorage.getItem(PAID_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const out: Record<string, true> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (value) out[key] = true;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function PaidCheck(props: {
+  paid: boolean;
+  label: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`crm-fleet-gantt__paid${props.paid ? " crm-fleet-gantt__paid--on" : ""}`}
+      aria-pressed={props.paid}
+      aria-label={props.label}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onToggle();
+      }}
+    >
+      {props.paid ? "✓" : ""}
+    </button>
+  );
+}
+
 export function FleetTimelineCard() {
   const { t, i18n } = useTranslation();
   const agreements = useAgreements();
   const cars = useCars();
   const [scale, setScale] = useState<TimelineScale>(loadScale);
   const [range, setRange] = useState(() => defaultTimelineRange(loadScale(), todayLocal()));
+  const [paidMarks, setPaidMarks] = useState(loadPaidMarks);
+
+  function togglePaid(id: string) {
+    setPaidMarks((prev) => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = true;
+      localStorage.setItem(PAID_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   function changeScale(next: TimelineScale) {
     setScale(next);
@@ -173,7 +227,25 @@ export function FleetTimelineCard() {
                 <div className="crm-fleet-gantt__corner" />
                 {model.rows.map((row) => (
                   <div key={row.carId} className="crm-fleet-gantt__plate" title={row.plate}>
-                    <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
+                    <div className="crm-fleet-gantt__plate-row">
+                      <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
+                      <span className="crm-fleet-gantt__paid-row">
+                        {row.bars.map((bar) => {
+                          const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
+                          const paid = Boolean(paidMarks[id]);
+                          return (
+                            <PaidCheck
+                              key={bar.agreementId}
+                              paid={paid}
+                              label={t(paid ? "reports.fleetTimelineMarkUnpaid" : "reports.fleetTimelineMarkPaid", {
+                                driver: bar.driverName,
+                              })}
+                              onToggle={() => togglePaid(id)}
+                            />
+                          );
+                        })}
+                      </span>
+                    </div>
                     <span className="crm-fleet-gantt__plate-meta">
                       {t("reports.fleetTimelineDayCount", { count: row.days })} · {formatMoney(row.expectedRent)}
                     </span>
@@ -205,10 +277,13 @@ export function FleetTimelineCard() {
                   </div>
                   {model.rows.map((row) => (
                     <div key={row.carId} className="crm-fleet-gantt__track">
-                      {row.bars.map((bar) => (
+                      {row.bars.map((bar) => {
+                        const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
+                        const paid = Boolean(paidMarks[id]);
+                        return (
                         <div
                           key={bar.agreementId}
-                          className="crm-fleet-gantt__bar"
+                          className={`crm-fleet-gantt__bar${paid ? " crm-fleet-gantt__bar--paid" : ""}`}
                           style={{
                             gridColumn: `${bar.colStart} / span ${bar.colSpan}`,
                             background: barColor(bar.driverName + bar.carId),
@@ -222,7 +297,8 @@ export function FleetTimelineCard() {
                         >
                           <span className="crm-fleet-gantt__bar-label">{bar.driverName}</span>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ))}
                   <div className="crm-fleet-gantt__guides" aria-hidden>
