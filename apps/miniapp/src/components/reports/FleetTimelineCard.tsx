@@ -14,9 +14,14 @@ import {
   toYmd,
   type TimelineScale,
 } from "./fleetTimeline";
+import {
+  loadPaidMarks,
+  paidMarkId,
+  savePaidMarks,
+  togglePaidMark,
+} from "./fleetTimelinePaidMarks";
 
 const SCALE_KEY = "reports-fleet-timeline-scale";
-const PAID_KEY = "reports-fleet-timeline-paid";
 
 function todayLocal(): string {
   return toYmd(new Date());
@@ -24,28 +29,9 @@ function todayLocal(): string {
 
 function loadScale(): TimelineScale {
   const stored = localStorage.getItem(SCALE_KEY);
-  if (stored === "week" || stored === "month" || stored === "year") return stored;
+  if (stored === "week" || stored === "month" || stored === "year")
+    return stored;
   return "week";
-}
-
-function paidMarkId(from: string, to: string, agreementId: string): string {
-  return `${from}|${to}|${agreementId}`;
-}
-
-function loadPaidMarks(): Record<string, true> {
-  try {
-    const raw = localStorage.getItem(PAID_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    const out: Record<string, true> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (value) out[key] = true;
-    }
-    return out;
-  } catch {
-    return {};
-  }
 }
 
 function PaidCheck(props: {
@@ -75,15 +61,15 @@ export function FleetTimelineCard() {
   const agreements = useAgreements();
   const cars = useCars();
   const [scale, setScale] = useState<TimelineScale>(loadScale);
-  const [range, setRange] = useState(() => defaultTimelineRange(loadScale(), todayLocal()));
-  const [paidMarks, setPaidMarks] = useState(loadPaidMarks);
+  const [range, setRange] = useState(() =>
+    defaultTimelineRange(loadScale(), todayLocal()),
+  );
+  const [paidMarks, setPaidMarks] = useState(() => loadPaidMarks(localStorage));
 
   function togglePaid(id: string) {
     setPaidMarks((prev) => {
-      const next = { ...prev };
-      if (next[id]) delete next[id];
-      else next[id] = true;
-      localStorage.setItem(PAID_KEY, JSON.stringify(next));
+      const next = togglePaidMark(prev, id);
+      savePaidMarks(localStorage, next);
       return next;
     });
   }
@@ -138,7 +124,11 @@ export function FleetTimelineCard() {
       }
     >
       <div className="crm-fleet-timeline__toolbar">
-        <div className="crm-fleet-timeline__scales" role="group" aria-label={t("reports.fleetTimelineScale")}>
+        <div
+          className="crm-fleet-timeline__scales"
+          role="group"
+          aria-label={t("reports.fleetTimelineScale")}
+        >
           {(["week", "month", "year"] as const).map((id) => (
             <button
               key={id}
@@ -161,23 +151,35 @@ export function FleetTimelineCard() {
           <button
             type="button"
             className="crm-fleet-timeline__nav-btn"
-            onClick={() => setRange((prev) => shiftTimelineRange(scale, prev, -1))}
+            onClick={() =>
+              setRange((prev) => shiftTimelineRange(scale, prev, -1))
+            }
             aria-label={t("reports.fleetTimelinePrev")}
           >
-            <span className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--left" aria-hidden />
+            <span
+              className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--left"
+              aria-hidden
+            />
           </button>
           <div className="crm-fleet-timeline__range">
             {formatDate(model.range.from)}
-            {model.range.from !== model.range.to ? ` – ${formatDate(model.range.to)}` : ""}
+            {model.range.from !== model.range.to
+              ? ` – ${formatDate(model.range.to)}`
+              : ""}
           </div>
           <button
             type="button"
             className="crm-fleet-timeline__nav-btn"
-            onClick={() => setRange((prev) => shiftTimelineRange(scale, prev, 1))}
+            onClick={() =>
+              setRange((prev) => shiftTimelineRange(scale, prev, 1))
+            }
             disabled={!canGoNext}
             aria-label={t("reports.fleetTimelineNext")}
           >
-            <span className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--right" aria-hidden />
+            <span
+              className="crm-fleet-timeline__chevron crm-fleet-timeline__chevron--right"
+              aria-hidden
+            />
           </button>
         </div>
       </div>
@@ -190,15 +192,23 @@ export function FleetTimelineCard() {
       ) : (
         <>
           <div className="crm-fleet-timeline__summary">
-            <span>{t("reports.fleetTimelineCars", { count: model.activeCars })}</span>
-            <span>{t("reports.fleetTimelineDays", { count: model.carDays })}</span>
+            <span>
+              {t("reports.fleetTimelineCars", { count: model.activeCars })}
+            </span>
+            <span>
+              {t("reports.fleetTimelineDays", { count: model.carDays })}
+            </span>
             <span className="crm-fleet-timeline__expected">
-              {t("reports.fleetTimelineExpected", { amount: formatMoney(model.expectedRent) })}
+              {t("reports.fleetTimelineExpected", {
+                amount: formatMoney(model.expectedRent),
+              })}
             </span>
           </div>
 
           <div className="crm-fleet-timeline__heat">
-            <span className="crm-fleet-timeline__heat-label">{t("reports.fleetTimelineHeatmap")}</span>
+            <span className="crm-fleet-timeline__heat-label">
+              {t("reports.fleetTimelineHeatmap")}
+            </span>
             <div className="crm-fleet-timeline__heat-row">
               {model.heat.map((cell) => {
                 const tLevel = cell.cars / maxHeat;
@@ -226,20 +236,35 @@ export function FleetTimelineCard() {
               <div className="crm-fleet-gantt__side crm-fleet-gantt__side--left">
                 <div className="crm-fleet-gantt__corner" />
                 {model.rows.map((row) => (
-                  <div key={row.carId} className="crm-fleet-gantt__plate" title={row.plate}>
+                  <div
+                    key={row.carId}
+                    className="crm-fleet-gantt__plate"
+                    title={row.plate}
+                  >
                     <div className="crm-fleet-gantt__plate-row">
-                      <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
+                      <span className="crm-fleet-gantt__plate-id">
+                        {row.plate}
+                      </span>
                       <span className="crm-fleet-gantt__paid-row">
                         {row.bars.map((bar) => {
-                          const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
+                          const id = paidMarkId(
+                            model.range.from,
+                            model.range.to,
+                            bar.agreementId,
+                          );
                           const paid = Boolean(paidMarks[id]);
                           return (
                             <PaidCheck
                               key={bar.agreementId}
                               paid={paid}
-                              label={t(paid ? "reports.fleetTimelineMarkUnpaid" : "reports.fleetTimelineMarkPaid", {
-                                driver: bar.driverName,
-                              })}
+                              label={t(
+                                paid
+                                  ? "reports.fleetTimelineMarkUnpaid"
+                                  : "reports.fleetTimelineMarkPaid",
+                                {
+                                  driver: bar.driverName,
+                                },
+                              )}
                               onToggle={() => togglePaid(id)}
                             />
                           );
@@ -247,7 +272,8 @@ export function FleetTimelineCard() {
                       </span>
                     </div>
                     <span className="crm-fleet-gantt__plate-meta">
-                      {t("reports.fleetTimelineDayCount", { count: row.days })} · {formatMoney(row.expectedRent)}
+                      {t("reports.fleetTimelineDayCount", { count: row.days })}{" "}
+                      · {formatMoney(row.expectedRent)}
                     </span>
                   </div>
                 ))}
@@ -278,25 +304,31 @@ export function FleetTimelineCard() {
                   {model.rows.map((row) => (
                     <div key={row.carId} className="crm-fleet-gantt__track">
                       {row.bars.map((bar) => {
-                        const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
+                        const id = paidMarkId(
+                          model.range.from,
+                          model.range.to,
+                          bar.agreementId,
+                        );
                         const paid = Boolean(paidMarks[id]);
                         return (
-                        <div
-                          key={bar.agreementId}
-                          className={`crm-fleet-gantt__bar${paid ? " crm-fleet-gantt__bar--paid" : ""}`}
-                          style={{
-                            gridColumn: `${bar.colStart} / span ${bar.colSpan}`,
-                            background: barColor(bar.driverName + bar.carId),
-                          }}
-                          title={t("reports.fleetTimelineBar", {
-                            driver: bar.driverName,
-                            plate: bar.plate,
-                            days: bar.days,
-                            amount: formatMoney(bar.expectedRent),
-                          })}
-                        >
-                          <span className="crm-fleet-gantt__bar-label">{bar.driverName}</span>
-                        </div>
+                          <div
+                            key={bar.agreementId}
+                            className={`crm-fleet-gantt__bar${paid ? " crm-fleet-gantt__bar--paid" : ""}`}
+                            style={{
+                              gridColumn: `${bar.colStart} / span ${bar.colSpan}`,
+                              background: barColor(bar.driverName + bar.carId),
+                            }}
+                            title={t("reports.fleetTimelineBar", {
+                              driver: bar.driverName,
+                              plate: bar.plate,
+                              days: bar.days,
+                              amount: formatMoney(bar.expectedRent),
+                            })}
+                          >
+                            <span className="crm-fleet-gantt__bar-label">
+                              {bar.driverName}
+                            </span>
+                          </div>
                         );
                       })}
                     </div>
