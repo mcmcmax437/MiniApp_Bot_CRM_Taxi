@@ -46,6 +46,10 @@ export type TimelineModel = {
   idleCars: number;
 };
 
+export function fleetTimelinePaidMarkId(range: TimelineRange, agreementId: string): string {
+  return `${range.from}|${range.to}|${agreementId}`;
+}
+
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }

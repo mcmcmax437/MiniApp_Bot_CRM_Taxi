@@ -7,6 +7,7 @@ import { Icon } from "../crm";
 import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import {
   barColor,
+  fleetTimelinePaidMarkId,
   buildFleetTimeline,
   canShiftTimelineForward,
   defaultTimelineRange,
@@ -26,10 +27,6 @@ function loadScale(): TimelineScale {
   const stored = localStorage.getItem(SCALE_KEY);
   if (stored === "week" || stored === "month" || stored === "year") return stored;
   return "week";
-}
-
-function paidMarkId(from: string, to: string, agreementId: string): string {
-  return `${from}|${to}|${agreementId}`;
 }
 
 function loadPaidMarks(): Record<string, true> {
@@ -231,7 +228,7 @@ export function FleetTimelineCard() {
                       <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
                       <span className="crm-fleet-gantt__paid-row">
                         {row.bars.map((bar) => {
-                          const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
+                          const id = fleetTimelinePaidMarkId(range, bar.agreementId);
                           const paid = Boolean(paidMarks[id]);
                           return (
                             <PaidCheck
@@ -278,7 +275,7 @@ export function FleetTimelineCard() {
                   {model.rows.map((row) => (
                     <div key={row.carId} className="crm-fleet-gantt__track">
                       {row.bars.map((bar) => {
-                        const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
+                        const id = fleetTimelinePaidMarkId(range, bar.agreementId);
                         const paid = Boolean(paidMarks[id]);
                         return (
                         <div
