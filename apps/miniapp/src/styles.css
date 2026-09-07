@@ -7745,14 +7745,22 @@ select.crm-input option {
 
 .crm-fleet-gantt {
   display: grid;
-  grid-template-columns: minmax(5.2rem, 28%) minmax(0, 1fr);
-  column-gap: 8px;
+  grid-template-columns: minmax(5.2rem, 26%) auto minmax(0, 1fr);
+  column-gap: 6px;
   align-items: start;
 }
 
-.crm-fleet-gantt__side {
+.crm-fleet-gantt__side,
+.crm-fleet-gantt__marks {
   display: grid;
   grid-auto-rows: 44px;
+}
+
+.crm-fleet-gantt__mark-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .crm-fleet-gantt__mid {
@@ -7871,14 +7879,7 @@ select.crm-input option {
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  padding-right: 4px;
-}
-
-.crm-fleet-gantt__plate-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
+  padding-right: 2px;
 }
 
 .crm-fleet-gantt__plate-id {
@@ -7888,15 +7889,6 @@ select.crm-input option {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 0;
-  flex: 1;
-}
-
-.crm-fleet-gantt__paid-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
 }
 
 .crm-fleet-gantt__paid {

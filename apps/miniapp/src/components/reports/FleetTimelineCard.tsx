@@ -227,28 +227,32 @@ export function FleetTimelineCard() {
                 <div className="crm-fleet-gantt__corner" />
                 {model.rows.map((row) => (
                   <div key={row.carId} className="crm-fleet-gantt__plate" title={row.plate}>
-                    <div className="crm-fleet-gantt__plate-row">
-                      <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
-                      <span className="crm-fleet-gantt__paid-row">
-                        {row.bars.map((bar) => {
-                          const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
-                          const paid = Boolean(paidMarks[id]);
-                          return (
-                            <PaidCheck
-                              key={bar.agreementId}
-                              paid={paid}
-                              label={t(paid ? "reports.fleetTimelineMarkUnpaid" : "reports.fleetTimelineMarkPaid", {
-                                driver: bar.driverName,
-                              })}
-                              onToggle={() => togglePaid(id)}
-                            />
-                          );
-                        })}
-                      </span>
-                    </div>
+                    <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
                     <span className="crm-fleet-gantt__plate-meta">
                       {t("reports.fleetTimelineDayCount", { count: row.days })} · {formatMoney(row.expectedRent)}
                     </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="crm-fleet-gantt__marks">
+                <div className="crm-fleet-gantt__corner" />
+                {model.rows.map((row) => (
+                  <div key={row.carId} className="crm-fleet-gantt__mark-cell">
+                    {row.bars.map((bar) => {
+                      const id = paidMarkId(model.range.from, model.range.to, bar.agreementId);
+                      const paid = Boolean(paidMarks[id]);
+                      return (
+                        <PaidCheck
+                          key={bar.agreementId}
+                          paid={paid}
+                          label={t(paid ? "reports.fleetTimelineMarkUnpaid" : "reports.fleetTimelineMarkPaid", {
+                            driver: bar.driverName,
+                          })}
+                          onToggle={() => togglePaid(id)}
+                        />
+                      );
+                    })}
                   </div>
                 ))}
               </div>
