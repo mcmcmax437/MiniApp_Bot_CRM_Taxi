@@ -1,13 +1,21 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const prismaMock = vi.hoisted(() => ({
+  driver: { findMany: vi.fn() },
+  rentalAgreement: { findMany: vi.fn() },
+  payment: { findMany: vi.fn() },
+  fine: { findMany: vi.fn() },
+}));
 
 vi.mock("../prisma.js", () => ({
-  prisma: {},
+  prisma: prismaMock,
 }));
 
 import {
   agreementAccrualCap,
   agreementBillableDays,
   buildAgreementAccrual,
+  computeDriverBalances,
   periodsElapsed,
   type AgreementWithCar,
 } from "./balance.js";
@@ -16,6 +24,10 @@ import {
 function d(y: number, m: number, day: number): Date {
   return new Date(y, m - 1, day);
 }
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("periodsElapsed", () => {
   it("returns 0 when asOf is before start", () => {
@@ -154,5 +166,49 @@ describe("agreementBillableDays", () => {
       rentAmount: 100,
     };
     expect(agreementBillableDays(agreement, agreement.endDate!)).toBe(0);
+  });
+});
+
+describe("computeDriverBalances", () => {
+  it("does not bill the return day in driver balance summaries", async () => {
+    prismaMock.driver.findMany.mockResolvedValue([
+      { id: "driver-1", fullName: "Driver One" },
+    ]);
+    prismaMock.rentalAgreement.findMany.mockResolvedValue([
+      {
+        id: "ag-same-day",
+        driverId: "driver-1",
+        startDate: d(2026, 8, 31),
+        endDate: d(2026, 8, 31),
+        updatedAt: d(2026, 8, 31),
+        status: "ENDED",
+        period: "DAILY",
+        rentAmount: 100,
+        depositAmount: 0,
+        car: { id: "car-1", plate: "DX1" },
+      },
+      {
+        id: "ag-one-day",
+        driverId: "driver-1",
+        startDate: d(2026, 9, 1),
+        endDate: d(2026, 9, 2),
+        updatedAt: d(2026, 9, 2),
+        status: "ENDED",
+        period: "DAILY",
+        rentAmount: 100,
+        depositAmount: 0,
+        car: { id: "car-1", plate: "DX1" },
+      },
+    ]);
+    prismaMock.payment.findMany.mockResolvedValue([]);
+    prismaMock.fine.findMany.mockResolvedValue([]);
+
+    const [balance] = await computeDriverBalances("owner-1");
+
+    expect(balance).toMatchObject({
+      driverId: "driver-1",
+      rentDue: 100,
+      balance: 100,
+    });
   });
 });
