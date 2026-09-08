@@ -171,7 +171,9 @@ export function clipAgreementToRange(
   range: TimelineRange,
 ): { from: string; to: string; days: number } | null {
   const start = startDate.slice(0, 10);
-  const end = endDate?.slice(0, 10) ?? range.to;
+  // Rental spans are [start, end): the end date is when the car is returned,
+  // so the preceding date is the last day shown and charged.
+  const end = endDate ? addDaysYmd(endDate.slice(0, 10), -1) : range.to;
   const from = start > range.from ? start : range.from;
   const to = end < range.to ? end : range.to;
   if (from > to) return null;

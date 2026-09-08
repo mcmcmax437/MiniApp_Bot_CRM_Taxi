@@ -51,7 +51,17 @@ describe("countActiveDaysInRange", () => {
         "2026-08-10",
         "2026-08-16",
       ),
-    ).toBe(3); // 10,11,12
+    ).toBe(2); // 10,11; 12 is the return date
+  });
+
+  it("counts a 30 Aug to 31 Aug rental as one 24-hour day", () => {
+    expect(
+      countActiveDaysInRange(
+        [{ startDate: "2026-08-30", endDate: "2026-08-31" }],
+        "2026-08-24",
+        "2026-08-31",
+      ),
+    ).toBe(1);
   });
 });
 

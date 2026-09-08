@@ -80,7 +80,7 @@ export type AgreementWithCar = {
   car?: { plate: string } | null;
 };
 
-/** Last calendar day through which rent accrues for an agreement. */
+/** Calendar boundary through which rent accrues for an agreement. */
 export function agreementAccrualCap(a: AgreementWithCar, asOf: Date): Date {
   if (a.status === "ENDED") {
     return a.endDate ?? a.updatedAt;
@@ -91,12 +91,32 @@ export function agreementAccrualCap(a: AgreementWithCar, asOf: Date): Date {
   return asOf;
 }
 
+/**
+ * Rental spans are half-open: [startDate, endDate). The end date is the
+ * return/handover date and is not another billable day. Open active rentals
+ * still include the current calendar day.
+ */
+export function agreementBillableDays(a: AgreementWithCar, cap: Date): number {
+  const inclusiveDays = calendarDaysInclusive(a.startDate, cap);
+  if (inclusiveDays <= 0) return 0;
+
+  const capDay = calendarDayUtc(cap);
+  const reachedExplicitEnd =
+    a.endDate != null && capDay >= calendarDayUtc(a.endDate);
+  const capIsReturnBoundary = a.status === "ENDED" || reachedExplicitEnd;
+  return Math.max(0, inclusiveDays - (capIsReturnBoundary ? 1 : 0));
+}
+
+function agreementPeriodsElapsed(a: AgreementWithCar, cap: Date): number {
+  return agreementBillableDays(a, cap) / periodLengthDays(a.period);
+}
+
 export function buildAgreementAccrual(a: AgreementWithCar, cap: Date): DriverBalanceAccrual {
   const start = a.startDate;
   const explicitEnd = a.endDate;
-  const periods = periodsElapsed(start, cap, a.period);
+  const periods = agreementPeriodsElapsed(a, cap);
   const accrued = periods * a.rentAmount;
-  const daysElapsed = calendarDaysInclusive(start, cap);
+  const daysElapsed = agreementBillableDays(a, cap);
   const plate = a.car?.plate ?? "—";
   return {
     agreementId: a.id,
@@ -139,7 +159,7 @@ export async function computeDriverBalances(ownerId: string): Promise<DriverBala
   for (const a of agreements) {
     if (!a.driverId) continue;
     const cap = agreementAccrualCap(a, now);
-    const due = periodsElapsed(a.startDate, cap, a.period) * a.rentAmount;
+    const due = agreementPeriodsElapsed(a, cap) * a.rentAmount;
     rentDueByDriver.set(a.driverId, (rentDueByDriver.get(a.driverId) ?? 0) + due);
     if (a.status !== "ACTIVE") continue;
     depositByDriver.set(a.driverId, (depositByDriver.get(a.driverId) ?? 0) + a.depositAmount);

@@ -6,6 +6,7 @@ vi.mock("../prisma.js", () => ({
 
 import {
   agreementAccrualCap,
+  agreementBillableDays,
   buildAgreementAccrual,
   periodsElapsed,
   type AgreementWithCar,
@@ -92,6 +93,23 @@ describe("agreementAccrualCap", () => {
 });
 
 describe("buildAgreementAccrual", () => {
+  it("treats the return date as exclusive: 30 Aug to 31 Aug is one 24-hour day", () => {
+    const agreement: AgreementWithCar = {
+      id: "ag-24-hours",
+      startDate: d(2026, 8, 30),
+      endDate: d(2026, 8, 31),
+      updatedAt: d(2026, 8, 31),
+      status: "ENDED",
+      period: "WEEKLY",
+      rentAmount: 550,
+      car: { plate: "WT86484" },
+    };
+    const cap = agreementAccrualCap(agreement, d(2026, 9, 8));
+    const row = buildAgreementAccrual(agreement, cap);
+    expect(row.daysElapsed).toBe(1);
+    expect(row.accrued).toBeCloseTo(550 / 7, 5);
+  });
+
   it("includes ended rental accrued rent so balance does not ignore history", () => {
     const agreement: AgreementWithCar = {
       id: "ag-ended",
@@ -106,7 +124,35 @@ describe("buildAgreementAccrual", () => {
     const cap = agreementAccrualCap(agreement, d(2026, 7, 13));
     const row = buildAgreementAccrual(agreement, cap);
     expect(row.carPlate).toBe("PY5135F");
-    expect(row.daysElapsed).toBe(69);
-    expect(row.accrued).toBeCloseTo(6900, 5);
+    expect(row.daysElapsed).toBe(68);
+    expect(row.accrued).toBeCloseTo(6800, 5);
+  });
+});
+
+describe("agreementBillableDays", () => {
+  it("includes today for an open active rental", () => {
+    const agreement: AgreementWithCar = {
+      id: "ag-active",
+      startDate: d(2026, 8, 30),
+      endDate: null,
+      updatedAt: d(2026, 8, 30),
+      status: "ACTIVE",
+      period: "DAILY",
+      rentAmount: 100,
+    };
+    expect(agreementBillableDays(agreement, d(2026, 8, 31))).toBe(2);
+  });
+
+  it("charges zero days for a same-day return", () => {
+    const agreement: AgreementWithCar = {
+      id: "ag-same-day",
+      startDate: d(2026, 8, 31),
+      endDate: d(2026, 8, 31),
+      updatedAt: d(2026, 8, 31),
+      status: "ENDED",
+      period: "DAILY",
+      rentAmount: 100,
+    };
+    expect(agreementBillableDays(agreement, agreement.endDate!)).toBe(0);
   });
 });

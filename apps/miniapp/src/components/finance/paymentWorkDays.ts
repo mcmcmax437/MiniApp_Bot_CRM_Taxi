@@ -41,7 +41,8 @@ type AgreementSpan = {
 
 /**
  * Count unique calendar days in [from, to] when any of the agreements
- * was active (start ≤ day ≤ end; open-ended ACTIVE runs through `to`).
+ * was active. Rental spans are [start, end), so a return date is not counted;
+ * open-ended ACTIVE rentals run through `to`.
  */
 export function countActiveDaysInRange(
   agreements: AgreementSpan[],
@@ -55,7 +56,7 @@ export function countActiveDaysInRange(
   const days = new Set<string>();
   for (const a of agreements) {
     const start = a.startDate.slice(0, 10);
-    const end = a.endDate?.slice(0, 10) ?? rangeTo;
+    const end = a.endDate ? addDaysYmd(a.endDate.slice(0, 10), -1) : rangeTo;
     const overlapStart = start > rangeFrom ? start : rangeFrom;
     const overlapEnd = end < rangeTo ? end : rangeTo;
     if (overlapStart > overlapEnd) continue;
