@@ -312,37 +312,171 @@ export async function unskipWeeklyMileageReport(ownerId: string): Promise<void> 
   });
 }
 
-function formatReminderLine(item: ReminderItem): string {
-  const date = item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : "";
-  const timing =
-    item.daysUntil != null
-      ? item.daysUntil < 0
-        ? ` (${Math.abs(item.daysUntil)}d overdue)`
-        : item.daysUntil === 0
-          ? " (today)"
-          : ` (${item.daysUntil}d)`
-      : item.detail
-        ? ` (${item.detail})`
-        : "";
-  switch (item.kind) {
-    case "INSURANCE":
-      return `🛡️ Insurance: <b>${item.label}</b> — ${date}${timing}`;
-    case "INSPECTION":
-      return `🔧 Inspection: <b>${item.label}</b> — ${date}${timing}`;
-    case "DOCUMENT":
-      return `📄 Document: <b>${item.label}</b> — ${date}${timing}`;
-    case "MILEAGE_REPORT":
-      return `📊 Mileage update needed: <b>${item.label}</b>`;
-    case "OVERDUE_PAYMENT":
-      return `💸 Outstanding balance: <b>${item.label}</b> — ${item.amount?.toFixed(2)}`;
-    case "RENTAL_ENDING":
-      return `🚗 Rental ending: <b>${item.label}</b> — ${date}${timing}`;
-    default:
-      return item.label;
+/** Due-date kinds for the compliance Telegram digest (no mileage, no balances). */
+const TELEGRAM_DUE_KINDS = new Set<ReminderItem["kind"]>([
+  "INSURANCE",
+  "INSPECTION",
+  "DOCUMENT",
+  "RENTAL_ENDING",
+]);
+
+const TELEGRAM_DUE_SECTIONS: Array<{
+  kind: ReminderItem["kind"];
+  emoji: string;
+  title: string;
+}> = [
+  { kind: "INSPECTION", emoji: "🔧", title: "Inspection" },
+  { kind: "INSURANCE", emoji: "🛡️", title: "Insurance" },
+  { kind: "DOCUMENT", emoji: "📄", title: "Documents" },
+  { kind: "RENTAL_ENDING", emoji: "🚗", title: "Rental ending" },
+];
+
+const MONTHS_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/** Split `PLATE (Make Model)` labels into plate + vehicle for cleaner lines. */
+export function splitCarLabel(label: string): { plate: string; vehicle: string | null } {
+  const m = label.match(/^(.+?)\s+\((.+)\)$/);
+  if (!m) return { plate: label, vehicle: null };
+  return { plate: m[1], vehicle: m[2] };
+}
+
+export function formatDisplayDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+export function formatReminderTiming(item: ReminderItem): string {
+  if (item.daysUntil != null) {
+    if (item.daysUntil < 0) return `⚠ ${Math.abs(item.daysUntil)}d overdue`;
+    if (item.daysUntil === 0) return "⚠ due today";
+    if (item.daysUntil <= 3) return `⏰ ${item.daysUntil}d left`;
+    return `${item.daysUntil}d left`;
+  }
+  if (item.detail && item.detail !== "weekly") return item.detail;
+  return "";
+}
+
+function urgencyRank(item: ReminderItem): number {
+  if (item.daysUntil == null) return 999;
+  return item.daysUntil;
+}
+
+/** One vehicle block inside a due-date section. */
+export function formatDueReminderBlock(item: ReminderItem): string {
+  const { plate, vehicle } = splitCarLabel(item.label);
+  const title = vehicle ? `<b>${plate}</b> · ${vehicle}` : `<b>${plate}</b>`;
+  const date = item.dueDate ? formatDisplayDate(item.dueDate) : "";
+  const timing = formatReminderTiming(item);
+  const meta = [date, timing].filter(Boolean).join(" · ");
+  if (!meta) return title;
+  return `${title}\n   ${meta}`;
+}
+
+/** One plate line in the mileage message. */
+export function formatMileageReminderLine(item: ReminderItem): string {
+  const { plate, vehicle } = splitCarLabel(item.label);
+  return vehicle ? `• <b>${plate}</b> · ${vehicle}` : `• <b>${plate}</b>`;
+}
+
+function appendOmitted(parts: string[], omitted: number): void {
+  if (omitted > 0) {
+    parts.push("");
+    parts.push(`<i>…and ${omitted} more in the app</i>`);
   }
 }
 
-/** Build reminders for every active owner and push them a Telegram summary. */
+/**
+ * Compliance digest: inspection, insurance, documents, rental ending.
+ * Outstanding balances and mileage are intentionally excluded.
+ */
+export function formatDueDatesMessage(items: ReminderItem[]): string | null {
+  const due = items
+    .filter((i) => TELEGRAM_DUE_KINDS.has(i.kind))
+    .slice()
+    .sort((a, b) => urgencyRank(a) - urgencyRank(b));
+  if (due.length === 0) return null;
+
+  const MAX_ITEMS = 30;
+  const capped = due.slice(0, MAX_ITEMS);
+  const omitted = due.length - capped.length;
+
+  const parts: string[] = ["📅 <b>Fleet due dates</b>", "<i>Insurance · inspection · documents</i>"];
+
+  for (const section of TELEGRAM_DUE_SECTIONS) {
+    const sectionItems = capped
+      .filter((i) => i.kind === section.kind)
+      .sort((a, b) => urgencyRank(a) - urgencyRank(b));
+    if (sectionItems.length === 0) continue;
+    parts.push("");
+    parts.push(`${section.emoji} <b>${section.title}</b> · ${sectionItems.length}`);
+    for (const item of sectionItems) {
+      parts.push(formatDueReminderBlock(item));
+      parts.push("");
+    }
+    // Drop trailing blank after the last item in this section.
+    if (parts[parts.length - 1] === "") parts.pop();
+  }
+
+  appendOmitted(parts, omitted);
+  return parts.join("\n");
+}
+
+/**
+ * Separate mileage check-in message — kept apart from due-date reminders
+ * so owners can act on compliance without scrolling past a long plate list.
+ */
+export function formatMileageReminderMessage(items: ReminderItem[]): string | null {
+  const mileage = items.filter((i) => i.kind === "MILEAGE_REPORT");
+  if (mileage.length === 0) return null;
+
+  const MAX_ITEMS = 40;
+  const capped = mileage.slice(0, MAX_ITEMS);
+  const omitted = mileage.length - capped.length;
+
+  const intro =
+    mileage.length === 1
+      ? "One vehicle still needs an odometer update this week:"
+      : `${mileage.length} vehicles still need an odometer update this week:`;
+
+  const parts: string[] = ["📊 <b>Mileage check-in</b>", "", intro, ""];
+  for (const item of capped) {
+    parts.push(formatMileageReminderLine(item));
+  }
+  appendOmitted(parts, omitted);
+  return parts.join("\n");
+}
+
+/**
+ * Build the Telegram daily digests as separate messages:
+ * 1) due dates (inspection / insurance / …)
+ * 2) mileage check-in
+ *
+ * Outstanding balances are never included.
+ */
+export function formatDailyReminderMessages(items: ReminderItem[]): string[] {
+  const messages: string[] = [];
+  const due = formatDueDatesMessage(items);
+  if (due) messages.push(due);
+  const mileage = formatMileageReminderMessage(items);
+  if (mileage) messages.push(mileage);
+  return messages;
+}
+
+/** Build reminders for every active owner and push them Telegram summaries. */
 export async function runReminderJob(
   sendMessage: (chatId: bigint, text: string) => Promise<void>,
   log: (msg: string, meta?: unknown) => void = () => {},
@@ -351,11 +485,12 @@ export async function runReminderJob(
   for (const owner of owners) {
     try {
       const items = await buildReminders(owner.id);
-      if (items.length === 0) continue;
-      const lines = items.slice(0, 30).map(formatReminderLine);
-      const text = [`<b>Daily reminders</b>`, "", ...lines].join("\n");
-      await sendMessage(owner.telegramUserId, text);
-      log(`Sent ${items.length} reminders to owner ${owner.id}`);
+      const messages = formatDailyReminderMessages(items);
+      if (messages.length === 0) continue;
+      for (const text of messages) {
+        await sendMessage(owner.telegramUserId, text);
+      }
+      log(`Sent ${messages.length} daily reminder message(s) to owner ${owner.id}`);
     } catch (err) {
       log(`Failed to send reminders to owner ${owner.id}`, err);
     }
