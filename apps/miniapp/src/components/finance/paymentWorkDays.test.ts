@@ -63,6 +63,16 @@ describe("countActiveDaysInRange", () => {
       ),
     ).toBe(1);
   });
+
+  it("does not count any work days for a same-day return", () => {
+    expect(
+      countActiveDaysInRange(
+        [{ startDate: "2026-08-31", endDate: "2026-08-31" }],
+        "2026-08-24",
+        "2026-08-31",
+      ),
+    ).toBe(0);
+  });
 });
 
 describe("daysWorkedLastWeek", () => {
