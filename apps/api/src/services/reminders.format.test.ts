@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { ReminderItem } from "@taxi/shared";
 import {
-  formatDailyReminderMessage,
-  formatTelegramReminderBullet,
+  formatDailyReminderMessages,
+  formatDisplayDate,
+  formatDueDatesMessage,
+  formatDueReminderBlock,
+  formatMileageReminderLine,
+  formatMileageReminderMessage,
+  formatReminderTiming,
+  splitCarLabel,
 } from "./reminders.js";
 
 function item(partial: Partial<ReminderItem> & Pick<ReminderItem, "kind" | "refId" | "label">): ReminderItem {
@@ -12,10 +18,44 @@ function item(partial: Partial<ReminderItem> & Pick<ReminderItem, "kind" | "refI
   };
 }
 
-describe("formatTelegramReminderBullet", () => {
-  it("formats date reminders with date and days left", () => {
+describe("splitCarLabel", () => {
+  it("splits plate and vehicle", () => {
+    expect(splitCarLabel("OP8645U (Toyota Corolla)")).toEqual({
+      plate: "OP8645U",
+      vehicle: "Toyota Corolla",
+    });
+  });
+
+  it("keeps plain plates intact", () => {
+    expect(splitCarLabel("OP8645U")).toEqual({ plate: "OP8645U", vehicle: null });
+  });
+});
+
+describe("formatDisplayDate / formatReminderTiming", () => {
+  it("formats a readable UTC date", () => {
+    expect(formatDisplayDate("2026-09-27T00:00:00.000Z")).toBe("27 Sep 2026");
+  });
+
+  it("labels urgency clearly", () => {
+    expect(formatReminderTiming(item({ kind: "INSURANCE", refId: "1", label: "A", daysUntil: -2 }))).toBe(
+      "⚠ 2d overdue",
+    );
+    expect(formatReminderTiming(item({ kind: "INSURANCE", refId: "1", label: "A", daysUntil: 0 }))).toBe(
+      "⚠ due today",
+    );
+    expect(formatReminderTiming(item({ kind: "INSURANCE", refId: "1", label: "A", daysUntil: 2 }))).toBe(
+      "⏰ 2d left",
+    );
+    expect(formatReminderTiming(item({ kind: "INSURANCE", refId: "1", label: "A", daysUntil: 19 }))).toBe(
+      "19d left",
+    );
+  });
+});
+
+describe("formatDueReminderBlock / formatMileageReminderLine", () => {
+  it("formats a due-date vehicle block", () => {
     expect(
-      formatTelegramReminderBullet(
+      formatDueReminderBlock(
         item({
           kind: "INSURANCE",
           refId: "c1",
@@ -24,12 +64,12 @@ describe("formatTelegramReminderBullet", () => {
           daysUntil: 19,
         }),
       ),
-    ).toBe("• <b>OP8645U (Toyota Corolla)</b> — 2026-10-06 · 19d");
+    ).toBe("<b>OP8645U</b> · Toyota Corolla\n   6 Oct 2026 · 19d left");
   });
 
-  it("formats mileage as a simple plate line", () => {
+  it("formats a mileage plate line", () => {
     expect(
-      formatTelegramReminderBullet(
+      formatMileageReminderLine(
         item({
           kind: "MILEAGE_REPORT",
           refId: "c2",
@@ -37,36 +77,99 @@ describe("formatTelegramReminderBullet", () => {
           detail: "weekly",
         }),
       ),
-    ).toBe("• <b>PY5132F (Toyota Auris)</b>");
+    ).toBe("• <b>PY5132F</b> · Toyota Auris");
   });
 });
 
-describe("formatDailyReminderMessage", () => {
-  it("returns null when there is nothing to send", () => {
-    expect(formatDailyReminderMessage([])).toBeNull();
+describe("formatDailyReminderMessages", () => {
+  const sample = [
+    item({
+      kind: "INSPECTION",
+      refId: "c1",
+      label: "OP8645U (Toyota Corolla)",
+      dueDate: "2026-09-27T00:00:00.000Z",
+      daysUntil: 10,
+    }),
+    item({
+      kind: "INSURANCE",
+      refId: "c1",
+      label: "OP8645U (Toyota Corolla)",
+      dueDate: "2026-10-06T00:00:00.000Z",
+      daysUntil: 19,
+    }),
+    item({
+      kind: "MILEAGE_REPORT",
+      refId: "c2",
+      label: "PY5132F (Toyota Auris)",
+      detail: "weekly",
+    }),
+    item({
+      kind: "MILEAGE_REPORT",
+      refId: "c3",
+      label: "BE8531CE (Toyota Corolla)",
+      detail: "weekly",
+    }),
+    item({
+      kind: "OVERDUE_PAYMENT",
+      refId: "d1",
+      label: "Horobets — AA1111",
+      amount: 92.86,
+    }),
+  ];
+
+  it("returns no messages when empty", () => {
+    expect(formatDailyReminderMessages([])).toEqual([]);
   });
 
-  it("omits outstanding balances from the Telegram digest", () => {
-    const text = formatDailyReminderMessage([
-      item({
-        kind: "OVERDUE_PAYMENT",
-        refId: "d1",
-        label: "Horobets — AA1111",
-        amount: 92.86,
-      }),
-    ]);
-    expect(text).toBeNull();
+  it("omits outstanding balances entirely", () => {
+    expect(
+      formatDailyReminderMessages([
+        item({
+          kind: "OVERDUE_PAYMENT",
+          refId: "d1",
+          label: "Horobets — AA1111",
+          amount: 92.86,
+        }),
+      ]),
+    ).toEqual([]);
   });
 
-  it("groups reminders by section and skips outstanding balances", () => {
-    const text = formatDailyReminderMessage([
-      item({
-        kind: "INSPECTION",
-        refId: "c1",
-        label: "OP8645U (Toyota Corolla)",
-        dueDate: "2026-09-27T00:00:00.000Z",
-        daysUntil: 10,
-      }),
+  it("sends due dates and mileage as separate messages", () => {
+    const messages = formatDailyReminderMessages(sample);
+    expect(messages).toHaveLength(2);
+
+    expect(messages[0]).toBe(
+      [
+        "📅 <b>Fleet due dates</b>",
+        "<i>Insurance · inspection · documents</i>",
+        "",
+        "🔧 <b>Inspection</b> · 1",
+        "<b>OP8645U</b> · Toyota Corolla",
+        "   27 Sep 2026 · 10d left",
+        "",
+        "🛡️ <b>Insurance</b> · 1",
+        "<b>OP8645U</b> · Toyota Corolla",
+        "   6 Oct 2026 · 19d left",
+      ].join("\n"),
+    );
+
+    expect(messages[1]).toBe(
+      [
+        "📊 <b>Mileage check-in</b>",
+        "",
+        "2 vehicles still need an odometer update this week:",
+        "",
+        "• <b>PY5132F</b> · Toyota Auris",
+        "• <b>BE8531CE</b> · Toyota Corolla",
+      ].join("\n"),
+    );
+
+    expect(messages.join("\n")).not.toContain("Outstanding balance");
+    expect(messages.join("\n")).not.toContain("92.86");
+  });
+
+  it("can send only a due-dates message", () => {
+    const text = formatDueDatesMessage([
       item({
         kind: "INSURANCE",
         refId: "c1",
@@ -74,61 +177,22 @@ describe("formatDailyReminderMessage", () => {
         dueDate: "2026-10-06T00:00:00.000Z",
         daysUntil: 19,
       }),
+    ]);
+    expect(text).toContain("Fleet due dates");
+    expect(text).not.toContain("Mileage");
+  });
+
+  it("can send only a mileage message", () => {
+    const text = formatMileageReminderMessage([
       item({
         kind: "MILEAGE_REPORT",
         refId: "c2",
         label: "PY5132F (Toyota Auris)",
         detail: "weekly",
       }),
-      item({
-        kind: "MILEAGE_REPORT",
-        refId: "c3",
-        label: "BE8531CE (Toyota Corolla)",
-        detail: "weekly",
-      }),
-      item({
-        kind: "OVERDUE_PAYMENT",
-        refId: "d1",
-        label: "Horobets — AA1111",
-        amount: 92.86,
-      }),
     ]);
-
-    expect(text).toBe(
-      [
-        "<b>Daily reminders</b>",
-        "",
-        "<b>🔧 Inspection</b>",
-        "• <b>OP8645U (Toyota Corolla)</b> — 2026-09-27 · 10d",
-        "",
-        "<b>🛡️ Insurance</b>",
-        "• <b>OP8645U (Toyota Corolla)</b> — 2026-10-06 · 19d",
-        "",
-        "<b>📊 Mileage update needed</b>",
-        "• <b>PY5132F (Toyota Auris)</b>",
-        "• <b>BE8531CE (Toyota Corolla)</b>",
-      ].join("\n"),
-    );
-    expect(text).not.toContain("Outstanding balance");
-    expect(text).not.toContain("92.86");
-  });
-
-  it("returns null when only outstanding balances exist", () => {
-    expect(
-      formatDailyReminderMessage([
-        item({
-          kind: "OVERDUE_PAYMENT",
-          refId: "d1",
-          label: "Driver A",
-          amount: 10,
-        }),
-        item({
-          kind: "OVERDUE_PAYMENT",
-          refId: "d2",
-          label: "Driver B",
-          amount: 20,
-        }),
-      ]),
-    ).toBeNull();
+    expect(text).toContain("Mileage check-in");
+    expect(text).toContain("One vehicle still needs an odometer update this week:");
+    expect(text).not.toContain("Fleet due dates");
   });
 });
