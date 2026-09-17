@@ -312,34 +312,86 @@ export async function unskipWeeklyMileageReport(ownerId: string): Promise<void> 
   });
 }
 
-function formatReminderLine(item: ReminderItem): string {
-  const date = item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : "";
-  const timing =
-    item.daysUntil != null
-      ? item.daysUntil < 0
-        ? ` (${Math.abs(item.daysUntil)}d overdue)`
-        : item.daysUntil === 0
-          ? " (today)"
-          : ` (${item.daysUntil}d)`
-      : item.detail
-        ? ` (${item.detail})`
-        : "";
-  switch (item.kind) {
-    case "INSURANCE":
-      return `🛡️ Insurance: <b>${item.label}</b> — ${date}${timing}`;
-    case "INSPECTION":
-      return `🔧 Inspection: <b>${item.label}</b> — ${date}${timing}`;
-    case "DOCUMENT":
-      return `📄 Document: <b>${item.label}</b> — ${date}${timing}`;
-    case "MILEAGE_REPORT":
-      return `📊 Mileage update needed: <b>${item.label}</b>`;
-    case "OVERDUE_PAYMENT":
-      return `💸 Outstanding balance: <b>${item.label}</b> — ${item.amount?.toFixed(2)}`;
-    case "RENTAL_ENDING":
-      return `🚗 Rental ending: <b>${item.label}</b> — ${date}${timing}`;
-    default:
-      return item.label;
+/** Kinds included in the Telegram daily digest (not the in-app list). */
+const TELEGRAM_DAILY_KINDS = new Set<ReminderItem["kind"]>([
+  "INSURANCE",
+  "INSPECTION",
+  "DOCUMENT",
+  "MILEAGE_REPORT",
+  "RENTAL_ENDING",
+]);
+
+const TELEGRAM_SECTION_ORDER: Array<{
+  kind: ReminderItem["kind"];
+  title: string;
+}> = [
+  { kind: "INSPECTION", title: "🔧 Inspection" },
+  { kind: "INSURANCE", title: "🛡️ Insurance" },
+  { kind: "DOCUMENT", title: "📄 Documents" },
+  { kind: "RENTAL_ENDING", title: "🚗 Rental ending" },
+  { kind: "MILEAGE_REPORT", title: "📊 Mileage update needed" },
+];
+
+function formatReminderTiming(item: ReminderItem): string {
+  if (item.daysUntil != null) {
+    if (item.daysUntil < 0) return `${Math.abs(item.daysUntil)}d overdue`;
+    if (item.daysUntil === 0) return "today";
+    return `${item.daysUntil}d`;
   }
+  if (item.detail && item.detail !== "weekly") return item.detail;
+  return "";
+}
+
+function formatReminderDate(item: ReminderItem): string {
+  if (!item.dueDate) return "";
+  return new Date(item.dueDate).toISOString().slice(0, 10);
+}
+
+/** One bullet under a grouped Telegram section. */
+export function formatTelegramReminderBullet(item: ReminderItem): string {
+  if (item.kind === "MILEAGE_REPORT") {
+    return `• <b>${item.label}</b>`;
+  }
+  const date = formatReminderDate(item);
+  const timing = formatReminderTiming(item);
+  const meta = [date, timing].filter(Boolean).join(" · ");
+  return meta ? `• <b>${item.label}</b> — ${meta}` : `• <b>${item.label}</b>`;
+}
+
+/**
+ * Build the Telegram daily digest text.
+ *
+ * Outstanding balances are intentionally omitted — owners already see those
+ * in Finance. Mileage is collapsed under one section header instead of
+ * repeating "Mileage update needed" on every line.
+ */
+export function formatDailyReminderMessage(items: ReminderItem[]): string | null {
+  const filtered = items.filter((i) => TELEGRAM_DAILY_KINDS.has(i.kind));
+  if (filtered.length === 0) return null;
+
+  // Cap total lines so Telegram messages stay readable for large fleets.
+  const MAX_ITEMS = 40;
+  const capped = filtered.slice(0, MAX_ITEMS);
+  const omitted = filtered.length - capped.length;
+
+  const parts: string[] = ["<b>Daily reminders</b>"];
+
+  for (const section of TELEGRAM_SECTION_ORDER) {
+    const sectionItems = capped.filter((i) => i.kind === section.kind);
+    if (sectionItems.length === 0) continue;
+    parts.push("");
+    parts.push(`<b>${section.title}</b>`);
+    for (const item of sectionItems) {
+      parts.push(formatTelegramReminderBullet(item));
+    }
+  }
+
+  if (omitted > 0) {
+    parts.push("");
+    parts.push(`…and ${omitted} more in the app`);
+  }
+
+  return parts.join("\n");
 }
 
 /** Build reminders for every active owner and push them a Telegram summary. */
@@ -351,11 +403,10 @@ export async function runReminderJob(
   for (const owner of owners) {
     try {
       const items = await buildReminders(owner.id);
-      if (items.length === 0) continue;
-      const lines = items.slice(0, 30).map(formatReminderLine);
-      const text = [`<b>Daily reminders</b>`, "", ...lines].join("\n");
+      const text = formatDailyReminderMessage(items);
+      if (!text) continue;
       await sendMessage(owner.telegramUserId, text);
-      log(`Sent ${items.length} reminders to owner ${owner.id}`);
+      log(`Sent daily reminders to owner ${owner.id}`);
     } catch (err) {
       log(`Failed to send reminders to owner ${owner.id}`, err);
     }
