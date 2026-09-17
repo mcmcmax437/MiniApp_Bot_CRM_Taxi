@@ -476,12 +476,6 @@ export function formatDailyReminderMessages(items: ReminderItem[]): string[] {
   return messages;
 }
 
-/** @deprecated Prefer formatDailyReminderMessages — kept for callers/tests. */
-export function formatDailyReminderMessage(items: ReminderItem[]): string | null {
-  const messages = formatDailyReminderMessages(items);
-  return messages.length > 0 ? messages.join("\n\n————————\n\n") : null;
-}
-
 /** Build reminders for every active owner and push them Telegram summaries. */
 export async function runReminderJob(
   sendMessage: (chatId: bigint, text: string) => Promise<void>,
