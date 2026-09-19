@@ -177,13 +177,13 @@ export function PartnerSettlementCard() {
   const data = report.data;
   const monthKeys = useMemo(
     () => data?.months.map((m) => m.month) ?? [],
-    [data?.from, data?.to],
+    [data?.months],
   );
 
   useEffect(() => {
     if (!data) return;
     syncAvailableMonths(monthKeys);
-  }, [data?.from, data?.to]);
+  }, [data, monthKeys, syncAvailableMonths]);
 
   const visibleReport = useMemo(
     () => (data ? filterPartnerSettlementByMonths(data, selectedMonths) : null),
