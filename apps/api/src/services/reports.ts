@@ -315,17 +315,49 @@ function partnerSettlementExpenseDescription(
   return "—";
 }
 
+type PartnerPaymentRow = {
+  id: string;
+  amount: number;
+  date: Date;
+  partnerSettled: boolean;
+  driverId: string | null;
+  type: string;
+  note: string | null;
+};
+
+type PartnerExpenseRow = {
+  id: string;
+  amount: number;
+  date: Date;
+  partnerSettled: boolean;
+  category: string;
+  tag: string | null;
+  note: string | null;
+  carId: string | null;
+};
+
+type PartnerDriverRow = { id: string; fullName: string };
+type PartnerCarRow = { id: string; plate: string; make: string | null; model: string | null };
+
+type PartnerSettlementReader = {
+  payment: { findMany(query: unknown): Promise<PartnerPaymentRow[]> };
+  expense: { findMany(query: unknown): Promise<PartnerExpenseRow[]> };
+  driver: { findMany(query: unknown): Promise<PartnerDriverRow[]> };
+  car: { findMany(query: unknown): Promise<PartnerCarRow[]> };
+};
+
 /**
  * Partner settlement by calendar month: payments the partner collected and
  * expenses they paid on the owner's behalf, with net balance per month.
  */
-export async function buildPartnerSettlementReport(
+export async function buildPartnerSettlementReportWithClient(
+  db: PartnerSettlementReader,
   ownerId: string,
   from: Date,
   to: Date,
 ): Promise<PartnerSettlementReport> {
   const [payments, expenses, drivers, cars] = await Promise.all([
-    prisma.payment.findMany({
+    db.payment.findMany({
       where: {
         ownerId,
         date: { gte: from, lte: to },
@@ -342,7 +374,7 @@ export async function buildPartnerSettlementReport(
       },
       orderBy: { date: "asc" },
     }),
-    prisma.expense.findMany({
+    db.expense.findMany({
       where: {
         ownerId,
         date: { gte: from, lte: to },
@@ -358,8 +390,8 @@ export async function buildPartnerSettlementReport(
       },
       orderBy: { date: "asc" },
     }),
-    prisma.driver.findMany({ where: { ownerId }, select: { id: true, fullName: true } }),
-    prisma.car.findMany({
+    db.driver.findMany({ where: { ownerId }, select: { id: true, fullName: true } }),
+    db.car.findMany({
       where: { ownerId },
       select: { id: true, plate: true, make: true, model: true },
     }),
@@ -453,4 +485,12 @@ export async function buildPartnerSettlementReport(
       partnerExpensesTotal: round2(tExpenses),
     },
   };
+}
+
+export async function buildPartnerSettlementReport(
+  ownerId: string,
+  from: Date,
+  to: Date,
+): Promise<PartnerSettlementReport> {
+  return buildPartnerSettlementReportWithClient(prisma, ownerId, from, to);
 }
