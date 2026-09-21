@@ -436,8 +436,9 @@ export function formatDueDatesMessage(items: ReminderItem[]): string | null {
 }
 
 /**
- * Separate mileage check-in message — kept apart from due-date reminders
- * so owners can act on compliance without scrolling past a long plate list.
+ * Weekly mileage Telegram message. Sent only by `runWeeklyMileageJob` on the
+ * owner's configured weekday — not by the daily due-date digest, which used
+ * to duplicate this list on Mondays.
  */
 export function formatMileageReminderMessage(items: ReminderItem[]): string | null {
   const mileage = items.filter((i) => i.kind === "MILEAGE_REPORT");
@@ -452,7 +453,7 @@ export function formatMileageReminderMessage(items: ReminderItem[]): string | nu
       ? "One vehicle still needs an odometer update this week:"
       : `${mileage.length} vehicles still need an odometer update this week:`;
 
-  const parts: string[] = ["📊 <b>Mileage check-in</b>", "", intro, ""];
+  const parts: string[] = ["📊 <b>Weekly mileage report</b>", "", intro, ""];
   for (const item of capped) {
     parts.push(formatMileageReminderLine(item));
   }
@@ -461,19 +462,13 @@ export function formatMileageReminderMessage(items: ReminderItem[]): string | nu
 }
 
 /**
- * Build the Telegram daily digests as separate messages:
- * 1) due dates (inspection / insurance / …)
- * 2) mileage check-in
- *
- * Outstanding balances are never included.
+ * Daily Telegram digest: inspection / insurance / documents / rental ending.
+ * Mileage is sent separately by `runWeeklyMileageJob` so Monday 09:00 does
+ * not deliver the same plate list twice. Outstanding balances stay in-app.
  */
 export function formatDailyReminderMessages(items: ReminderItem[]): string[] {
-  const messages: string[] = [];
   const due = formatDueDatesMessage(items);
-  if (due) messages.push(due);
-  const mileage = formatMileageReminderMessage(items);
-  if (mileage) messages.push(mileage);
-  return messages;
+  return due ? [due] : [];
 }
 
 /** Build reminders for every active owner and push them Telegram summaries. */
@@ -521,16 +516,17 @@ export async function runWeeklyMileageJob(
     const stale = await findCarsNeedingMileage(owner.id, settings, now);
     if (stale.length === 0) continue;
 
-    const lines = stale.map((c) => `• ${carLabel(c)}`);
-    const text = [
-      "<b>Weekly mileage report</b>",
-      "",
-      stale.length === 1
-        ? "One vehicle still needs an odometer update this week:"
-        : `${stale.length} vehicles still need an odometer update this week:`,
-      "",
-      ...lines,
-    ].join("\n");
+    const text = formatMileageReminderMessage(
+      stale.map((c) => ({
+        kind: "MILEAGE_REPORT",
+        refId: c.id,
+        carId: c.id,
+        label: carLabel(c),
+        dueDate: null,
+        detail: "weekly",
+      })),
+    );
+    if (!text) continue;
 
     try {
       await sendMessage(owner.telegramUserId, text);

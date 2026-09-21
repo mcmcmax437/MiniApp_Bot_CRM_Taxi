@@ -134,9 +134,9 @@ describe("formatDailyReminderMessages", () => {
     ).toEqual([]);
   });
 
-  it("sends due dates and mileage as separate messages", () => {
+  it("sends due dates only — mileage is the weekly job", () => {
     const messages = formatDailyReminderMessages(sample);
-    expect(messages).toHaveLength(2);
+    expect(messages).toHaveLength(1);
 
     expect(messages[0]).toBe(
       [
@@ -153,17 +153,8 @@ describe("formatDailyReminderMessages", () => {
       ].join("\n"),
     );
 
-    expect(messages[1]).toBe(
-      [
-        "📊 <b>Mileage check-in</b>",
-        "",
-        "2 vehicles still need an odometer update this week:",
-        "",
-        "• <b>PY5132F</b> · Toyota Auris",
-        "• <b>BE8531CE</b> · Toyota Corolla",
-      ].join("\n"),
-    );
-
+    expect(messages.join("\n")).not.toContain("Weekly mileage report");
+    expect(messages.join("\n")).not.toContain("Mileage check-in");
     expect(messages.join("\n")).not.toContain("Outstanding balance");
     expect(messages.join("\n")).not.toContain("92.86");
   });
@@ -191,8 +182,21 @@ describe("formatDailyReminderMessages", () => {
         detail: "weekly",
       }),
     ]);
-    expect(text).toContain("Mileage check-in");
+    expect(text).toContain("Weekly mileage report");
     expect(text).toContain("One vehicle still needs an odometer update this week:");
     expect(text).not.toContain("Fleet due dates");
+  });
+
+  it("does not send mileage from the daily digest", () => {
+    expect(
+      formatDailyReminderMessages([
+        item({
+          kind: "MILEAGE_REPORT",
+          refId: "c2",
+          label: "PY5132F (Toyota Auris)",
+          detail: "weekly",
+        }),
+      ]),
+    ).toEqual([]);
   });
 });

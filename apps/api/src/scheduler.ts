@@ -14,8 +14,9 @@ export function startScheduler(log: FastifyBaseLogger): void {
     runReminderJob(sendTelegramMessage, (msg, meta) => log.info({ meta }, msg)).catch((err) =>
       log.error({ err }, "Reminder job failed"),
     );
-  });
-  cron.schedule("0 9 * * 1", () => {
+    // Same clock as the daily digest, but `runWeeklyMileageJob` only sends
+    // when today is the owner's configured weekday. A second Monday-only
+    // cron duplicated mileage because the daily job used to send it too.
     log.info("Running weekly mileage reminder job");
     runWeeklyMileageJob(sendTelegramMessage, (msg, meta) => log.info({ meta }, msg)).catch((err) =>
       log.error({ err }, "Weekly mileage job failed"),
