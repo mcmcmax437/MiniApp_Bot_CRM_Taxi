@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { PAYMENT_METHODS, PAYMENT_BANKS, PaymentBank, PaymentMethod, PaymentType, ExpenseCategory, AgreementStatus, RentPeriod } from "@taxi/shared";
+import { PAYMENT_METHODS, PAYMENT_BANKS, PaymentBank, PaymentMethod, PaymentType, ExpenseCategory, AgreementStatus, RentPeriod, isCarPurchaseExpense } from "@taxi/shared";
 import {
   usePayments,
   useExpenses,
@@ -658,6 +658,7 @@ function ExpensesTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [payerFilters, setPayerFilters] = useState<Array<"PARTNER" | "MINE">>([]);
   const [carFilters, setCarFilters] = useState<string[]>([]);
+  const [showCarPurchases, setShowCarPurchases] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -700,6 +701,7 @@ function ExpensesTab() {
 
   const scoped = useMemo(() => {
     return all.filter((e) => {
+      if (!showCarPurchases && isCarPurchaseExpense(e)) return false;
       if (!financeInPeriod(e.date, period, dateRange)) return false;
       if (payerFilters.length > 0) {
         const isPartner = e.paidByPartner;
@@ -713,11 +715,12 @@ function ExpensesTab() {
       }
       return true;
     });
-  }, [all, period, dateRange, payerFilters, carFilters]);
+  }, [all, period, dateRange, payerFilters, carFilters, showCarPurchases]);
 
   const total = scoped.reduce((s, e) => s + e.amount, 0);
   const monthItems = useMemo(() => {
     return all.filter((e) => {
+      if (!showCarPurchases && isCarPurchaseExpense(e)) return false;
       if (!financeInPeriod(e.date, "month")) return false;
       if (payerFilters.length > 0) {
         const isPartner = e.paidByPartner;
@@ -731,15 +734,17 @@ function ExpensesTab() {
       }
       return true;
     });
-  }, [all, payerFilters, carFilters]);
+  }, [all, payerFilters, carFilters, showCarPurchases]);
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
-  const partnerUnsettled = all.filter((e) => e.paidByPartner && !e.partnerSettled);
+  const partnerUnsettled = all.filter(
+    (e) => e.paidByPartner && !e.partnerSettled && (showCarPurchases || !isCarPurchaseExpense(e)),
+  );
   const partnerUnsettledSum = partnerUnsettled.reduce((s, e) => s + e.amount, 0);
   const periodSubtitle =
     period === "custom" && dateRange
       ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
       : t(`finance.period_${period}`);
-  const extraFilterCount = payerFilters.length + carFilters.length;
+  const extraFilterCount = payerFilters.length + carFilters.length + (showCarPurchases ? 1 : 0);
 
   const expenseFilterSections = useMemo((): FinanceFilterSection[] => {
     const carOptions = [
@@ -757,6 +762,17 @@ function ExpensesTab() {
       })),
     ];
     return [
+      {
+        title: t("finance.filterByType"),
+        options: [
+          {
+            key: "CAR_PURCHASE",
+            label: t("finance.showCarPurchases"),
+            checked: showCarPurchases,
+            onToggle: () => setShowCarPurchases((v) => !v),
+          },
+        ],
+      },
       {
         title: t("finance.filterByPayer"),
         options: [
@@ -779,7 +795,7 @@ function ExpensesTab() {
         options: carOptions,
       },
     ];
-  }, [t, cars.data, payerFilters, carFilters]);
+  }, [t, cars.data, payerFilters, carFilters, showCarPurchases]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -895,6 +911,7 @@ function ExpensesTab() {
         onClearExtraFilters={() => {
           setPayerFilters([]);
           setCarFilters([]);
+          setShowCarPurchases(false);
         }}
       />
 

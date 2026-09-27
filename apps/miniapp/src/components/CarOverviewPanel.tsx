@@ -6,7 +6,8 @@ import { useMaintenanceRecords, useMaintenanceRules, useReminderSettings } from 
 import type { Car, MaintenanceRecord } from "../types";
 import { IconActionButton } from "./crm";
 import { CopyOnDoubleTap, formatDate } from "./ui";
-import { formatMoney } from "../currency";
+import { formatMoney, getAppCurrency } from "../currency";
+import type { Currency } from "@taxi/shared";
 import { maintenanceRuleLabel } from "./trackingLabels";
 import type { MaintenanceRule } from "../types";
 import { expiryUrgency } from "../utils/expiryUrgency";
@@ -198,6 +199,19 @@ export function CarOverviewPanel(props: {
         ) : null}
         {car.purchaseDate ? (
           <OverviewCell label={t("cars.purchaseDate")} value={formatDate(car.purchaseDate)} />
+        ) : null}
+        {(car.purchaseParts?.length ?? 0) > 0 ? (
+          <OverviewCell
+            label={t("cars.purchasePartsTitle")}
+            value={car.purchaseParts!
+              .map((p) => {
+                const code = p.currency as Currency;
+                const original = formatMoney(p.amount, code);
+                if (p.currency === getAppCurrency() || p.amount === p.fleetAmount) return original;
+                return `${original} → ${formatMoney(p.fleetAmount)}`;
+              })
+              .join(" · ")}
+          />
         ) : null}
         <OverviewCell
           label={t("cars.trackerTitle")}

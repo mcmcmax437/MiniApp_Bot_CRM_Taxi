@@ -274,6 +274,10 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
     NALOG: ExpenseCategory.TAX,
     OTHER: ExpenseCategory.OTHER,
     INSHI: ExpenseCategory.OTHER,
+    CAR_PURCHASE: ExpenseCategory.CAR_PURCHASE,
+    PURCHASE: ExpenseCategory.CAR_PURCHASE,
+    ZAKUP: ExpenseCategory.CAR_PURCHASE,
+    KUPIVLYA: ExpenseCategory.CAR_PURCHASE,
   };
 
   function parseExpenseCategory(value: string | undefined): ExpenseCategory {

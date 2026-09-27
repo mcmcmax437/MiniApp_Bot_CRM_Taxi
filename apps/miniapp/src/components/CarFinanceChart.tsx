@@ -113,7 +113,10 @@ export function CarFinanceChart(props: { carId: string }) {
     }
 
     const carExpenses = (expenses.data ?? []).filter(
-      (e) => e.carId === props.carId && e.category !== ExpenseCategory.TAX,
+      (e) =>
+        e.carId === props.carId &&
+        e.category !== ExpenseCategory.TAX &&
+        e.category !== ExpenseCategory.CAR_PURCHASE,
     );
     for (const e of carExpenses) {
       const k = getFinanceMonthKey(e.date);

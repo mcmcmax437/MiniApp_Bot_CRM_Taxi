@@ -75,8 +75,23 @@ export const ExpenseCategory = {
   FUEL: "FUEL",
   TAX: "TAX",
   OTHER: "OTHER",
+  CAR_PURCHASE: "CAR_PURCHASE",
 } as const;
 export type ExpenseCategory = (typeof ExpenseCategory)[keyof typeof ExpenseCategory];
+
+/** True for capital car-buy rows (new category or legacy auto-created notes). */
+export function isCarPurchaseExpense(expense: {
+  category: string;
+  note?: string | null;
+  tag?: string | null;
+}): boolean {
+  if (expense.category === ExpenseCategory.CAR_PURCHASE) return true;
+  const tag = expense.tag?.trim().toLowerCase();
+  if (tag === "car-purchase" || tag === "purchase") return true;
+  const note = expense.note?.trim() ?? "";
+  if (!note) return false;
+  return /^(purchase of |купівля |покупка )/i.test(note);
+}
 
 export const FineStatus = {
   UNPAID: "UNPAID",
@@ -143,6 +158,15 @@ const optionalIsoDate = isoDate.optional().nullable();
 
 const money = z.number().finite().min(0);
 
+export const carPurchasePartSchema = z.object({
+  amount: z.number().finite().gt(0),
+  currency: z.nativeEnum(Currency),
+  /** Amount counted toward purchase price / expenses in the owner's currency. */
+  fleetAmount: z.number().finite().gt(0),
+  note: z.string().trim().max(500).optional().nullable(),
+});
+export type CarPurchasePartInput = z.infer<typeof carPurchasePartSchema>;
+
 // ---------------------------------------------------------------------------
 // Car schemas
 // ---------------------------------------------------------------------------
@@ -167,6 +191,8 @@ export const carCreateSchema = z.object({
   currentMileage: z.number().int().min(0).optional().nullable(),
   purchasePrice: money.optional().nullable(),
   purchaseDate: optionalIsoDate,
+  /** Optional payment breakdown for the purchase (multi-currency allowed). */
+  purchaseParts: z.array(carPurchasePartSchema).max(40).optional(),
   tireBrand: z.string().trim().max(64).optional().nullable(),
   tireSize: z.string().trim().max(32).optional().nullable(),
   tireSeason: z.nativeEnum(TireSeason).optional().nullable(),
