@@ -176,7 +176,7 @@ const en = {
     purchaseExpenseNote: "Purchase of {{plate}}",
     splitPurchasePayments: "Split into payments",
     purchasePartsHint:
-      "Add each payment used to buy the car. Different currencies are OK — enter the conversion rate (or the amount in your fleet currency).",
+      "Add each payment used to buy the car. For other currencies we load a live market rate (you can edit it).",
     purchasePartN: "Payment {{n}}",
     purchasePartCurrency: "Currency",
     purchasePartFleetAmount: "Amount in {{currency}}",
@@ -1120,7 +1120,7 @@ const uk: Resources = {
     purchaseExpenseNote: "Купівля {{plate}}",
     splitPurchasePayments: "Розбити на платежі",
     purchasePartsHint:
-      "Додайте кожен платіж за авто. Можна різні валюти — вкажіть курс (або суму у валюті флоту).",
+      "Додайте кожен платіж за авто. Для іншої валюти підтягуємо ринковий курс (можна змінити).",
     purchasePartN: "Платіж {{n}}",
     purchasePartCurrency: "Валюта",
     purchasePartFleetAmount: "Сума в {{currency}}",
@@ -2047,7 +2047,7 @@ const ru: Resources = {
     purchaseExpenseNote: "Покупка {{plate}}",
     splitPurchasePayments: "Разбить на платежи",
     purchasePartsHint:
-      "Добавьте каждый платёж за авто. Можно разные валюты — укажите курс (или сумму в валюте флота).",
+      "Добавьте каждый платёж за авто. Для другой валюты подтягиваем рыночный курс (можно изменить).",
     purchasePartN: "Платёж {{n}}",
     purchasePartCurrency: "Валюта",
     purchasePartFleetAmount: "Сумма в {{currency}}",
