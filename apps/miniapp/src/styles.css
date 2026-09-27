@@ -3886,6 +3886,22 @@ button.crm-driver-stat:hover {
   gap: 8px;
 }
 
+.crm-purchase-part__rate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crm-purchase-part__rate-row .crm-input,
+.crm-purchase-part__rate-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.crm-purchase-part__rate-error {
+  color: #ff5252 !important;
+}
+
 .crm-purchase-parts__total {
   font-size: 0.95rem;
   padding-top: 4px;
