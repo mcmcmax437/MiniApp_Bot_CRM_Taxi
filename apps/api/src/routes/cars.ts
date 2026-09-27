@@ -49,10 +49,19 @@ function purchasePartRows(parts: CarPurchasePartInput[]) {
 
 function purchaseExpenseNote(plate: string, part: CarPurchasePartInput, multi: boolean): string {
   const base = `Purchase of ${plate}`;
-  if (!multi && part.currency && part.amount === part.fleetAmount) return base;
+  const sameCurrency = part.amount === part.fleetAmount;
+  if (!multi && sameCurrency) return base;
   const original = `${part.amount} ${part.currency}`;
-  const detail = part.note?.trim() ? `${original} · ${part.note.trim()}` : original;
-  return multi || part.currency ? `${base} · ${detail}` : base;
+  const rate =
+    part.amount > 0 && !sameCurrency
+      ? Math.round((part.fleetAmount / part.amount + Number.EPSILON) * 10000) / 10000
+      : null;
+  const converted =
+    rate != null
+      ? `${original} @ ${rate} = ${part.fleetAmount}`
+      : original;
+  const detail = part.note?.trim() ? `${converted} · ${part.note.trim()}` : converted;
+  return `${base} · ${detail}`;
 }
 
 async function createPurchaseExpenses(args: {

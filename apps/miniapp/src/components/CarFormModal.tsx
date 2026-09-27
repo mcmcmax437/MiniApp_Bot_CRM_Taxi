@@ -514,6 +514,7 @@ export function CarFormModal(props: {
               const seed = emptyPurchasePart(getAppCurrency());
               if (form.purchasePrice !== "") {
                 seed.amount = form.purchasePrice;
+                seed.rate = 1;
                 seed.fleetAmount = form.purchasePrice;
               }
               setPurchaseParts([seed]);

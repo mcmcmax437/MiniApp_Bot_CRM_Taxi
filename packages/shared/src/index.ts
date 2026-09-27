@@ -79,6 +79,10 @@ export const ExpenseCategory = {
 } as const;
 export type ExpenseCategory = (typeof ExpenseCategory)[keyof typeof ExpenseCategory];
 
+/** Matches EN / UK / RU (and common variants) for car-buy expense text. */
+const PURCHASE_KEYWORD_RE =
+  /purchase\s+of|vehicle\s+purchase|car\s+purchase|\bpurchase\b|купівл[яію]|покупк[аиу]|zakup|car-purchase/i;
+
 /** True for capital car-buy rows (new category or legacy auto-created notes). */
 export function isCarPurchaseExpense(expense: {
   category: string;
@@ -87,20 +91,10 @@ export function isCarPurchaseExpense(expense: {
 }): boolean {
   if (expense.category === ExpenseCategory.CAR_PURCHASE) return true;
   const tag = expense.tag?.trim().toLowerCase() ?? "";
-  if (
-    tag === "car-purchase" ||
-    tag === "purchase" ||
-    tag === "купівлі" ||
-    tag === "покупка" ||
-    tag.includes("car-purchase") ||
-    tag.includes("purchase")
-  ) {
-    return true;
-  }
+  if (tag && PURCHASE_KEYWORD_RE.test(tag)) return true;
   const note = expense.note?.trim() ?? "";
   if (!note) return false;
-  // EN / UK / RU auto-notes from car create (with optional payment breakdown suffix).
-  return /^(purchase of |купівля |покупка )/i.test(note);
+  return PURCHASE_KEYWORD_RE.test(note);
 }
 
 export const FineStatus = {

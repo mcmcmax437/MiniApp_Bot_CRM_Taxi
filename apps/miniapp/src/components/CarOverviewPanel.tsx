@@ -208,7 +208,14 @@ export function CarOverviewPanel(props: {
                 const code = p.currency as Currency;
                 const original = formatMoney(p.amount, code);
                 if (p.currency === getAppCurrency() || p.amount === p.fleetAmount) return original;
-                return `${original} → ${formatMoney(p.fleetAmount)}`;
+                const rate =
+                  p.amount > 0
+                    ? Math.round((p.fleetAmount / p.amount + Number.EPSILON) * 10000) / 10000
+                    : null;
+                const converted = formatMoney(p.fleetAmount);
+                return rate != null
+                  ? `${original} @ ${rate} → ${converted}`
+                  : `${original} → ${converted}`;
               })
               .join(" · ")}
           />
