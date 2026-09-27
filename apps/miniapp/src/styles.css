@@ -3839,12 +3839,19 @@ button.crm-driver-stat:hover {
   margin: 8px 0 4px;
   padding: 12px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--taxi-surface, #fff) 88%, var(--taxi-accent, #ffc107));
-  border: 1px solid color-mix(in srgb, var(--taxi-border, #e0e0e0) 70%, transparent);
+  background: var(--taxi-surface-raised, #101c2e);
+  border: 1px solid color-mix(in srgb, var(--taxi-accent, #ffc107) 28%, var(--taxi-border, rgba(255, 255, 255, 0.06)));
+  color: var(--taxi-text, #fff);
 }
 
 .crm-purchase-parts--invalid {
   border-color: #ff5252;
+}
+
+.crm-purchase-parts .crm-form-hint,
+.crm-purchase-parts .crm-field-label,
+.crm-purchase-parts .crm-field > span:first-child {
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.54));
 }
 
 .crm-purchase-part {
@@ -3852,7 +3859,7 @@ button.crm-driver-stat:hover {
   flex-direction: column;
   gap: 8px;
   padding: 10px 0;
-  border-top: 1px solid color-mix(in srgb, var(--taxi-border, #e0e0e0) 80%, transparent);
+  border-top: 1px solid var(--taxi-border, rgba(255, 255, 255, 0.06));
 }
 
 .crm-purchase-part:first-of-type {
@@ -3870,7 +3877,7 @@ button.crm-driver-stat:hover {
 .crm-purchase-part__title {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--taxi-text-muted, #666);
+  color: var(--taxi-text-muted, rgba(255, 255, 255, 0.54));
 }
 
 .crm-purchase-part__row {
@@ -3882,6 +3889,11 @@ button.crm-driver-stat:hover {
 .crm-purchase-parts__total {
   font-size: 0.95rem;
   padding-top: 4px;
+  color: var(--taxi-text, #fff);
+}
+
+.crm-purchase-parts__total strong {
+  color: var(--taxi-accent, #ffc107);
 }
 
 @media (max-width: 480px) {
