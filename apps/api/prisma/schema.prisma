@@ -69,6 +69,7 @@ enum ExpenseCategory {
   FUEL
   TAX
   OTHER
+  CAR_PURCHASE
 }
 
 enum FineStatus {
@@ -169,6 +170,7 @@ model Car {
   mileageUpdatedAt DateTime?
   purchasePrice    Float?
   purchaseDate     DateTime?
+  purchaseParts    CarPurchasePart[]
   tireBrand        String?
   tireSize         String?
   tireSeason       TireSeason?
@@ -199,6 +201,25 @@ model Car {
 
   @@index([ownerId])
   @@index([ownerId, status])
+}
+
+/**
+ * How a car purchase was funded — one or more payments that may use
+ * different currencies. `fleetAmount` is always in the owner's display
+ * currency and is what sums into `Car.purchasePrice` / expense rows.
+ */
+model CarPurchasePart {
+  id          String   @id @default(cuid())
+  carId       String
+  car         Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  amount      Float
+  currency    String
+  fleetAmount Float
+  note        String?  @db.VarChar(500)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([carId])
 }
 
 model OwnerReminderSettings {

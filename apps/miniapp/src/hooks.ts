@@ -79,6 +79,8 @@ export function useSaveCar() {
       if (vars.id) void qc.invalidateQueries({ queryKey: ["cars", vars.id] });
       void qc.invalidateQueries({ queryKey: ["reminders"] });
       void qc.invalidateQueries({ queryKey: ["documents"] });
+      // Creating a car with a purchase price also inserts expense row(s).
+      if (!vars.id) void qc.invalidateQueries({ queryKey: ["expenses"] });
     },
   });
 }
@@ -89,6 +91,7 @@ export function useDeleteCar() {
     onSuccess: (_data, id) => {
       void qc.invalidateQueries({ queryKey: ["cars"] });
       void qc.removeQueries({ queryKey: ["cars", id] });
+      void qc.invalidateQueries({ queryKey: ["expenses"] });
     },
   });
 }

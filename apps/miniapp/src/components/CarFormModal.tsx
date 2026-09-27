@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CarStatus, ExpenseCategory, TireSeason, carFormFieldErrors, type CarFormField } from "@taxi/shared";
-import { useDeleteCar, useSaveCar, useSaveExpense, useUploadDocument } from "../hooks";
+import { CarStatus, TireSeason, carFormFieldErrors, type CarFormField } from "@taxi/shared";
+import { useDeleteCar, useSaveCar, useUploadDocument } from "../hooks";
 import type { Car } from "../types";
 import {
   Modal,
@@ -20,6 +20,15 @@ import { IconActionButton } from "./crm";
 import { CarPhotoPicker, type PendingCarPhoto } from "./CarPhotoPicker";
 import { CarPhotosSection } from "./CarPhotosSection";
 import { CarDocumentsSection } from "./CarDocumentsSection";
+import {
+  PurchasePartsEditor,
+  emptyPurchasePart,
+  partsFromCar,
+  serializePurchaseParts,
+  sumFleetParts,
+  type PurchasePartDraft,
+} from "./PurchasePartsEditor";
+import { getAppCurrency } from "../currency";
 import { showAlert } from "../telegram";
 import { ApiError } from "../api";
 
@@ -145,7 +154,6 @@ export function CarFormModal(props: {
 }) {
   const { t } = useTranslation();
   const save = useSaveCar();
-  const saveExpense = useSaveExpense();
   const upload = useUploadDocument();
   const del = useDeleteCar();
   const isEdit = props.mode === "edit" && props.car;
@@ -153,6 +161,13 @@ export function CarFormModal(props: {
   const [form, setForm] = useState<CarFormState>(() =>
     props.car ? carToForm(props.car) : emptyCarForm,
   );
+  const [splitPurchase, setSplitPurchase] = useState(
+    () => (props.car?.purchaseParts?.length ?? 0) > 0,
+  );
+  const [purchaseParts, setPurchaseParts] = useState<PurchasePartDraft[]>(() =>
+    partsFromCar(props.car?.purchaseParts),
+  );
+  const [purchasePartsInvalid, setPurchasePartsInvalid] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<PendingCarPhoto[]>([]);
   const [coverKey, setCoverKey] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Set<CarFormField>>(new Set());
@@ -163,6 +178,10 @@ export function CarFormModal(props: {
   useEffect(() => {
     if (!props.open) return;
     setForm(props.car ? carToForm(props.car) : emptyCarForm);
+    const existingParts = partsFromCar(props.car?.purchaseParts);
+    setPurchaseParts(existingParts);
+    setSplitPurchase(existingParts.length > 0);
+    setPurchasePartsInvalid(false);
     setPendingPhotos((prev) => {
       for (const p of prev) URL.revokeObjectURL(p.previewUrl);
       return [];
@@ -177,6 +196,10 @@ export function CarFormModal(props: {
 
   function resetForm() {
     setForm(props.car ? carToForm(props.car) : emptyCarForm);
+    const existingParts = partsFromCar(props.car?.purchaseParts);
+    setPurchaseParts(existingParts);
+    setSplitPurchase(existingParts.length > 0);
+    setPurchasePartsInvalid(false);
     clearPendingPhotos(pendingPhotos);
     setPendingPhotos([]);
     setCoverKey(null);
@@ -273,6 +296,24 @@ export function CarFormModal(props: {
       return;
     }
 
+    let partsPayload: ReturnType<typeof serializePurchaseParts> | undefined;
+    let purchasePrice: number | null =
+      form.purchasePrice === "" ? null : form.purchasePrice;
+
+    if (splitPurchase) {
+      const serialized = serializePurchaseParts(purchaseParts);
+      if (serialized === null || serialized.length === 0) {
+        setPurchasePartsInvalid(true);
+        return;
+      }
+      setPurchasePartsInvalid(false);
+      partsPayload = serialized;
+      purchasePrice = sumFleetParts(purchaseParts);
+    } else if (isEdit) {
+      // Clearing the split on edit removes stored parts.
+      partsPayload = props.car?.purchaseParts?.length ? [] : undefined;
+    }
+
     const data: Record<string, unknown> = {
       plate: form.plate.trim(),
       vin: form.vin.trim().toUpperCase() || null,
@@ -283,8 +324,9 @@ export function CarFormModal(props: {
       insuranceExpiry: form.insuranceExpiry || null,
       inspectionExpiry: form.inspectionExpiry || null,
       notes: form.notes || null,
-      purchasePrice: form.purchasePrice === "" ? null : form.purchasePrice,
+      purchasePrice,
       purchaseDate: form.purchaseDate || null,
+      ...(partsPayload !== undefined ? { purchaseParts: partsPayload } : {}),
       ...tirePayload(),
       trackerLogin: form.trackerLogin.trim() || null,
       trackerPassword: form.trackerPassword.trim() || null,
@@ -307,21 +349,6 @@ export function CarFormModal(props: {
         },
         onSuccess: async (car) => {
           const finish = async (saved: Car) => {
-            if (!isEdit && form.purchasePrice !== "" && saved.id) {
-              try {
-                await saveExpense.mutateAsync({
-                  data: {
-                    carId: saved.id,
-                    category: ExpenseCategory.OTHER,
-                    amount: form.purchasePrice,
-                    date: form.purchaseDate || todayInput(),
-                    note: t("cars.purchaseExpenseNote", { plate: saved.plate }),
-                  },
-                });
-              } catch {
-                /* car saved; expense can be added manually */
-              }
-            }
             props.onSaved?.(saved);
             requestClose();
           };
@@ -370,7 +397,7 @@ export function CarFormModal(props: {
           <FormActions
             onCancel={requestClose}
             onSave={submit}
-            saving={save.isPending || upload.isPending || saveExpense.isPending}
+            saving={save.isPending || upload.isPending}
           />
           {isEdit && (
             <button
@@ -466,14 +493,53 @@ export function CarFormModal(props: {
           onChange={(v) => patchForm({ purchaseDate: v })}
         />
       </Field>
-      <Field label={t("cars.purchasePrice")}>
-        <MoneyNumberInput
-          value={form.purchasePrice}
-          placeholder={ph(t, "purchasePrice")}
-          onChange={(v) => patchForm({ purchasePrice: v })}
+      {!splitPurchase ? (
+        <Field label={t("cars.purchasePrice")}>
+          <MoneyNumberInput
+            value={form.purchasePrice}
+            placeholder={ph(t, "purchasePrice")}
+            onChange={(v) => patchForm({ purchasePrice: v })}
+          />
+        </Field>
+      ) : null}
+      <label className="crm-checkbox-field">
+        <input
+          type="checkbox"
+          checked={splitPurchase}
+          onChange={(e) => {
+            const on = e.target.checked;
+            setSplitPurchase(on);
+            setPurchasePartsInvalid(false);
+            if (on && purchaseParts.length === 0) {
+              const seed = emptyPurchasePart(getAppCurrency());
+              if (form.purchasePrice !== "") {
+                seed.amount = form.purchasePrice;
+                seed.fleetAmount = form.purchasePrice;
+              }
+              setPurchaseParts([seed]);
+            }
+            if (!on) {
+              const total = sumFleetParts(purchaseParts);
+              if (total > 0) patchForm({ purchasePrice: total });
+            }
+          }}
         />
-      </Field>
-      {!isEdit ? <p className="crm-field-hint">{t("cars.purchasePriceHint")}</p> : null}
+        <span>{t("cars.splitPurchasePayments")}</span>
+      </label>
+      {splitPurchase ? (
+        <PurchasePartsEditor
+          parts={purchaseParts}
+          invalid={purchasePartsInvalid}
+          onChange={(parts) => {
+            setPurchaseParts(parts);
+            setPurchasePartsInvalid(false);
+            const total = sumFleetParts(parts);
+            patchForm({ purchasePrice: total > 0 ? total : "" });
+          }}
+        />
+      ) : !isEdit ? (
+        <p className="crm-field-hint">{t("cars.purchasePriceHint")}</p>
+      ) : null}
 
       <div className="crm-form-optional-block">
         <IconActionButton

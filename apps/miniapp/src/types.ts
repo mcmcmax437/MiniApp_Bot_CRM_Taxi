@@ -32,6 +32,14 @@ export interface Car {
   mileageUpdatedAt?: string | null;
   purchasePrice?: number | null;
   purchaseDate?: string | null;
+  purchaseParts?: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    fleetAmount: number;
+    note?: string | null;
+    sortOrder?: number;
+  }>;
   tireBrand?: string | null;
   tireSize?: string | null;
   tireSeason?: TireSeason | null;
