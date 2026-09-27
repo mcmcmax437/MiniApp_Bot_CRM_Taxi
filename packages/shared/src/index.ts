@@ -86,10 +86,20 @@ export function isCarPurchaseExpense(expense: {
   tag?: string | null;
 }): boolean {
   if (expense.category === ExpenseCategory.CAR_PURCHASE) return true;
-  const tag = expense.tag?.trim().toLowerCase();
-  if (tag === "car-purchase" || tag === "purchase") return true;
+  const tag = expense.tag?.trim().toLowerCase() ?? "";
+  if (
+    tag === "car-purchase" ||
+    tag === "purchase" ||
+    tag === "купівлі" ||
+    tag === "покупка" ||
+    tag.includes("car-purchase") ||
+    tag.includes("purchase")
+  ) {
+    return true;
+  }
   const note = expense.note?.trim() ?? "";
   if (!note) return false;
+  // EN / UK / RU auto-notes from car create (with optional payment breakdown suffix).
   return /^(purchase of |купівля |покупка )/i.test(note);
 }
 

@@ -11,9 +11,15 @@ describe("isCarPurchaseExpense", () => {
     expect(isCarPurchaseExpense({ category: ExpenseCategory.OTHER, tag: "Purchase" })).toBe(true);
   });
 
-  it("matches legacy auto-created notes", () => {
+  it("matches legacy auto-created notes including payment suffixes", () => {
     expect(
       isCarPurchaseExpense({ category: ExpenseCategory.OTHER, note: "Purchase of AA1111" }),
+    ).toBe(true);
+    expect(
+      isCarPurchaseExpense({
+        category: ExpenseCategory.OTHER,
+        note: "Purchase of AA1111 · 2150 EUR",
+      }),
     ).toBe(true);
     expect(isCarPurchaseExpense({ category: ExpenseCategory.OTHER, note: "Купівля AA1111" })).toBe(
       true,
