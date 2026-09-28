@@ -4190,28 +4190,20 @@ button.crm-driver-stat:hover {
 .crm-finance-switch {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   height: 52px;
-  max-width: 158px;
-  padding: 6px 10px 6px 12px;
+  padding: 0 12px 0 14px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: var(--taxi-surface-raised, #101c2e);
   color: #fff;
   cursor: pointer;
   flex: 0 0 auto;
-  text-align: left;
 }
 
 .crm-finance-switch--on {
   border-color: rgba(47, 125, 255, 0.45);
-}
-
-.crm-finance-switch__label {
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: rgba(255, 255, 255, 0.78);
 }
 
 .crm-switch {
@@ -4923,11 +4915,6 @@ div.crm-finance-item {
   .crm-finance-filter-btn {
     min-width: 52px;
     padding: 0 12px;
-  }
-
-  .crm-finance-switch {
-    max-width: 132px;
-    padding: 6px 8px 6px 10px;
   }
 }
 

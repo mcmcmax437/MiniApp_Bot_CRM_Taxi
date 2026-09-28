@@ -903,6 +903,7 @@ function ExpensesTab() {
         }}
         switchToggle={{
           label: t("finance.showCarPurchases"),
+          icon: "car-01",
           checked: showCarPurchases,
           onChange: setShowCarPurchases,
         }}

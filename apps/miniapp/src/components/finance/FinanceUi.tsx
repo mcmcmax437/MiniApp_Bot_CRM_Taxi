@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { showAlert } from "../../telegram";
 import { formatMoney } from "../../currency";
-import { Icon } from "../crm";
+import { Icon, type IconName } from "../crm";
 import { DateInput } from "../ui";
 import {
   financeInPeriod,
@@ -457,6 +457,7 @@ export function FinanceSearchRow(props: {
     label: string;
     checked: boolean;
     onChange: (next: boolean) => void;
+    icon?: IconName;
   };
 }) {
   const { t } = useTranslation();
@@ -493,11 +494,16 @@ export function FinanceSearchRow(props: {
             type="button"
             role="switch"
             aria-checked={props.switchToggle.checked}
+            aria-label={props.switchToggle.label}
             title={props.switchToggle.label}
             className={`crm-finance-switch${props.switchToggle.checked ? " crm-finance-switch--on" : ""}`}
             onClick={() => props.switchToggle!.onChange(!props.switchToggle!.checked)}
           >
-            <span className="crm-finance-switch__label">{props.switchToggle.label}</span>
+            <Icon
+              name={props.switchToggle.icon ?? "car-01"}
+              size={20}
+              color={props.switchToggle.checked ? "#82b1ff" : "rgba(255,255,255,0.55)"}
+            />
             <span className={`crm-switch${props.switchToggle.checked ? " crm-switch--on" : ""}`} aria-hidden />
           </button>
         ) : null}
