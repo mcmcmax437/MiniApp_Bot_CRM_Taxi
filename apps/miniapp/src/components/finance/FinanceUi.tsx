@@ -452,6 +452,12 @@ export function FinanceSearchRow(props: {
   onClearExtraFilters?: () => void;
   /** Count of active chips in `sections` (for the badge). */
   extraFilterCount?: number;
+  /** Optional switch between search and the filter button (e.g. car purchases). */
+  switchToggle?: {
+    label: string;
+    checked: boolean;
+    onChange: (next: boolean) => void;
+  };
 }) {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -481,6 +487,20 @@ export function FinanceSearchRow(props: {
             placeholder={props.searchPlaceholder}
           />
         </label>
+
+        {props.switchToggle ? (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={props.switchToggle.checked}
+            title={props.switchToggle.label}
+            className={`crm-finance-switch${props.switchToggle.checked ? " crm-finance-switch--on" : ""}`}
+            onClick={() => props.switchToggle!.onChange(!props.switchToggle!.checked)}
+          >
+            <span className="crm-finance-switch__label">{props.switchToggle.label}</span>
+            <span className={`crm-switch${props.switchToggle.checked ? " crm-switch--on" : ""}`} aria-hidden />
+          </button>
+        ) : null}
 
         <button
           type="button"

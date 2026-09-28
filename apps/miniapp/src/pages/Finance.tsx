@@ -658,7 +658,7 @@ function ExpensesTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [payerFilters, setPayerFilters] = useState<Array<"PARTNER" | "MINE">>([]);
   const [carFilters, setCarFilters] = useState<string[]>([]);
-  const [hideCarPurchases, setHideCarPurchases] = useState(true);
+  const [showCarPurchases, setShowCarPurchases] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -701,7 +701,7 @@ function ExpensesTab() {
 
   const scoped = useMemo(() => {
     return all.filter((e) => {
-      if (hideCarPurchases && isCarPurchaseExpense(e)) return false;
+      if (!showCarPurchases && isCarPurchaseExpense(e)) return false;
       if (!financeInPeriod(e.date, period, dateRange)) return false;
       if (payerFilters.length > 0) {
         const isPartner = e.paidByPartner;
@@ -715,12 +715,12 @@ function ExpensesTab() {
       }
       return true;
     });
-  }, [all, period, dateRange, payerFilters, carFilters, hideCarPurchases]);
+  }, [all, period, dateRange, payerFilters, carFilters, showCarPurchases]);
 
   const total = scoped.reduce((s, e) => s + e.amount, 0);
   const monthItems = useMemo(() => {
     return all.filter((e) => {
-      if (hideCarPurchases && isCarPurchaseExpense(e)) return false;
+      if (!showCarPurchases && isCarPurchaseExpense(e)) return false;
       if (!financeInPeriod(e.date, "month")) return false;
       if (payerFilters.length > 0) {
         const isPartner = e.paidByPartner;
@@ -734,19 +734,17 @@ function ExpensesTab() {
       }
       return true;
     });
-  }, [all, payerFilters, carFilters, hideCarPurchases]);
+  }, [all, payerFilters, carFilters, showCarPurchases]);
   const monthSum = monthItems.reduce((s, e) => s + e.amount, 0);
   const partnerUnsettled = all.filter(
-    (e) => e.paidByPartner && !e.partnerSettled && !(hideCarPurchases && isCarPurchaseExpense(e)),
+    (e) => e.paidByPartner && !e.partnerSettled && (showCarPurchases || !isCarPurchaseExpense(e)),
   );
   const partnerUnsettledSum = partnerUnsettled.reduce((s, e) => s + e.amount, 0);
   const periodSubtitle =
     period === "custom" && dateRange
       ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
       : t(`finance.period_${period}`);
-  // Default is hide-on; only count as an active filter when purchases are shown.
-  const extraFilterCount =
-    payerFilters.length + carFilters.length + (hideCarPurchases ? 0 : 1);
+  const extraFilterCount = payerFilters.length + carFilters.length;
 
   const expenseFilterSections = useMemo((): FinanceFilterSection[] => {
     const carOptions = [
@@ -764,17 +762,6 @@ function ExpensesTab() {
       })),
     ];
     return [
-      {
-        title: t("finance.filterByType"),
-        options: [
-          {
-            key: "HIDE_CAR_PURCHASE",
-            label: t("finance.hideCarPurchases"),
-            checked: hideCarPurchases,
-            onToggle: () => setHideCarPurchases((v) => !v),
-          },
-        ],
-      },
       {
         title: t("finance.filterByPayer"),
         options: [
@@ -797,7 +784,7 @@ function ExpensesTab() {
         options: carOptions,
       },
     ];
-  }, [t, cars.data, payerFilters, carFilters, hideCarPurchases]);
+  }, [t, cars.data, payerFilters, carFilters]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -913,7 +900,11 @@ function ExpensesTab() {
         onClearExtraFilters={() => {
           setPayerFilters([]);
           setCarFilters([]);
-          setHideCarPurchases(true);
+        }}
+        switchToggle={{
+          label: t("finance.showCarPurchases"),
+          checked: showCarPurchases,
+          onChange: setShowCarPurchases,
         }}
       />
 

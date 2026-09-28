@@ -4162,7 +4162,8 @@ button.crm-driver-stat:hover {
 }
 
 .crm-finance-search {
-  flex: 1 1 180px;
+  flex: 1 1 120px;
+  min-width: 0;
 }
 
 .crm-finance-filter-btn {
@@ -4184,6 +4185,64 @@ button.crm-driver-stat:hover {
 
 .crm-finance-filter-btn--active {
   border-color: rgba(47, 125, 255, 0.45);
+}
+
+.crm-finance-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  max-width: 158px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--taxi-surface-raised, #101c2e);
+  color: #fff;
+  cursor: pointer;
+  flex: 0 0 auto;
+  text-align: left;
+}
+
+.crm-finance-switch--on {
+  border-color: rgba(47, 125, 255, 0.45);
+}
+
+.crm-finance-switch__label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.crm-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: background 0.18s ease;
+}
+
+.crm-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease;
+}
+
+.crm-switch--on {
+  background: #2f7dff;
+}
+
+.crm-switch--on::after {
+  transform: translateX(18px);
 }
 
 .crm-finance-period-menu,
@@ -4866,6 +4925,10 @@ div.crm-finance-item {
     padding: 0 12px;
   }
 
+  .crm-finance-switch {
+    max-width: 132px;
+    padding: 6px 8px 6px 10px;
+  }
 }
 
 /* Owners / Admin page */

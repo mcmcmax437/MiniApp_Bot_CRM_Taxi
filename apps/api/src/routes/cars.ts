@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import {
-  ExpenseCategory,
   carCreateSchema,
   carUpdateSchema,
   type CarPurchasePartInput,
@@ -9,6 +8,7 @@ import {
 import { ownerId, parse, toDates } from "./helpers.js";
 import { isImageDocument } from "../services/document-image.js";
 import { fetchMkingPosition, TrackerError, type TrackerPosition } from "../services/mking-tracker.js";
+import { replacePurchaseExpenses } from "../services/purchase-expenses.js";
 
 const TRACKER_CACHE_TTL_MS = 20_000;
 const trackerCache = new Map<string, { at: number; position: TrackerPosition }>();
@@ -47,43 +47,24 @@ function purchasePartRows(parts: CarPurchasePartInput[]) {
   }));
 }
 
-function purchaseExpenseNote(plate: string, part: CarPurchasePartInput, multi: boolean): string {
-  const base = `Purchase of ${plate}`;
-  const sameCurrency = part.amount === part.fleetAmount;
-  if (!multi && sameCurrency) return base;
-  const original = `${part.amount} ${part.currency}`;
-  const rate =
-    part.amount > 0 && !sameCurrency
-      ? Math.round((part.fleetAmount / part.amount + Number.EPSILON) * 10000) / 10000
-      : null;
-  const converted =
-    rate != null
-      ? `${original} @ ${rate} = ${part.fleetAmount}`
-      : original;
-  const detail = part.note?.trim() ? `${converted} · ${part.note.trim()}` : converted;
-  return `${base} · ${detail}`;
+async function ownerCurrency(ownerId: string): Promise<CarPurchasePartInput["currency"]> {
+  const owner = await prisma.owner.findUnique({
+    where: { id: ownerId },
+    select: { currency: true },
+  });
+  return (owner?.currency as CarPurchasePartInput["currency"] | undefined) ?? "PLN";
 }
 
-async function createPurchaseExpenses(args: {
-  ownerId: string;
-  carId: string;
-  plate: string;
-  date: Date;
-  parts: CarPurchasePartInput[];
-}): Promise<void> {
-  if (args.parts.length === 0) return;
-  const multi = args.parts.length > 1;
-  await prisma.expense.createMany({
-    data: args.parts.map((part) => ({
-      ownerId: args.ownerId,
-      carId: args.carId,
-      category: ExpenseCategory.CAR_PURCHASE,
-      amount: part.fleetAmount,
-      date: args.date,
-      note: purchaseExpenseNote(args.plate, part, multi),
-      tag: "car-purchase",
-    })),
-  });
+function expensePartsFromPurchase(
+  parts: CarPurchasePartInput[],
+  purchasePrice: number | null | undefined,
+  currency: CarPurchasePartInput["currency"],
+): CarPurchasePartInput[] {
+  if (parts.length > 0) return parts;
+  if (purchasePrice != null && purchasePrice > 0) {
+    return [{ amount: purchasePrice, currency, fleetAmount: purchasePrice, note: null }];
+  }
+  return [];
 }
 
 async function resolveCoverDocumentId(
@@ -152,37 +133,17 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
 
     // Auto-record purchase expense(s). Prefer explicit split parts; otherwise a
     // single total purchasePrice still becomes one CAR_PURCHASE expense.
-    const expenseParts: CarPurchasePartInput[] =
-      parts.length > 0
-        ? parts
-        : body.purchasePrice != null && body.purchasePrice > 0
-          ? [
-              {
-                amount: body.purchasePrice,
-                currency: "PLN",
-                fleetAmount: body.purchasePrice,
-                note: null,
-              },
-            ]
-          : [];
-
-    // Use owner's currency for the synthetic single-part currency label when
-    // there was no split — fall back to PLN only if owner currency is unknown.
-    if (expenseParts.length === 1 && parts.length === 0) {
-      const owner = await prisma.owner.findUnique({
-        where: { id: oid },
-        select: { currency: true },
-      });
-      if (owner?.currency) {
-        expenseParts[0] = { ...expenseParts[0], currency: owner.currency as CarPurchasePartInput["currency"] };
-      }
-    }
+    const expenseParts = expensePartsFromPurchase(
+      parts,
+      body.purchasePrice,
+      parts.length === 0 ? await ownerCurrency(oid) : "PLN",
+    );
 
     if (expenseParts.length > 0) {
       const purchaseDate =
         (data as { purchaseDate?: Date | null }).purchaseDate ?? new Date();
       try {
-        await createPurchaseExpenses({
+        await replacePurchaseExpenses({
           ownerId: oid,
           carId: car.id,
           plate: car.plate,
@@ -241,7 +202,24 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
           },
         }),
       ]);
-      return prisma.car.findFirstOrThrow({ where: { id }, include: carInclude });
+      const updated = await prisma.car.findFirstOrThrow({ where: { id }, include: carInclude });
+      const expenseParts = expensePartsFromPurchase(
+        purchaseParts,
+        updated.purchasePrice,
+        purchaseParts.length === 0 ? await ownerCurrency(oid) : "PLN",
+      );
+      try {
+        await replacePurchaseExpenses({
+          ownerId: oid,
+          carId: id,
+          plate: updated.plate,
+          date: updated.purchaseDate ?? new Date(),
+          parts: expenseParts,
+        });
+      } catch (err) {
+        req.log.warn({ err, carId: id }, "failed to sync purchase expenses");
+      }
+      return updated;
     }
 
     return prisma.car.update({

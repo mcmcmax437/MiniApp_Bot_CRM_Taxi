@@ -2,9 +2,16 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import { expenseCreateSchema, expenseUpdateSchema } from "@taxi/shared";
 import { ownerId, parse, toDates } from "./helpers.js";
+import { repairStalePurchaseExpenses } from "../services/purchase-expenses.js";
 
 export async function expensesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/expenses", async (req) => {
+    const oid = ownerId(req);
+    try {
+      await repairStalePurchaseExpenses(oid);
+    } catch (err) {
+      req.log.warn({ err }, "failed to repair stale purchase expenses");
+    }
     const { carId, category, from, to } = req.query as {
       carId?: string;
       category?: string;
@@ -13,7 +20,7 @@ export async function expensesRoutes(app: FastifyInstance): Promise<void> {
     };
     return prisma.expense.findMany({
       where: {
-        ownerId: ownerId(req),
+        ownerId: oid,
         ...(carId ? { carId } : {}),
         ...(category ? { category: category as never } : {}),
         ...(from || to
