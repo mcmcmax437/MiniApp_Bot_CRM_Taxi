@@ -658,7 +658,7 @@ function ExpensesTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [payerFilters, setPayerFilters] = useState<Array<"PARTNER" | "MINE">>([]);
   const [carFilters, setCarFilters] = useState<string[]>([]);
-  const [showCarPurchases, setShowCarPurchases] = useState(false);
+  const [showCarPurchases, setShowCarPurchases] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
