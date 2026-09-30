@@ -16,156 +16,116 @@ export { financeDateKey, financeInPeriod } from "./financePeriod";
 
 export type FinanceTabId = "payments" | "expenses" | "taxes" | "fleet" | "balances";
 
+const FINANCE_TABS: FinanceTabId[] = ["payments", "expenses", "taxes", "fleet", "balances"];
+
 const TAB_META: Record<
   FinanceTabId,
   { color: string; icon: (color: string) => ReactNode }
 > = {
   payments: {
     color: "#448aff",
-    icon: (c) => <Icon name="credit-card" size={15} color={c} />,
+    icon: (c) => <Icon name="credit-card" size={18} color={c} />,
   },
   expenses: {
     color: "#ff5252",
-    icon: (c) => <Icon name="fire" size={15} color={c} />,
+    icon: (c) => <Icon name="fire" size={18} color={c} />,
   },
   taxes: {
     color: "#ffb74d",
-    icon: (c) => <Icon name="lock" size={15} color={c} />,
+    icon: (c) => <Icon name="lock" size={18} color={c} />,
   },
   fleet: {
     color: "#69f0ae",
-    icon: (c) => <Icon name="car-01" size={15} color={c} />,
+    icon: (c) => <Icon name="car-01" size={18} color={c} />,
   },
   balances: {
     color: "#b388ff",
-    icon: (c) => <Icon name="lock" size={15} color={c} />,
+    icon: (c) => <Icon name="wallet-01" size={18} color={c} />,
   },
 };
 
+function financeTabLabel(id: FinanceTabId, t: (key: string) => string): string {
+  if (id === "payments") return t("finance.payments");
+  if (id === "expenses") return t("finance.expenses");
+  if (id === "taxes") return t("finance.taxes");
+  if (id === "fleet") return t("fleet.title");
+  return t("finance.balances");
+}
+
 export function FinanceTabs(props: { active: FinanceTabId; onChange: (tab: FinanceTabId) => void }) {
   const { t } = useTranslation();
-  const tabs: FinanceTabId[] = ["payments", "expenses", "taxes", "fleet", "balances"];
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScroll, setCanScroll] = useState({ left: false, right: false });
+  const index = Math.max(0, FINANCE_TABS.indexOf(props.active));
+  const meta = TAB_META[props.active];
+  const swipeX = useRef<number | null>(null);
 
-  function updateOverflow() {
-    const el = scrollRef.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    setCanScroll({
-      left: el.scrollLeft > 2,
-      right: max - el.scrollLeft > 2,
-    });
+  function go(dir: -1 | 1) {
+    const next = FINANCE_TABS[(index + dir + FINANCE_TABS.length) % FINANCE_TABS.length]!;
+    props.onChange(next);
   }
 
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    updateOverflow();
-    const onScroll = () => updateOverflow();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    const ro = new ResizeObserver(() => updateOverflow());
-    ro.observe(el);
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      ro.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const activeBtn = el.querySelector<HTMLButtonElement>(".crm-finance-tab--active");
-    activeBtn?.scrollIntoView({ inline: "nearest", block: "nearest" });
-    updateOverflow();
-  }, [props.active]);
-
-  useEffect(() => {
-    const node = scrollRef.current;
-    if (!node) return;
-    const scroller: HTMLDivElement = node;
-    function onWheel(e: WheelEvent) {
-      if (scroller.scrollWidth <= scroller.clientWidth) return;
-      const mostlyVertical = Math.abs(e.deltaY) > Math.abs(e.deltaX);
-      if (!mostlyVertical) return;
+  function onCurrentKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    if (e.key === "ArrowRight") {
       e.preventDefault();
-      scroller.scrollLeft += e.deltaY;
+      go(1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      go(-1);
     }
-    scroller.addEventListener("wheel", onWheel, { passive: false });
-    return () => scroller.removeEventListener("wheel", onWheel);
-  }, []);
-
-  function scrollByDir(dir: -1 | 1) {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * Math.max(120, el.clientWidth * 0.6), behavior: "smooth" });
-  }
-
-  function onTabKeyDown(index: number, e: ReactKeyboardEvent<HTMLButtonElement>) {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    e.preventDefault();
-    const next = e.key === "ArrowRight" ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length;
-    props.onChange(tabs[next]!);
-    const buttons = scrollRef.current?.querySelectorAll<HTMLButtonElement>(".crm-finance-tab");
-    buttons?.[next]?.focus();
   }
 
   return (
-    <div className={`crm-finance-tabs glass-card${canScroll.left || canScroll.right ? " crm-finance-tabs--overflow" : ""}`}>
+    <div className="crm-finance-tabs glass-card" role="tablist" aria-label={t("nav.finance")}>
       <button
         type="button"
-        className="crm-finance-tabs__chevron crm-finance-tabs__chevron--left"
-        onClick={() => scrollByDir(-1)}
-        disabled={!canScroll.left}
-        aria-label={t("common.scrollLeft")}
-        tabIndex={-1}
+        className="crm-finance-tabs__chevron"
+        onClick={() => go(-1)}
+        aria-label={t("common.previous")}
       >
-        <Icon name="arrow-left-01" size={16} color="currentColor" />
+        <Icon name="arrow-left-01" size={18} color="currentColor" />
       </button>
-      <div className="crm-finance-tabs__scroll" ref={scrollRef} role="tablist" aria-label={t("nav.finance")}>
-        {tabs.map((id, index) => {
-          const meta = TAB_META[id];
-          const active = props.active === id;
-          const label =
-            id === "payments"
-              ? t("finance.payments")
-              : id === "expenses"
-                ? t("finance.expenses")
-                : id === "taxes"
-                  ? t("finance.taxes")
-                  : id === "fleet"
-                    ? t("fleet.title")
-                    : t("finance.balances");
 
-          return (
-            <button
+      <div
+        className="crm-finance-tabs__current"
+        role="tab"
+        aria-selected="true"
+        tabIndex={0}
+        onKeyDown={onCurrentKeyDown}
+        onPointerDown={(e) => {
+          if (e.pointerType !== "touch") return;
+          swipeX.current = e.clientX;
+        }}
+        onPointerUp={(e) => {
+          if (swipeX.current == null) return;
+          const dx = e.clientX - swipeX.current;
+          swipeX.current = null;
+          if (Math.abs(dx) < 40) return;
+          go(dx < 0 ? 1 : -1);
+        }}
+        onPointerCancel={() => {
+          swipeX.current = null;
+        }}
+      >
+        <div className="crm-finance-tabs__current-row">
+          <span className="crm-finance-tab__icon">{meta.icon("#fff")}</span>
+          <span className="crm-finance-tab__label">{financeTabLabel(props.active, t)}</span>
+        </div>
+        <div className="crm-finance-tabs__dots" aria-hidden>
+          {FINANCE_TABS.map((id) => (
+            <span
               key={id}
-              type="button"
-              role="tab"
-              className={`crm-finance-tab${active ? " crm-finance-tab--active" : ""}`}
-              onClick={() => props.onChange(id)}
-              onKeyDown={(e) => onTabKeyDown(index, e)}
-              onFocus={(e) => {
-                e.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest" });
-              }}
-              aria-selected={active}
-              aria-current={active ? "page" : undefined}
-            >
-              <span className="crm-finance-tab__icon">{meta.icon(active ? "#fff" : meta.color)}</span>
-              <span className="crm-finance-tab__label">{label}</span>
-            </button>
-          );
-        })}
+              className={`crm-finance-tabs__dot${id === props.active ? " crm-finance-tabs__dot--on" : ""}`}
+            />
+          ))}
+        </div>
       </div>
+
       <button
         type="button"
-        className="crm-finance-tabs__chevron crm-finance-tabs__chevron--right"
-        onClick={() => scrollByDir(1)}
-        disabled={!canScroll.right}
-        aria-label={t("common.scrollRight")}
-        tabIndex={-1}
+        className="crm-finance-tabs__chevron"
+        onClick={() => go(1)}
+        aria-label={t("common.next")}
       >
-        <Icon name="arrow-right-01" size={16} color="currentColor" />
+        <Icon name="arrow-right-01" size={18} color="currentColor" />
       </button>
     </div>
   );

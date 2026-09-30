@@ -19,6 +19,7 @@ import { carDocumentsRoutes } from "./car-documents.js";
 import { reminderSettingsRoutes } from "./reminder-settings.js";
 import { fleetMembersRoutes } from "./fleet-members.js";
 import { fxRoutes } from "./fx.js";
+import { botLedgerRoutes } from "./bot-ledger.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(
@@ -26,6 +27,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       await api.register(meRoutes);
       await api.register(fleetAccessRoutes);
       await api.register(adminRoutes);
+      await api.register(botLedgerRoutes);
 
       // Tenant data routes: require an authenticated, ACTIVE owner.
       await api.register(async (scoped) => {

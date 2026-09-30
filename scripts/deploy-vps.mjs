@@ -90,6 +90,9 @@ function buildServerEnv(source) {
     REMINDER_CRON: source.REMINDER_CRON?.trim() || "0 9 * * *",
     DEV_BYPASS_AUTH: "false",
     VITE_API_BASE: source.VITE_API_BASE?.trim() || "/api",
+    OPENAI_API_KEY: source.OPENAI_API_KEY?.trim(),
+    OPENAI_MODEL: source.OPENAI_MODEL?.trim(),
+    OPENAI_BASE_URL: source.OPENAI_BASE_URL?.trim(),
   };
 
   return Object.fromEntries(

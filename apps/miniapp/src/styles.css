@@ -3943,115 +3943,91 @@ button.crm-driver-stat:hover {
 .crm-finance-tabs {
   margin-top: 12px;
   padding: 6px;
-  overflow: hidden;
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: stretch;
-  gap: 4px;
-}
-
-.crm-finance-tabs__scroll {
-  display: flex;
-  flex-wrap: nowrap;
   gap: 6px;
-  overflow-x: auto;
-  min-width: 0;
-  flex: 1;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.crm-finance-tabs__scroll::-webkit-scrollbar {
-  display: none;
 }
 
 .crm-finance-tabs__chevron {
-  display: none;
-  flex-shrink: 0;
-  width: 28px;
-  border: 0;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
+  display: grid;
   place-items: center;
+  width: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+  cursor: pointer;
   padding: 0;
 }
 
-.crm-finance-tabs__chevron:disabled {
-  opacity: 0.28;
-  cursor: default;
+.crm-finance-tabs__chevron:active {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.crm-finance-tab {
-  flex: 0 0 auto;
-  display: inline-flex;
-  flex-direction: row;
+.crm-finance-tabs__current {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 7px;
+  min-height: 52px;
+  padding: 8px 12px 7px;
   border-radius: 12px;
-  padding: 7px 11px;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
-  line-height: 1.15;
-  white-space: nowrap;
+  background: linear-gradient(135deg, #1a4f9c, #153d7a);
+  border: 1px solid rgba(91, 157, 255, 0.45);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(21, 61, 122, 0.3);
+  touch-action: pan-y;
 }
 
-.crm-finance-tab:focus-visible {
+.crm-finance-tabs__current:focus-visible {
   outline: 2px solid rgba(91, 157, 255, 0.85);
   outline-offset: 2px;
+}
+
+.crm-finance-tabs__current-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .crm-finance-tab__icon {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.14);
   flex-shrink: 0;
 }
 
 .crm-finance-tab__label {
-  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.crm-finance-tab--active {
-  background: linear-gradient(135deg, #1a4f9c, #153d7a);
-  border-color: rgba(91, 157, 255, 0.45);
-  color: #fff;
-  box-shadow: 0 2px 10px rgba(21, 61, 122, 0.3);
+.crm-finance-tabs__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
 }
 
-.crm-finance-tab--active .crm-finance-tab__icon {
-  background: rgba(255, 255, 255, 0.14);
+.crm-finance-tabs__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.28);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .crm-finance-tabs__scroll {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
-    padding-bottom: 2px;
-  }
-
-  .crm-finance-tabs__scroll::-webkit-scrollbar {
-    display: block;
-    height: 6px;
-  }
-
-  .crm-finance-tabs__scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.28);
-    border-radius: 99px;
-  }
-
-  .crm-finance-tabs--overflow .crm-finance-tabs__chevron {
-    display: grid;
-  }
+.crm-finance-tabs__dot--on {
+  width: 14px;
+  background: #fff;
 }
 
 .crm-finance-add-btn {

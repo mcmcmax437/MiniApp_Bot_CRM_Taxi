@@ -74,6 +74,10 @@ export const env = {
   // normal browser. Ignored when NODE_ENV=production.
   devBypassAuth: optional("DEV_BYPASS_AUTH", "false").toLowerCase() === "true",
   devUserId: optional("DEV_USER_ID", "999999999"),
+  // Official OpenAI API key (platform.openai.com). A ChatGPT chat login is not a key.
+  openaiApiKey: optional("OPENAI_API_KEY", ""),
+  openaiBaseUrl: optional("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+  openaiModel: optional("OPENAI_MODEL", "gpt-4o-mini"),
 };
 
 export const devBypassEnabled = (): boolean =>

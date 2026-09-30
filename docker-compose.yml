@@ -38,6 +38,9 @@ services:
       RUN_SCHEDULER: ${RUN_SCHEDULER:-true}
       REMINDER_DAYS_BEFORE: ${REMINDER_DAYS_BEFORE:-7}
       REMINDER_CRON: ${REMINDER_CRON:-0 9 * * *}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
     volumes:
       - uploads:/app/apps/api/uploads
     expose:
@@ -55,6 +58,7 @@ services:
       BOT_TOKEN: ${BOT_TOKEN}
       TELEGRAM_SUPERADMIN_ID: ${TELEGRAM_SUPERADMIN_ID}
       PUBLIC_URL: ${PUBLIC_URL}
+      API_INTERNAL_URL: http://api:3000
 
   caddy:
     build:
