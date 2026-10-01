@@ -180,8 +180,9 @@ export async function handleLedgerMessage(input: {
   try {
     intent = await askLedgerModel(input.text);
   } catch (err) {
-    const notConfigured = err instanceof Error && err.name === "LedgerNotConfigured";
-    return { status: "rejected", text: notConfigured ? copy.notConfigured : copy.aiFailed };
+    const name = err instanceof Error ? err.name : "";
+    const text = name === "LedgerNotConfigured" ? copy.notConfigured : name === "LedgerNoCredits" ? copy.noCredits : copy.aiFailed;
+    return { status: "rejected", text };
   }
   if (intent.kind === "unknown") return { status: "rejected", text: copy.unknown };
 

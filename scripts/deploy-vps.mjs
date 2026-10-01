@@ -93,6 +93,10 @@ function buildServerEnv(source) {
     OPENAI_API_KEY: source.OPENAI_API_KEY?.trim(),
     OPENAI_MODEL: source.OPENAI_MODEL?.trim(),
     OPENAI_BASE_URL: source.OPENAI_BASE_URL?.trim(),
+    DEEPSEEK_API_KEY: source.DEEPSEEK_API_KEY?.trim(),
+    XAI_API_KEY: source.XAI_API_KEY?.trim(),
+    LEDGER_PROVIDER: source.LEDGER_PROVIDER?.trim(),
+    LEDGER_MODEL: source.LEDGER_MODEL?.trim(),
   };
 
   return Object.fromEntries(

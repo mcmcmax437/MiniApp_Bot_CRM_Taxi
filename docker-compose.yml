@@ -41,6 +41,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      LEDGER_PROVIDER: ${LEDGER_PROVIDER:-}
+      LEDGER_MODEL: ${LEDGER_MODEL:-}
     volumes:
       - uploads:/app/apps/api/uploads
     expose:
