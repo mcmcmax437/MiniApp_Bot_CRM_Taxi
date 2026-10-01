@@ -9,6 +9,7 @@ import {
   usePayments,
   useReminders,
   useReport,
+  useRequestBackup,
   useSetCurrency,
   useSetLocale,
 } from "../hooks";
@@ -32,7 +33,7 @@ import {
 } from "../components/crm";
 import i18n from "../i18n";
 import { LOCALE_OPTIONS, normalizeLocale, type AppLocale } from "../locales";
-import { closeTelegramApp } from "../telegram";
+import { closeTelegramApp, showAlert } from "../telegram";
 import {
   buildDashboardByCar,
   reportDateRange,
@@ -122,6 +123,7 @@ function carLabel(plate: string, make?: string | null, model?: string | null): s
 export function Dashboard() {
   const { t } = useTranslation();
   const readOnly = useReadOnly();
+  const backup = useRequestBackup();
   const navigate = useNavigate();
   const [statsPeriod, setStatsPeriod] = useState<DashboardStatsPeriod>(loadStatsPeriod);
   const [statsCarId, setStatsCarId] = useState(loadStatsCarId);
@@ -494,6 +496,31 @@ export function Dashboard() {
       </SectionCard>
 
       {!readOnly ? <ReminderSettingsCard /> : null}
+
+      {!readOnly ? (
+        <SectionCard
+          storageKey="fleet-backup"
+          defaultOpen={false}
+          title={t("settings.backupTitle")}
+          subtitle={t("settings.backupHint")}
+          icon={<Icon name="download-01" size={24} color="var(--taxi-text-muted)" />}
+        >
+          <button
+            type="button"
+            className="crm-btn-primary"
+            disabled={backup.isPending}
+            onClick={() => {
+              backup.mutate(undefined, {
+                onSuccess: () => showAlert(t("settings.backupSent")),
+                onError: () => showAlert(t("settings.backupFailed")),
+              });
+            }}
+          >
+            <Icon name="download-01" size={18} color="#fff" />
+            <span>{backup.isPending ? t("common.loading") : t("settings.backupButton")}</span>
+          </button>
+        </SectionCard>
+      ) : null}
 
       <DriverBalanceBreakdownModal
         open={balanceModal != null}

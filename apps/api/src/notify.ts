@@ -18,3 +18,24 @@ export async function sendTelegramMessage(chatId: bigint | string, text: string)
     throw new Error(`Telegram sendMessage failed (${res.status}): ${body}`);
   }
 }
+
+/** Send a file to a Telegram chat. Bot uploads are limited to 50 MB. */
+export async function sendTelegramDocument(
+  chatId: bigint | string,
+  filename: string,
+  content: Uint8Array,
+  caption: string,
+): Promise<void> {
+  const form = new FormData();
+  form.append("chat_id", String(chatId));
+  form.append("caption", caption.slice(0, 1000));
+  form.append("document", new Blob([content]), filename);
+  const res = await fetch(`https://api.telegram.org/bot${env.botToken}/sendDocument`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Telegram sendDocument failed (${res.status}): ${body}`);
+  }
+}

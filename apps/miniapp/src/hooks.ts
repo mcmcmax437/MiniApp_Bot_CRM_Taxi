@@ -510,6 +510,12 @@ export function useSkipWeeklyMileage() {
   });
 }
 
+export function useRequestBackup() {
+  return useMutation({
+    mutationFn: () => apiFetch<{ ok: boolean }>("/backup", { method: "POST" }),
+  });
+}
+
 // --- Documents --------------------------------------------------------------
 export function useAllDocuments() {
   return useQuery({

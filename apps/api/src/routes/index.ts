@@ -20,6 +20,7 @@ import { reminderSettingsRoutes } from "./reminder-settings.js";
 import { fleetMembersRoutes } from "./fleet-members.js";
 import { fxRoutes } from "./fx.js";
 import { botLedgerRoutes } from "./bot-ledger.js";
+import { backupRoutes } from "./backup.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(
@@ -54,6 +55,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         await scoped.register(reminderSettingsRoutes);
         await scoped.register(fleetMembersRoutes);
         await scoped.register(fxRoutes);
+        await scoped.register(backupRoutes);
       });
     },
     { prefix: "/api" },
