@@ -1,4 +1,4 @@
-export type FinancePeriod = "all" | "month" | "year" | "custom";
+export type FinancePeriod = "all" | "month" | "previous" | "year" | "custom";
 
 /** Inclusive calendar-day range for `period === "custom"` (YYYY-MM-DD). */
 export type FinanceDateRange = { from: string; to: string };
@@ -17,6 +17,7 @@ export function financeInPeriod(
   dateStr: string,
   period: FinancePeriod,
   range?: FinanceDateRange | null,
+  now: Date = new Date(),
 ): boolean {
   if (period === "all") return true;
   const key = financeDateKey(dateStr);
@@ -30,9 +31,12 @@ export function financeInPeriod(
   }
 
   const [y, m] = key.split("-").map(Number);
-  const now = new Date();
   if (period === "month") {
     return y === now.getFullYear() && m === now.getMonth() + 1;
+  }
+  if (period === "previous") {
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return y === prev.getFullYear() && m === prev.getMonth() + 1;
   }
   return y === now.getFullYear();
 }

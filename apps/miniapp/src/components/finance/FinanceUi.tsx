@@ -240,7 +240,7 @@ function FinanceFilterSidebar(props: {
   onClearAll?: () => void;
 }) {
   const { t } = useTranslation();
-  const periods: FinancePeriod[] = ["all", "month", "year", "custom"];
+  const periods: FinancePeriod[] = ["all", "month", "previous", "year", "custom"];
   const dateSorts: FinanceDateSort[] = ["newest", "oldest"];
   const [draftFrom, setDraftFrom] = useState(props.dateRange?.from ?? "");
   const [draftTo, setDraftTo] = useState(props.dateRange?.to ?? "");

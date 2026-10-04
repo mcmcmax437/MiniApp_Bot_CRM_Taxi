@@ -20,8 +20,11 @@ describe("financeInPeriod", () => {
     expect(financeInPeriod("2026-07-15", "custom", range)).toBe(true);
   });
 
-  it("matches nothing for custom without both dates", () => {
-    expect(financeInPeriod("2026-07-15", "custom", null)).toBe(false);
-    expect(financeInPeriod("2026-07-15", "custom", { from: "2026-07-01", to: "" })).toBe(false);
+  it("matches the previous calendar month, including January", () => {
+    const october = new Date(2026, 9, 4);
+    expect(financeInPeriod("2026-09-01", "previous", null, october)).toBe(true);
+    expect(financeInPeriod("2026-09-30", "previous", null, october)).toBe(true);
+    expect(financeInPeriod("2026-10-01", "previous", null, october)).toBe(false);
+    expect(financeInPeriod("2025-12-31", "previous", null, new Date(2026, 0, 10))).toBe(true);
   });
 });
