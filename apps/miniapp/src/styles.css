@@ -7452,9 +7452,23 @@ select.crm-input option {
   font-weight: 700;
 }
 
-.crm-month-sheet__money--net {
-  background: rgba(255, 193, 7, 0.28);
-  color: #ffe082;
+.crm-month-sheet__money--plus {
+  background: rgba(46, 125, 50, 0.4);
+  color: #69f0ae;
+  font-weight: 700;
+  text-align: center;
+}
+
+.crm-month-sheet__money--minus {
+  background: rgba(198, 40, 40, 0.4);
+  color: #ff8a80;
+  font-weight: 700;
+  text-align: center;
+}
+
+.crm-month-sheet__money--zero {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 700;
   text-align: center;
 }
@@ -7474,6 +7488,16 @@ select.crm-input option {
 .crm-month-sheet__sum td {
   font-weight: 700;
   background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-month-sheet__sum .crm-month-sheet__money--plus {
+  background: rgba(46, 125, 50, 0.4);
+  color: #69f0ae;
+}
+
+.crm-month-sheet__sum .crm-month-sheet__money--minus {
+  background: rgba(198, 40, 40, 0.4);
+  color: #ff8a80;
 }
 
 .crm-month-sheet__sum .crm-month-sheet__money--in,
