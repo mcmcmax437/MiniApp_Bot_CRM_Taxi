@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useExpenses, usePayments } from "../../hooks";
 import { Icon } from "../crm";
@@ -77,6 +77,7 @@ export function MonthSheetCard() {
   const { t, i18n } = useTranslation();
   const payments = usePayments();
   const expenses = useExpenses();
+  const [includeCarPurchases, setIncludeCarPurchases] = useState(false);
   const {
     year,
     changeYear,
@@ -92,8 +93,8 @@ export function MonthSheetCard() {
   const loading = payments.isLoading || expenses.isLoading;
 
   const monthKeys = useMemo(
-    () => monthSheetKeys(paymentList, expenseList, applied.from, applied.to),
-    [paymentList, expenseList, applied.from, applied.to],
+    () => monthSheetKeys(paymentList, expenseList, applied.from, applied.to, includeCarPurchases),
+    [paymentList, expenseList, applied.from, applied.to, includeCarPurchases],
   );
 
   useEffect(() => {
@@ -105,8 +106,8 @@ export function MonthSheetCard() {
       .filter((key) => monthKeys.includes(key))
       .sort()
       .reverse()
-      .map((key) => sumMonthSheet(paymentList, expenseList, key));
-  }, [paymentList, expenseList, selectedMonths, monthKeys]);
+      .map((key) => sumMonthSheet(paymentList, expenseList, key, includeCarPurchases));
+  }, [paymentList, expenseList, selectedMonths, monthKeys, includeCarPurchases]);
 
   const monthLabel = (monthKey: string) => formatFinanceMonthLabel(monthKey, i18n.language);
 
@@ -134,6 +135,20 @@ export function MonthSheetCard() {
           monthLabel={monthLabel}
           loading={loading}
         />
+
+        <button
+          type="button"
+          className={`crm-month-sheet__purchase${includeCarPurchases ? " crm-month-sheet__purchase--on" : ""}`}
+          aria-pressed={includeCarPurchases}
+          onClick={() => setIncludeCarPurchases((on) => !on)}
+        >
+          <Icon name="car-01" size={18} color="currentColor" />
+          <span>
+            {includeCarPurchases
+              ? t("reports.monthSheetExcludePurchase")
+              : t("reports.monthSheetIncludePurchase")}
+          </span>
+        </button>
 
         {loading ? (
           <div className="crm-report-section__empty">

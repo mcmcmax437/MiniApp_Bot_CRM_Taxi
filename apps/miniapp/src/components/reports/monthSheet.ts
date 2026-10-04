@@ -1,4 +1,4 @@
-import { ExpenseCategory, PaymentMethod, PaymentType } from "@taxi/shared";
+import { ExpenseCategory, PaymentMethod, PaymentType, isCarPurchaseExpense } from "@taxi/shared";
 import type { Expense, Payment } from "../../types";
 import { isIncomePayment, monthKeyFromIso } from "./partnerSettlementFormat";
 
@@ -41,6 +41,7 @@ export function monthSheetKeys(
   expenses: Expense[],
   from: string,
   to: string,
+  includeCarPurchases = false,
 ): string[] {
   const keys = new Set<string>();
   const fromKey = from.slice(0, 7);
@@ -54,13 +55,19 @@ export function monthSheetKeys(
   for (const e of expenses) {
     const key = monthKeyFromIso(e.date);
     if (key < fromKey || key > toKey) continue;
+    if (!includeCarPurchases && isCarPurchaseExpense(e)) continue;
     keys.add(key);
   }
   return [...keys].sort();
 }
 
 /** One month: cash you received, cash the partner received, bank, and who paid expenses. */
-export function sumMonthSheet(payments: Payment[], expenses: Expense[], monthKey: string): MonthSheet {
+export function sumMonthSheet(
+  payments: Payment[],
+  expenses: Expense[],
+  monthKey: string,
+  includeCarPurchases = false,
+): MonthSheet {
   const out = emptyMonthSheet(monthKey);
 
   for (const p of payments) {
@@ -73,6 +80,7 @@ export function sumMonthSheet(payments: Payment[], expenses: Expense[], monthKey
 
   for (const e of expenses) {
     if (monthKeyFromIso(e.date) !== monthKey) continue;
+    if (!includeCarPurchases && isCarPurchaseExpense(e)) continue;
     if (e.category === ExpenseCategory.TAX || !e.paidByPartner) out.expenseMine += e.amount;
     else out.expensePartner += e.amount;
   }

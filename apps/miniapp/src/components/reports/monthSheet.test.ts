@@ -64,4 +64,13 @@ describe("sumMonthSheet", () => {
     expect(sheet.expensePartner).toBe(0);
     expect(sheet.net).toBe(-50);
   });
+
+  it("leaves car purchases out until included", () => {
+    const rows = [expense({ amount: 20000, category: ExpenseCategory.CAR_PURCHASE, note: "Purchase of OP8645U" })];
+    const hidden = sumMonthSheet([], rows, "2026-09");
+    const shown = sumMonthSheet([], rows, "2026-09", true);
+    expect(hidden.expenseMine).toBe(0);
+    expect(shown.expenseMine).toBe(20000);
+    expect(shown.net).toBe(-20000);
+  });
 });

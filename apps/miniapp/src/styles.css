@@ -7368,6 +7368,28 @@ select.crm-input option {
   font-weight: 700;
 }
 
+.crm-month-sheet__purchase {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.crm-month-sheet__purchase--on {
+  border-color: rgba(47, 125, 255, 0.55);
+  background: rgba(47, 125, 255, 0.22);
+  color: #fff;
+}
+
 .crm-month-sheet__table {
   width: 100%;
   border-collapse: separate;

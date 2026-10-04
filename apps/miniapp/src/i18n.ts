@@ -855,6 +855,8 @@ const en = {
     monthSheetWhoPartner: "Partner",
     monthSheetWhoMine: "Mine",
     monthSheetSum: "Sum",
+    monthSheetIncludePurchase: "Include car purchase",
+    monthSheetExcludePurchase: "Exclude car purchase",
     fatherTitle: "For Father",
     fatherSubtitle:
       "Pick a year and months. See all-cars totals, then select Max + Oleh cars for their combined income and expenses.",
@@ -1803,6 +1805,8 @@ const uk: Resources = {
     monthSheetWhoPartner: "Партнер",
     monthSheetWhoMine: "Мої",
     monthSheetSum: "Сума",
+    monthSheetIncludePurchase: "Включити купівлю авто",
+    monthSheetExcludePurchase: "Не включати купівлю авто",
     fatherTitle: "Для батька",
     fatherSubtitle:
       "Оберіть рік і місяці. Спочатку підсумки по всіх авто, потім оберіть авто Макса + Олега для їхньої суми.",
@@ -2749,6 +2753,8 @@ const ru: Resources = {
     monthSheetWhoPartner: "Партнёр",
     monthSheetWhoMine: "Мои",
     monthSheetSum: "Сумма",
+    monthSheetIncludePurchase: "Включить покупку авто",
+    monthSheetExcludePurchase: "Не включать покупку авто",
     fatherTitle: "Для отца",
     fatherSubtitle:
       "Выберите год и месяцы. Сначала итоги по всем авто, затем выберите авто Макса + Олега для их суммы.",
