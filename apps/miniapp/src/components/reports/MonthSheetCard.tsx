@@ -49,8 +49,10 @@ function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
               <th scope="row">{t("reports.monthSheetCashMine")}</th>
               {moneyCell(s.cashMine, "in")}
               <td className="crm-month-sheet__who">{t("reports.monthSheetWhoPartner")}</td>
-              {moneyCell(s.expensePartner, "out")}
-              <td className="crm-month-sheet__span crm-month-sheet__money--partner" rowSpan={3}>
+              <td className="crm-month-sheet__money crm-month-sheet__money--out" rowSpan={2}>
+                {formatMoney(s.expensePartner)}
+              </td>
+              <td className="crm-month-sheet__span crm-month-sheet__money--partner" rowSpan={4}>
                 {formatMoney(s.partnerNet)}
               </td>
               <td className="crm-month-sheet__span crm-month-sheet__net-label" rowSpan={2}>
@@ -60,7 +62,6 @@ function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
             <tr>
               <th scope="row">{t("reports.monthSheetCashPartner")}</th>
               {moneyCell(s.cashPartner, "in")}
-              <td />
               <td />
             </tr>
             <tr>
@@ -75,7 +76,6 @@ function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
               {moneyCell(s.incomeSum, "sum")}
               <td className="crm-month-sheet__who">{t("reports.monthSheetSum")}</td>
               {moneyCell(s.expenseSum, "sum")}
-              <td />
             </tr>
           </tbody>
         </table>
