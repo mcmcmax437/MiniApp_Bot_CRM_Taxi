@@ -13,13 +13,17 @@ function moneyCell(amount: number, tone: "in" | "out" | "partner" | "net" | "sum
   return <td className={`crm-month-sheet__money crm-month-sheet__money--${tone}`}>{formatMoney(amount)}</td>;
 }
 
-function signedNetCell(amount: number) {
+function signedNetCell(amount: number, rowSpan?: number) {
   const abs = formatMoney(Math.abs(amount));
   const positive = amount > 0.005;
   const negative = amount < -0.005;
   const text = positive ? `+${abs}` : negative ? `-${abs}` : abs;
   const tone = positive ? "plus" : negative ? "minus" : "zero";
-  return <td className={`crm-month-sheet__money crm-month-sheet__money--${tone}`}>{text}</td>;
+  return (
+    <td className={`crm-month-sheet__money crm-month-sheet__money--${tone}`} rowSpan={rowSpan}>
+      {text}
+    </td>
+  );
 }
 
 function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
@@ -64,7 +68,7 @@ function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
               {moneyCell(s.bankIncome, "in")}
               <td className="crm-month-sheet__who">{t("reports.monthSheetWhoMine")}</td>
               {moneyCell(s.expenseMine, "out")}
-              {signedNetCell(s.net)}
+              {signedNetCell(s.net, 2)}
             </tr>
             <tr className="crm-month-sheet__sum">
               <th scope="row">{t("reports.monthSheetSum")}</th>
@@ -72,7 +76,6 @@ function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
               <td className="crm-month-sheet__who">{t("reports.monthSheetSum")}</td>
               {moneyCell(s.expenseSum, "sum")}
               <td />
-              {signedNetCell(s.net)}
             </tr>
           </tbody>
         </table>
