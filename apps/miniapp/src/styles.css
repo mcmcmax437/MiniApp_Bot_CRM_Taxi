@@ -7509,12 +7509,12 @@ select.crm-input option {
 
 .crm-month-sheet__span-label {
   grid-column: 6;
-  grid-row: 2 / 4;
+  grid-row: 2 / 5;
 }
 
 .crm-month-sheet__span-net {
   grid-column: 6;
-  grid-row: 4 / 6;
+  grid-row: 5 / 6;
 }
 
 .crm-father-report__body {
