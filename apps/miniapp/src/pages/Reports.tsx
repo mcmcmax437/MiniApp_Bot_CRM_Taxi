@@ -11,6 +11,7 @@ import {
 import { DriverIncomeReportCard } from "../components/reports/DriverIncomeReportCard";
 import { PartnerSettlementCard } from "../components/reports/PartnerSettlementCard";
 import { FatherReportCard } from "../components/reports/FatherReportCard";
+import { MonthSheetCard } from "../components/reports/MonthSheetCard";
 
 function firstOfMonthsAgo(months: number): string {
   const d = new Date();
@@ -75,6 +76,8 @@ export function ReportsPage() {
       />
 
       <DriverIncomeReportCard />
+
+      <MonthSheetCard />
 
       <PartnerSettlementCard />
 

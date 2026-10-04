@@ -7350,6 +7350,115 @@ select.crm-input option {
   border-color: rgba(255, 183, 77, 0.4);
 }
 
+.crm-report-section__avatar--month {
+  background: rgba(105, 240, 174, 0.12);
+  border-color: rgba(105, 240, 174, 0.35);
+}
+
+.crm-month-sheet-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 8px;
+}
+
+.crm-month-sheet__title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.crm-month-sheet__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.crm-month-sheet__table th,
+.crm-month-sheet__table td {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 6px;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.crm-month-sheet__table thead th {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.crm-month-sheet__table tbody th {
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.crm-month-sheet__head--in {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.crm-month-sheet__head--out {
+  background: #c62828;
+  color: #fff;
+}
+
+.crm-month-sheet__head--partner {
+  background: #1565c0;
+  color: #fff;
+}
+
+.crm-month-sheet__head--net {
+  background: #616161;
+  color: #fff;
+}
+
+.crm-month-sheet__money--in {
+  background: rgba(46, 125, 50, 0.28);
+}
+
+.crm-month-sheet__money--out {
+  background: rgba(198, 40, 40, 0.28);
+}
+
+.crm-month-sheet__money--partner,
+.crm-month-sheet__span.crm-month-sheet__money--partner {
+  background: rgba(21, 101, 192, 0.35);
+  text-align: center;
+  font-weight: 700;
+}
+
+.crm-month-sheet__money--net {
+  background: rgba(255, 193, 7, 0.28);
+  color: #ffe082;
+  font-weight: 700;
+  text-align: center;
+}
+
+.crm-month-sheet__net-label {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-month-sheet__who {
+  text-align: center;
+  font-weight: 600;
+}
+
+.crm-month-sheet__sum th,
+.crm-month-sheet__sum td {
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-month-sheet__sum .crm-month-sheet__money--in,
+.crm-month-sheet__sum .crm-month-sheet__money--out {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .crm-father-report__body {
   display: flex;
   flex-direction: column;
