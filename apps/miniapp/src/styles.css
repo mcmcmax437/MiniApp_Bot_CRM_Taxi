@@ -7390,27 +7390,35 @@ select.crm-input option {
   color: #fff;
 }
 
-.crm-month-sheet__table {
-  width: 100%;
-  border-collapse: collapse;
+.crm-month-sheet__grid {
+  display: grid;
+  grid-template-columns: minmax(132px, 1.5fr) minmax(88px, 1fr) minmax(72px, 0.7fr) minmax(88px, 1fr) minmax(108px, 1.1fr) minmax(108px, 1.1fr);
+  grid-template-rows: auto repeat(4, minmax(40px, auto));
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.crm-month-sheet__cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: right;
   font-size: 12px;
 }
 
-.crm-month-sheet__table th,
-.crm-month-sheet__table td {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 8px 6px;
-  text-align: right;
-  vertical-align: middle;
-}
-
-.crm-month-sheet__table thead th {
+.crm-month-sheet__cell--head {
+  justify-content: center;
   text-align: center;
   font-size: 11px;
   font-weight: 700;
 }
 
-.crm-month-sheet__table tbody th {
+.crm-month-sheet__cell--label {
+  justify-content: flex-start;
   text-align: left;
   font-weight: 600;
   white-space: nowrap;
@@ -7444,64 +7452,69 @@ select.crm-input option {
   background: rgba(198, 40, 40, 0.28);
 }
 
-.crm-month-sheet__money--partner,
-.crm-month-sheet__span.crm-month-sheet__money--partner {
+.crm-month-sheet__money--partner {
+  justify-content: center;
   background: rgba(21, 101, 192, 0.35);
-  text-align: center;
   font-weight: 700;
 }
 
 .crm-month-sheet__money--plus {
-  background: rgba(46, 125, 50, 0.4);
+  justify-content: center;
+  background: rgba(46, 125, 50, 0.45);
   color: #69f0ae;
   font-weight: 700;
-  text-align: center;
 }
 
 .crm-month-sheet__money--minus {
-  background: rgba(198, 40, 40, 0.4);
+  justify-content: center;
+  background: rgba(198, 40, 40, 0.45);
   color: #ff8a80;
   font-weight: 700;
-  text-align: center;
 }
 
 .crm-month-sheet__money--zero {
+  justify-content: center;
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.7);
   font-weight: 700;
-  text-align: center;
 }
 
 .crm-month-sheet__net-label {
+  justify-content: center;
   text-align: center;
   color: rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .crm-month-sheet__who {
+  justify-content: center;
   text-align: center;
   font-weight: 600;
 }
 
-.crm-month-sheet__sum th,
-.crm-month-sheet__sum td {
+.crm-month-sheet__sum {
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.crm-month-sheet__sum .crm-month-sheet__money--plus {
-  background: rgba(46, 125, 50, 0.4);
-  color: #69f0ae;
+.crm-month-sheet__span-exp {
+  grid-column: 4;
+  grid-row: 2 / 4;
 }
 
-.crm-month-sheet__sum .crm-month-sheet__money--minus {
-  background: rgba(198, 40, 40, 0.4);
-  color: #ff8a80;
+.crm-month-sheet__span-partner {
+  grid-column: 5;
+  grid-row: 2 / 6;
 }
 
-.crm-month-sheet__sum .crm-month-sheet__money--in,
-.crm-month-sheet__sum .crm-month-sheet__money--out {
-  background: rgba(255, 255, 255, 0.08);
+.crm-month-sheet__span-label {
+  grid-column: 6;
+  grid-row: 2 / 4;
+}
+
+.crm-month-sheet__span-net {
+  grid-column: 6;
+  grid-row: 4 / 6;
 }
 
 .crm-father-report__body {

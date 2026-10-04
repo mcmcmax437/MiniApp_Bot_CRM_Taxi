@@ -9,76 +9,69 @@ import { ReportYearMonthPicker } from "./ReportYearMonthPicker";
 import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import { useReportYearMonths } from "./useReportYearMonths";
 
-function moneyCell(amount: number, tone: "in" | "out" | "partner" | "net" | "sum") {
-  return <td className={`crm-month-sheet__money crm-month-sheet__money--${tone}`}>{formatMoney(amount)}</td>;
-}
-
-function signedNetCell(amount: number, rowSpan?: number) {
+function signedNet(amount: number): { text: string; tone: "plus" | "minus" | "zero" } {
   const abs = formatMoney(Math.abs(amount));
-  const positive = amount > 0.005;
-  const negative = amount < -0.005;
-  const text = positive ? `+${abs}` : negative ? `-${abs}` : abs;
-  const tone = positive ? "plus" : negative ? "minus" : "zero";
-  return (
-    <td className={`crm-month-sheet__money crm-month-sheet__money--${tone}`} rowSpan={rowSpan}>
-      {text}
-    </td>
-  );
+  if (amount > 0.005) return { text: `+${abs}`, tone: "plus" };
+  if (amount < -0.005) return { text: `-${abs}`, tone: "minus" };
+  return { text: abs, tone: "zero" };
 }
 
 function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
   const { t } = useTranslation();
   const s = props.sheet;
+  const net = signedNet(s.net);
   return (
     <div className="crm-month-sheet">
       <div className="crm-month-sheet__title">{props.title}</div>
-      <div className="crm-driver-income-report__table-wrap">
-        <table className="crm-month-sheet__table">
-          <thead>
-            <tr>
-              <th />
-              <th className="crm-month-sheet__head--in">{t("reports.monthSheetIncome")}</th>
-              <th />
-              <th className="crm-month-sheet__head--out">{t("reports.monthSheetExpenses")}</th>
-              <th className="crm-month-sheet__head--partner">{t("reports.monthSheetPartner")}</th>
-              <th className="crm-month-sheet__head--net">{t("reports.monthSheetNet")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">{t("reports.monthSheetCashMine")}</th>
-              {moneyCell(s.cashMine, "in")}
-              <td className="crm-month-sheet__who">{t("reports.monthSheetWhoPartner")}</td>
-              <td className="crm-month-sheet__money crm-month-sheet__money--out" rowSpan={2}>
-                {formatMoney(s.expensePartner)}
-              </td>
-              <td className="crm-month-sheet__span crm-month-sheet__money--partner" rowSpan={4}>
-                {formatMoney(s.partnerNet)}
-              </td>
-              <td className="crm-month-sheet__span crm-month-sheet__net-label" rowSpan={2}>
-                {t("reports.monthSheetNet")}
-              </td>
-            </tr>
-            <tr>
-              <th scope="row">{t("reports.monthSheetCashPartner")}</th>
-              {moneyCell(s.cashPartner, "in")}
-              <td />
-            </tr>
-            <tr>
-              <th scope="row">{t("reports.monthSheetBank")}</th>
-              {moneyCell(s.bankIncome, "in")}
-              <td className="crm-month-sheet__who">{t("reports.monthSheetWhoMine")}</td>
-              {moneyCell(s.expenseMine, "out")}
-              {signedNetCell(s.net, 2)}
-            </tr>
-            <tr className="crm-month-sheet__sum">
-              <th scope="row">{t("reports.monthSheetSum")}</th>
-              {moneyCell(s.incomeSum, "sum")}
-              <td className="crm-month-sheet__who">{t("reports.monthSheetSum")}</td>
-              {moneyCell(s.expenseSum, "sum")}
-            </tr>
-          </tbody>
-        </table>
+      <div className="crm-month-sheet__grid">
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--head" />
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--head crm-month-sheet__head--in">
+          {t("reports.monthSheetIncome")}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--head" />
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--head crm-month-sheet__head--out">
+          {t("reports.monthSheetExpenses")}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--head crm-month-sheet__head--partner">
+          {t("reports.monthSheetPartner")}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--head crm-month-sheet__head--net">
+          {t("reports.monthSheetNet")}
+        </div>
+
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--label">{t("reports.monthSheetCashMine")}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__money--in">{formatMoney(s.cashMine)}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__who">{t("reports.monthSheetWhoPartner")}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__money--out crm-month-sheet__span-exp">
+          {formatMoney(s.expensePartner)}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__money--partner crm-month-sheet__span-partner">
+          {formatMoney(s.partnerNet)}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__net-label crm-month-sheet__span-label">
+          {t("reports.monthSheetNet")}
+        </div>
+
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--label">{t("reports.monthSheetCashPartner")}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__money--in">{formatMoney(s.cashPartner)}</div>
+        <div className="crm-month-sheet__cell" />
+
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--label">{t("reports.monthSheetBank")}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__money--in">{formatMoney(s.bankIncome)}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__who">{t("reports.monthSheetWhoMine")}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__money--out">{formatMoney(s.expenseMine)}</div>
+        <div className={`crm-month-sheet__cell crm-month-sheet__money--${net.tone} crm-month-sheet__span-net`}>
+          {net.text}
+        </div>
+
+        <div className="crm-month-sheet__cell crm-month-sheet__cell--label crm-month-sheet__sum">
+          {t("reports.monthSheetSum")}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__sum">{formatMoney(s.incomeSum)}</div>
+        <div className="crm-month-sheet__cell crm-month-sheet__who crm-month-sheet__sum">
+          {t("reports.monthSheetSum")}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__sum">{formatMoney(s.expenseSum)}</div>
       </div>
     </div>
   );
