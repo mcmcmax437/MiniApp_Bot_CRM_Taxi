@@ -31,4 +31,38 @@ describe("resolveLedgerTarget", () => {
       }),
     ).toMatchObject({ provider: "grok", key: "x", model: "grok-4.5" });
   });
+
+  it("treats xai as the Grok provider name", () => {
+    expect(resolveLedgerTarget({ ledgerProvider: " XAI ", xaiApiKey: " x " })).toMatchObject({
+      provider: "grok",
+      key: "x",
+      baseUrl: "https://api.x.ai/v1",
+    });
+  });
+
+  it("uses OpenAI settings and trims a custom base URL", () => {
+    expect(
+      resolveLedgerTarget({
+        openaiApiKey: " o ",
+        openaiBaseUrl: "https://proxy.example/v1/",
+        openaiModel: "gpt-4.1-mini",
+      }),
+    ).toMatchObject({
+      provider: "openai",
+      key: "o",
+      baseUrl: "https://proxy.example/v1",
+      model: "gpt-4.1-mini",
+    });
+  });
+
+  it("lets LEDGER_MODEL override provider-specific model settings", () => {
+    expect(
+      resolveLedgerTarget({
+        ledgerProvider: "openai",
+        ledgerModel: "ledger-model",
+        openaiApiKey: "o",
+        openaiModel: "provider-model",
+      }),
+    ).toMatchObject({ provider: "openai", model: "ledger-model" });
+  });
 });
