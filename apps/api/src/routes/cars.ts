@@ -254,9 +254,18 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
       },
       orderBy: { plate: "asc" },
     });
+    const missing: Array<{ id: string; plate: string; make: string | null; model: string | null; error: string }> =
+      cars
+        .filter((car) => !car.trackerLogin || !car.trackerPassword)
+        .map((car) => ({
+          id: car.id,
+          plate: car.plate,
+          make: car.make,
+          model: car.model,
+          error: "tracker_not_configured",
+        }));
     const ready = cars.filter((car) => car.trackerLogin && car.trackerPassword);
     const located: Array<Record<string, unknown>> = [];
-    const failed: Array<{ id: string; plate: string; error: string }> = [];
 
     let cursor = 0;
     async function next(): Promise<void> {
@@ -284,7 +293,13 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
           trackerCache.set(car.id, { at: Date.now(), position });
         }
         if (!position.hasFix) {
-          failed.push({ id: car.id, plate: car.plate, error: "tracker_no_fix" });
+          missing.push({
+            id: car.id,
+            plate: car.plate,
+            make: car.make,
+            model: car.model,
+            error: "tracker_no_fix",
+          });
           return;
         }
         located.push({
@@ -303,7 +318,13 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
         });
       } catch (err) {
         const error = err instanceof TrackerError ? err.code : "tracker_unavailable";
-        failed.push({ id: car.id, plate: car.plate, error });
+        missing.push({
+          id: car.id,
+          plate: car.plate,
+          make: car.make,
+          model: car.model,
+          error,
+        });
       }
     }
 
@@ -316,7 +337,8 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     })));
 
     located.sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
-    return { located, failed, unconfigured: cars.length - ready.length };
+    missing.sort((a, b) => a.plate.localeCompare(b.plate));
+    return { located, missing };
   });
 
   // Live GPS position from the car's MKing tracker portal (no public API; we

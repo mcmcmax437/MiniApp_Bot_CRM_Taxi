@@ -96,10 +96,17 @@ export interface FleetTrackerCar {
   cached: boolean;
 }
 
+export interface FleetTrackerMissing {
+  id: string;
+  plate: string;
+  make: string | null;
+  model: string | null;
+  error: string;
+}
+
 export interface FleetTrackerLocations {
   located: FleetTrackerCar[];
-  failed: Array<{ id: string; plate: string; error: string }>;
-  unconfigured: number;
+  missing: FleetTrackerMissing[];
 }
 
 export interface Driver {

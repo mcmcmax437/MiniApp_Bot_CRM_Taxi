@@ -25,6 +25,22 @@ function escapeHtml(value: string): string {
   });
 }
 
+function vehicleLabel(car: { make: string | null; model: string | null }): string {
+  return [car.make, car.model].filter(Boolean).join(" ");
+}
+
+function reasonLabel(error: string, t: (key: string) => string): string {
+  switch (error) {
+    case "tracker_not_configured":
+      return t("cars.fleetMapNoTracker");
+    case "tracker_login_failed":
+      return t("cars.trackerMap.errorLogin");
+    case "tracker_no_fix":
+      return t("cars.trackerMap.errorNoFix");
+    default:
+      return t("cars.trackerMap.errorUnavailable");
+  }
+}
 function markerHtml(car: FleetTrackerCar): string {
   const state = car.online ? " crm-fleet-pin--on" : "";
   return `<span class="crm-fleet-pin__label${state}">${escapeHtml(car.plate)}</span>`;
@@ -36,7 +52,7 @@ export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void
   const mapHost = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const located = query.data?.located ?? [];
-  const failed = query.data?.failed ?? [];
+  const missing = query.data?.missing ?? [];
 
   useEffect(() => {
     if (!props.open || located.length === 0 || !mapHost.current) return;
@@ -100,24 +116,47 @@ export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void
         <p className="crm-form-hint">{t("cars.fleetMapLoading")}</p>
       ) : query.isError ? (
         <p className="crm-form-hint">{t("cars.trackerMap.errorUnavailable")}</p>
-      ) : located.length === 0 ? (
-        <p className="crm-form-hint">{t("cars.fleetMapEmpty")}</p>
       ) : (
         <div className="crm-fleet-map">
-          <div className="crm-fleet-map__frame" ref={mapHost} />
-          {failed.length > 0 || (query.data?.unconfigured ?? 0) > 0 ? (
-            <p className="crm-form-hint">
-              {failed.length > 0
-                ? t("cars.fleetMapFailed", {
-                    count: failed.length,
-                    plates: failed.map((car) => car.plate).join(", "),
-                  })
-                : null}
-              {(query.data?.unconfigured ?? 0) > 0
-                ? ` ${t("cars.fleetMapUnconfigured", { count: query.data?.unconfigured ?? 0 })}`
-                : null}
-            </p>
-          ) : null}
+          {located.length > 0 ? <div className="crm-fleet-map__frame" ref={mapHost} /> : (
+            <p className="crm-form-hint">{t("cars.fleetMapEmpty")}</p>
+          )}
+          <section className="crm-fleet-map__group">
+            <h3 className="crm-fleet-map__heading">{t("cars.fleetMapOnMap", { count: located.length })}</h3>
+            {located.length === 0 ? (
+              <p className="crm-form-hint">{t("cars.fleetMapNone")}</p>
+            ) : (
+              <ul className="crm-fleet-map__list">
+                {located.map((car) => (
+                  <li key={car.id} className="crm-fleet-map__item crm-fleet-map__item--on">
+                    <span className={`crm-tracker-dot${car.online ? " crm-tracker-dot--on" : ""}`} aria-hidden />
+                    <span>
+                      <strong>{car.plate}</strong>
+                      {vehicleLabel(car) ? <span className="crm-fleet-map__vehicle"> {vehicleLabel(car)}</span> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="crm-fleet-map__group">
+            <h3 className="crm-fleet-map__heading">{t("cars.fleetMapOffMap", { count: missing.length })}</h3>
+            {missing.length === 0 ? (
+              <p className="crm-form-hint">{t("cars.fleetMapNone")}</p>
+            ) : (
+              <ul className="crm-fleet-map__list">
+                {missing.map((car) => (
+                  <li key={car.id} className="crm-fleet-map__item crm-fleet-map__item--off">
+                    <span>
+                      <strong>{car.plate}</strong>
+                      {vehicleLabel(car) ? <span className="crm-fleet-map__vehicle"> {vehicleLabel(car)}</span> : null}
+                    </span>
+                    <span className="crm-fleet-map__reason">{reasonLabel(car.error, t)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       )}
     </Modal>

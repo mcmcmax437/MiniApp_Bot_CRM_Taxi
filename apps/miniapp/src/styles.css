@@ -6056,6 +6056,55 @@ select.crm-input option {
   display: block;
 }
 
+.crm-fleet-map__group {
+  margin-top: 14px;
+}
+
+.crm-fleet-map__heading {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.crm-fleet-map__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-fleet-map__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.crm-fleet-map__item--on {
+  border: 1px solid rgba(105, 240, 174, 0.28);
+}
+
+.crm-fleet-map__item--off {
+  border: 1px solid rgba(255, 138, 128, 0.28);
+}
+
+.crm-fleet-map__vehicle {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+}
+
+.crm-fleet-map__reason {
+  flex-shrink: 0;
+  color: #ff8a80;
+  font-size: 12px;
+  text-align: right;
+}
+
 .crm-fleet-map__frame {
   height: min(62vh, 480px);
   min-height: 280px;
