@@ -60,8 +60,13 @@ export function CarsPage() {
         </div>
         <div className="crm-page-head__actions">
           {hasCars ? (
-            <button type="button" className="crm-btn-outline" onClick={() => setMapOpen(true)}>
-              <Icon name="car-01" size={18} color="currentColor" />
+            <button type="button" className="crm-fleet-map-btn" onClick={() => setMapOpen(true)}>
+              <svg className="crm-fleet-map-btn__pin" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  fill="currentColor"
+                  d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"
+                />
+              </svg>
               <span>{t("cars.fleetMap")}</span>
             </button>
           ) : null}
