@@ -7,6 +7,7 @@ import { carAttentionIds } from "../components/carAttention";
 import { AppHeader, Icon } from "../components/crm";
 import { CarCard, CarsEmptyState } from "../components/CarCard";
 import { CarFormModal } from "../components/CarFormModal";
+import { FleetTrackerMapModal } from "../components/FleetTrackerMapModal";
 import { SwipeToDelete } from "../components/SwipeToDelete";
 
 export function CarsPage() {
@@ -19,6 +20,7 @@ export function CarsPage() {
   const reminders = useReminders();
   const attentionCarIds = useMemo(() => carAttentionIds(reminders.data), [reminders.data]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [editCarId, setEditCarId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const editCar = (cars.data ?? []).find((car) => car.id === editCarId);
@@ -56,12 +58,20 @@ export function CarsPage() {
           <h2 className="crm-page-head__title">{t("cars.pageTitle")}</h2>
           <p className="crm-page-head__subtitle">{t("cars.pageSubtitle")}</p>
         </div>
-        {!readOnly ? (
-          <button type="button" className="crm-btn-primary" onClick={() => setCreateOpen(true)}>
-            <Icon name="add-01" size={18} color="#fff" />
-            <span>{t("cars.addCar")}</span>
-          </button>
-        ) : null}
+        <div className="crm-page-head__actions">
+          {hasCars ? (
+            <button type="button" className="crm-btn-outline" onClick={() => setMapOpen(true)}>
+              <Icon name="car-01" size={18} color="currentColor" />
+              <span>{t("cars.fleetMap")}</span>
+            </button>
+          ) : null}
+          {!readOnly ? (
+            <button type="button" className="crm-btn-primary" onClick={() => setCreateOpen(true)}>
+              <Icon name="add-01" size={18} color="#fff" />
+              <span>{t("cars.addCar")}</span>
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {!cars.isLoading && (
@@ -116,6 +126,8 @@ export function CarsPage() {
           ))}
         </div>
       )}
+
+      <FleetTrackerMapModal open={mapOpen} onClose={() => setMapOpen(false)} />
 
       <CarFormModal
         open={createOpen}

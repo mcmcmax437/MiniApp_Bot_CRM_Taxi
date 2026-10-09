@@ -238,6 +238,87 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     return { ok: true };
   });
 
+  // Live GPS for every car that has a tracker. One failure does not drop the rest.
+  app.get("/cars/tracker/locations", async (req) => {
+    const force = (req.query as { refresh?: string } | undefined)?.refresh === "1";
+    const cars = await prisma.car.findMany({
+      where: { ownerId: ownerId(req) },
+      select: {
+        id: true,
+        plate: true,
+        make: true,
+        model: true,
+        trackerLogin: true,
+        trackerPassword: true,
+        trackerUrl: true,
+      },
+      orderBy: { plate: "asc" },
+    });
+    const ready = cars.filter((car) => car.trackerLogin && car.trackerPassword);
+    const located: Array<Record<string, unknown>> = [];
+    const failed: Array<{ id: string; plate: string; error: string }> = [];
+
+    let cursor = 0;
+    async function next(): Promise<void> {
+      const index = cursor;
+      cursor += 1;
+      const car = ready[index];
+      if (!car || !car.trackerLogin || !car.trackerPassword) return;
+      try {
+        let position: TrackerPosition | undefined;
+        let cached = false;
+        if (!force) {
+          const hit = trackerCache.get(car.id);
+          if (hit && Date.now() - hit.at < TRACKER_CACHE_TTL_MS) {
+            position = hit.position;
+            cached = true;
+          }
+        }
+        if (!position) {
+          position = await fetchMkingPosition({
+            baseUrl: car.trackerUrl,
+            login: car.trackerLogin,
+            password: car.trackerPassword,
+            loginType: "DEVICE",
+          });
+          trackerCache.set(car.id, { at: Date.now(), position });
+        }
+        if (!position.hasFix) {
+          failed.push({ id: car.id, plate: car.plate, error: "tracker_no_fix" });
+          return;
+        }
+        located.push({
+          id: car.id,
+          plate: car.plate,
+          make: car.make,
+          model: car.model,
+          latitude: position.latitude,
+          longitude: position.longitude,
+          speed: position.speed,
+          course: position.course,
+          fixTime: position.fixTime,
+          online: position.online,
+          status: position.status,
+          cached,
+        });
+      } catch (err) {
+        const error = err instanceof TrackerError ? err.code : "tracker_unavailable";
+        failed.push({ id: car.id, plate: car.plate, error });
+      }
+    }
+
+    const workers = Math.min(3, ready.length);
+    await Promise.all(Array.from({ length: workers }, () => next().then(async function drain() {
+      if (cursor < ready.length) {
+        await next();
+        await drain();
+      }
+    })));
+
+    located.sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
+    return { located, failed, unconfigured: cars.length - ready.length };
+  });
+
   // Live GPS position from the car's MKing tracker portal (no public API; we
   // replicate the web login server-side). Cached briefly to avoid hammering MKing.
   app.get("/cars/:id/tracker/location", async (req, reply) => {

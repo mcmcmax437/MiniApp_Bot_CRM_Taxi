@@ -21,6 +21,7 @@ import type {
   OwnerRow,
   Payment,
   TrackerLocation,
+  FleetTrackerLocations,
   FleetMember,
 } from "./types";
 import { isCarGalleryPhoto } from "./components/documentUtils";
@@ -110,6 +111,28 @@ export function useTrackerLocation(carId: string | undefined, enabled: boolean) 
     },
     enabled: Boolean(carId) && enabled,
     refetchInterval: enabled ? 30_000 : false,
+    retry: false,
+    staleTime: 15_000,
+  });
+  const refresh = () => {
+    forceRef.current = true;
+    return query.refetch();
+  };
+  return { ...query, refresh };
+}
+
+export function useFleetTrackerLocations(enabled: boolean) {
+  const forceRef = useRef(false);
+  const query = useQuery({
+    queryKey: ["cars", "tracker-locations"],
+    queryFn: () => {
+      const force = forceRef.current;
+      forceRef.current = false;
+      return apiFetch<FleetTrackerLocations>(
+        `/cars/tracker/locations${force ? "?refresh=1" : ""}`,
+      );
+    },
+    enabled,
     retry: false,
     staleTime: 15_000,
   });

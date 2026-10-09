@@ -81,6 +81,27 @@ export interface TrackerLocation {
   cached: boolean;
 }
 
+export interface FleetTrackerCar {
+  id: string;
+  plate: string;
+  make: string | null;
+  model: string | null;
+  latitude: number;
+  longitude: number;
+  speed: number | null;
+  course: number | null;
+  fixTime: string | null;
+  online: boolean;
+  status: string | null;
+  cached: boolean;
+}
+
+export interface FleetTrackerLocations {
+  located: FleetTrackerCar[];
+  failed: Array<{ id: string; plate: string; error: string }>;
+  unconfigured: number;
+}
+
 export interface Driver {
   id: string;
   firstName: string;
