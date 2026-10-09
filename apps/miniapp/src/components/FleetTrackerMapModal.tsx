@@ -6,6 +6,7 @@ import { useFleetTrackerLocations } from "../hooks";
 import { IconActionButton } from "./crm";
 import { Modal } from "./ui";
 import type { FleetTrackerCar } from "../types";
+import { formatTrackerFixTime } from "../formatTrackerTime";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
@@ -59,7 +60,7 @@ export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void
       const vehicle = [car.make, car.model].filter(Boolean).join(" ");
       const speed =
         car.speed != null ? `<br>${Math.round(car.speed)} ${t("cars.trackerMap.kmh")}` : "";
-      const when = car.fixTime ? `<br>${escapeHtml(car.fixTime)}` : "";
+      const when = car.fixTime ? `<br>${escapeHtml(formatTrackerFixTime(car.fixTime))}` : "";
       marker.bindPopup(
         `<strong>${escapeHtml(car.plate)}</strong>${vehicle ? `<br>${escapeHtml(vehicle)}` : ""}${speed}${when}`,
       );

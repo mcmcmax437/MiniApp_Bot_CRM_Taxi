@@ -3,6 +3,7 @@ import { useTrackerLocation } from "../hooks";
 import { ApiError } from "../api";
 import { IconActionButton } from "./crm";
 import { Modal } from "./ui";
+import { formatTrackerFixTime } from "../formatTrackerTime";
 
 function osmEmbedUrl(lat: number, lng: number): string {
   const d = 0.006;
@@ -89,7 +90,7 @@ export function CarTrackerMapModal(props: {
             {loc.fixTime ? (
               <div className="crm-car-detail-dl__row">
                 <dt>{t("cars.trackerMap.fixTime")}</dt>
-                <dd>{loc.fixTime}</dd>
+                <dd>{formatTrackerFixTime(loc.fixTime)}</dd>
               </div>
             ) : null}
             <div className="crm-car-detail-dl__row">
