@@ -186,6 +186,7 @@ export interface Agreement {
   rentAmount: number;
   depositAmount: number;
   period: RentPeriod;
+  paysCash?: boolean;
   startDate: string;
   endDate: string | null;
   status: AgreementStatus;

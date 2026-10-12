@@ -3168,6 +3168,39 @@ button.crm-driver-stat:hover {
   text-align: center;
 }
 
+.crm-fleet-card__cash {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 193, 7, 0.18);
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  color: #ffe082;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.crm-fleet-card__cash-toggle {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.crm-fleet-card__cash-toggle--on {
+  border-color: rgba(255, 193, 7, 0.55);
+  background: rgba(255, 193, 7, 0.16);
+  color: #ffe082;
+}
+
 .crm-fleet-card__status--rented {
   color: #69f0ae;
   background: rgba(105, 240, 174, 0.14);
@@ -3269,7 +3302,8 @@ button.crm-driver-stat:hover {
 }
 
 .crm-fleet-card__action {
-  width: 100%;
+  flex: 1;
+  width: auto;
   max-width: 100%;
   box-sizing: border-box;
   justify-content: center;

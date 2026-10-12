@@ -426,6 +426,7 @@ const agreementBaseSchema = z.object({
   rentAmount: money,
   depositAmount: money.default(0),
   period: z.nativeEnum(RentPeriod).default(RentPeriod.DAILY),
+  paysCash: z.boolean().optional(),
   startDate: isoDate,
   endDate: optionalIsoDate,
   status: z.nativeEnum(AgreementStatus).default(AgreementStatus.ACTIVE),

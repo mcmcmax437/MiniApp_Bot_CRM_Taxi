@@ -14,6 +14,7 @@ import {
   useCarCoverPhotos,
   useDrivers,
   useCreateAgreement,
+  useUpdateAgreement,
   useEndAgreement,
 } from "../../hooks";
 import type { Agreement, Car } from "../../types";
@@ -68,6 +69,7 @@ export function FleetTab() {
   const covers = useCarCoverPhotos();
   const drivers = useDrivers();
   const create = useCreateAgreement();
+  const update = useUpdateAgreement();
   const end = useEndAgreement();
 
   const [search, setSearch] = useState("");
@@ -84,6 +86,7 @@ export function FleetTab() {
     rentAmount: "" as number | "",
     depositAmount: "" as number | "",
     period: RentPeriod.DAILY as RentPeriod,
+    paysCash: false,
   });
   const [fieldErrors, setFieldErrors] = useState<Set<AssignFormField>>(new Set());
 
@@ -165,6 +168,7 @@ export function FleetTab() {
       rentAmount: "",
       depositAmount: "",
       period: RentPeriod.DAILY,
+      paysCash: false,
     });
     setFieldErrors(new Set());
     setOpen(true);
@@ -257,6 +261,7 @@ export function FleetTab() {
         rentAmount: form.rentAmount,
         depositAmount: form.depositAmount === "" ? 0 : form.depositAmount,
         period: form.period,
+        paysCash: form.paysCash,
         startDate: form.startDate,
         ...(endDate ? { endDate, status } : {}),
       },
@@ -355,6 +360,15 @@ export function FleetTab() {
               ending={end.isPending}
               onOpenHistory={() => setHistoryCar(car)}
               onAssign={() => handleAssign(car.id)}
+              onToggleCash={
+                agreement
+                  ? () =>
+                      update.mutate({
+                        id: agreement.id,
+                        body: { paysCash: !agreement.paysCash },
+                      })
+                  : undefined
+              }
               onReturn={() => {
                 if (!agreement) return;
                 void confirmAction(t("fleet.endConfirm"), t("common.delete"), t("common.cancel")).then(
@@ -503,6 +517,15 @@ export function FleetTab() {
             options={Object.values(RentPeriod).map((p) => ({ value: p, label: t(`drivers.${p}`) }))}
           />
         </Field>
+        <label className="crm-checkbox-field">
+          <input
+            type="checkbox"
+            checked={form.paysCash}
+            onChange={(e) => patchForm({ paysCash: e.target.checked })}
+          />
+          <span>{t("fleet.paysCash")}</span>
+        </label>
+        <p className="crm-form-hint">{t("fleet.paysCashHint")}</p>
       </Modal>
     </>
   );

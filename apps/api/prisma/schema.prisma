@@ -362,6 +362,8 @@ model RentalAgreement {
   rentAmount    Float
   depositAmount Float           @default(0)
   period        RentPeriod      @default(DAILY)
+  /** Reminder only: this driver prefers to pay rent in cash. */
+  paysCash      Boolean         @default(false)
   startDate  DateTime
   endDate    DateTime?
   status     AgreementStatus @default(ACTIVE)

@@ -16,6 +16,7 @@ export function FleetCarCard(props: {
   onOpenHistory: () => void;
   onAssign?: () => void;
   onReturn?: () => void;
+  onToggleCash?: () => void;
 }) {
   const { t } = useTranslation();
   const { car, agreement } = props;
@@ -64,6 +65,9 @@ export function FleetCarCard(props: {
                 {agreementIsTemporaryDriver(agreement) ? (
                   <span className="crm-fleet-card__temp-badge">{t("fleet.temporaryDriver")}</span>
                 ) : null}
+                {agreement.paysCash ? (
+                  <span className="crm-fleet-card__cash">{t("fleet.cashTag")}</span>
+                ) : null}
               </p>
               <p className="crm-fleet-card__meta">
                 {t("fleet.since")} {formatDate(agreement.startDate)}
@@ -100,14 +104,23 @@ export function FleetCarCard(props: {
       {!props.readOnly ? (
         <div className="crm-fleet-card__actions">
           {agreement ? (
-            <button
-              type="button"
-              className="crm-btn-outline crm-fleet-card__action"
-              disabled={props.ending}
-              onClick={props.onReturn}
-            >
-              {t("fleet.returnCar")}
-            </button>
+            <>
+              <button
+                type="button"
+                className={`crm-fleet-card__cash-toggle${agreement.paysCash ? " crm-fleet-card__cash-toggle--on" : ""}`}
+                onClick={props.onToggleCash}
+              >
+                {t("fleet.cashTag")}
+              </button>
+              <button
+                type="button"
+                className="crm-btn-outline crm-fleet-card__action"
+                disabled={props.ending}
+                onClick={props.onReturn}
+              >
+                {t("fleet.returnCar")}
+              </button>
+            </>
           ) : (
             <button
               type="button"
