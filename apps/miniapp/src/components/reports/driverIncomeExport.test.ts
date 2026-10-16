@@ -3,6 +3,7 @@ import type { DriverIncomeReport } from "@taxi/shared";
 import {
   amountForChannel,
   buildAccountantEmailText,
+  buildDriverIncomeCsv,
   driverVisibleForChannel,
 } from "./driverIncomeExport";
 
@@ -40,6 +41,22 @@ const sample: DriverIncomeReport = {
   grandTotals: { cash: 3800, bank: 2850, total: 6650 },
 };
 
+const csvLabels = {
+  month: "Month",
+  driver: "Driver",
+  pesel: "PESEL",
+  passport: "Passport",
+  address: "Address",
+  cash: "Cash",
+  bank: "Bank",
+  total: "Total",
+  monthTotal: "Month total",
+  grandTotal: "Grand total",
+  unassignedDriver: "Unassigned",
+  driverLabel: (name: string) => name,
+  monthLabel: () => "July 2026",
+};
+
 describe("amountForChannel", () => {
   it("picks cash, bank, or total", () => {
     const row = sample.months[0]!.drivers[0]!;
@@ -57,6 +74,19 @@ describe("driverVisibleForChannel", () => {
     expect(driverVisibleForChannel(bankOnly, "cash")).toBe(false);
     expect(driverVisibleForChannel(cashOnly, "cash")).toBe(true);
     expect(driverVisibleForChannel(cashOnly, "both")).toBe(true);
+  });
+});
+
+describe("buildDriverIncomeCsv", () => {
+  it("omits zero-amount rows for the selected channel while keeping filtered totals", () => {
+    const csv = buildDriverIncomeCsv(sample, csvLabels, "bank");
+    const lines = csv.split("\r\n");
+
+    expect(lines[0]).toBe("Month;Driver;PESEL;Passport;Address;Bank");
+    expect(csv).not.toContain("Ivan Dekol");
+    expect(lines).toContain("July 2026;Dmytro Dehtiar;90010112345;;Warszawa;2850.00");
+    expect(lines).toContain("July 2026;Month total;;;;2850.00");
+    expect(lines.at(-1)).toBe("Grand total;;;;;2850.00");
   });
 });
 
