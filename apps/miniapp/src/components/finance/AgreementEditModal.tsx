@@ -25,8 +25,7 @@ import {
   formatDate,
   todayInput,
 } from "../ui";
-
-type EditFormField = "driver" | "rentAmount" | "startDate";
+import { collectEditFormErrors, type EditFormField } from "./financeFormValidation";
 
 function scrollToFirstFieldError() {
   requestAnimationFrame(() => {
@@ -87,12 +86,13 @@ export function AgreementEditModal(props: {
 
   function submit() {
     if (!props.agreement) return;
-    const errors = new Set<EditFormField>();
-    const hasDriver = !useTemporaryDriver && Boolean(driverId);
-    const hasTemp = useTemporaryDriver && Boolean(temporaryDriverName.trim());
-    if (!hasDriver && !hasTemp) errors.add("driver");
-    if (rentAmount === "") errors.add("rentAmount");
-    if (!startDate) errors.add("startDate");
+    const errors = collectEditFormErrors({
+      useTemporaryDriver,
+      driverId,
+      temporaryDriverName,
+      rentAmount,
+      startDate,
+    });
     if (errors.size > 0) {
       setFieldErrors(errors);
       scrollToFirstFieldError();
@@ -113,6 +113,7 @@ export function AgreementEditModal(props: {
       return;
     }
 
+    const hasTemp = useTemporaryDriver && Boolean(temporaryDriverName.trim());
     const inferredStatus = inferAgreementStatus(end || null, asOf);
 
     const body: Record<string, unknown> = {

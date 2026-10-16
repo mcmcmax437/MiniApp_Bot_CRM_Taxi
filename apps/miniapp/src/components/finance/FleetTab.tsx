@@ -49,8 +49,11 @@ import {
   agreementApiErrorMessage,
 } from "../../agreementOverlap";
 import { ApiError } from "../../api";
-
-type AssignFormField = "driver" | "car" | "rentAmount" | "startDate";
+import {
+  clearAssignErrorsForPatch,
+  collectAssignFormErrors,
+  type AssignFormField,
+} from "./financeFormValidation";
 
 function scrollToFirstFieldError() {
   requestAnimationFrame(() => {
@@ -183,31 +186,7 @@ export function FleetTab() {
   function patchForm(patch: Partial<typeof form>) {
     setForm((prev) => ({ ...prev, ...patch }));
     if (fieldErrors.size === 0) return;
-    setFieldErrors((prev) => {
-      const next = new Set(prev);
-      if (
-        "useTemporaryDriver" in patch ||
-        "driverId" in patch ||
-        "temporaryDriverName" in patch
-      ) {
-        next.delete("driver");
-      }
-      if ("carId" in patch) next.delete("car");
-      if ("rentAmount" in patch) next.delete("rentAmount");
-      if ("startDate" in patch) next.delete("startDate");
-      return next;
-    });
-  }
-
-  function collectAssignErrors(): Set<AssignFormField> {
-    const errors = new Set<AssignFormField>();
-    const hasDriver = !form.useTemporaryDriver && Boolean(form.driverId);
-    const hasTemp = form.useTemporaryDriver && Boolean(form.temporaryDriverName.trim());
-    if (!hasDriver && !hasTemp) errors.add("driver");
-    if (!form.carId) errors.add("car");
-    if (form.rentAmount === "") errors.add("rentAmount");
-    if (!form.startDate.trim()) errors.add("startDate");
-    return errors;
+    setFieldErrors((prev) => clearAssignErrorsForPatch(prev, patch));
   }
 
   function fieldInvalid(name: AssignFormField): boolean {
@@ -215,7 +194,7 @@ export function FleetTab() {
   }
 
   function submit() {
-    const errors = collectAssignErrors();
+    const errors = collectAssignFormErrors(form);
     if (errors.size > 0) {
       setFieldErrors(errors);
       scrollToFirstFieldError();
