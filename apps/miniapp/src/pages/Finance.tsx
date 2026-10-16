@@ -31,7 +31,6 @@ import {
   Modal,
   Field,
   TextArea,
-  NumberInput,
   DateInput,
   SelectInput,
   SearchableSelect,
@@ -68,6 +67,11 @@ import {
   paymentDisplaySubtitle,
   paymentDisplayTitle,
 } from "../components/finance/financeLabels";
+import {
+  filterPaymentsByFinanceFilters,
+  filterPaymentsBySearch,
+  type PaymentReceiverFilter,
+} from "../components/finance/paymentFilters";
 import { useReadOnly } from "../readOnly";
 import { ApiError } from "../api";
 import { showAlert } from "../telegram";
@@ -137,7 +141,7 @@ function PaymentsTab() {
   const [methodFilters, setMethodFilters] = useState<PaymentMethod[]>([]);
   const [bankFilters, setBankFilters] = useState<PaymentBank[]>([]);
   const [carFilters, setCarFilters] = useState<string[]>([]);
-  const [receiverFilters, setReceiverFilters] = useState<Array<"PARTNER" | "MINE">>([]);
+  const [receiverFilters, setReceiverFilters] = useState<PaymentReceiverFilter[]>([]);
   const [fieldErrors, setFieldErrors] = useState<{ amount?: boolean; date?: boolean; method?: boolean; discount?: boolean }>({});
   const [noteView, setNoteView] = useState<{
     title: string;
@@ -234,23 +238,13 @@ function PaymentsTab() {
 
   // List + income cards share period + method/bank/car filters (search is list-only).
   const scoped = useMemo(() => {
-    return all.filter((p) => {
-      if (!financeInPeriod(p.date, period, dateRange)) return false;
-      if (receiverFilters.length > 0) {
-        const matchPartner = receiverFilters.includes("PARTNER") && p.receivedByPartner;
-        const matchMine = receiverFilters.includes("MINE") && !p.receivedByPartner;
-        if (!matchPartner && !matchMine) return false;
-      }
-      if (methodFilters.length > 0 && !methodFilters.includes(p.method)) return false;
-      if (bankFilters.length > 0) {
-        const bank = p.bank ?? PaymentBank.NONE;
-        if (!bankFilters.includes(bank)) return false;
-      }
-      if (carFilters.length > 0) {
-        const carId = p.carId ?? "";
-        if (!carFilters.includes(carId)) return false;
-      }
-      return true;
+    return filterPaymentsByFinanceFilters(all, {
+      period,
+      dateRange,
+      receiverFilters,
+      methodFilters,
+      bankFilters,
+      carFilters,
     });
   }, [all, period, dateRange, receiverFilters, methodFilters, bankFilters, carFilters]);
 
@@ -260,25 +254,14 @@ function PaymentsTab() {
   const depositSum = depositItems.reduce((s, p) => s + p.amount, 0);
   const debts = (balances.data ?? []).filter((b) => b.balance > 0).reduce((s, b) => s + b.balance, 0);
 
-  // Calendar this-month KPI still respects method/bank/car filters.
+  // Calendar this-month KPI still respects receiver/method/bank/car filters.
   const monthItems = useMemo(() => {
-    return all.filter((p) => {
-      if (!financeInPeriod(p.date, "month")) return false;
-      if (receiverFilters.length > 0) {
-        const matchPartner = receiverFilters.includes("PARTNER") && p.receivedByPartner;
-        const matchMine = receiverFilters.includes("MINE") && !p.receivedByPartner;
-        if (!matchPartner && !matchMine) return false;
-      }
-      if (methodFilters.length > 0 && !methodFilters.includes(p.method)) return false;
-      if (bankFilters.length > 0) {
-        const bank = p.bank ?? PaymentBank.NONE;
-        if (!bankFilters.includes(bank)) return false;
-      }
-      if (carFilters.length > 0) {
-        const carId = p.carId ?? "";
-        if (!carFilters.includes(carId)) return false;
-      }
-      return true;
+    return filterPaymentsByFinanceFilters(all, {
+      period: "month",
+      receiverFilters,
+      methodFilters,
+      bankFilters,
+      carFilters,
     });
   }, [all, receiverFilters, methodFilters, bankFilters, carFilters]);
   const monthIncomeItems = monthItems.filter((p) => isIncomePayment(p.type));
@@ -355,11 +338,9 @@ function PaymentsTab() {
   }, [t, cars.data, receiverFilters, methodFilters, bankFilters, carFilters]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const list = scoped.filter((p) => {
-      if (!q) return true;
-      const hay = `${p.driver?.fullName ?? ""} ${p.car?.plate ?? ""} ${p.note ?? ""} ${p.amount} ${p.method === PaymentMethod.BANK && p.bank && p.bank !== PaymentBank.NONE ? p.bank : ""} ${p.receivedByPartner ? t("finance.receivedByPartner") : t("finance.receivedByMe")}`.toLowerCase();
-      return hay.includes(q);
+    const list = filterPaymentsBySearch(scoped, search, {
+      receivedByPartner: t("finance.receivedByPartner"),
+      receivedByMe: t("finance.receivedByMe"),
     });
     return sortFinanceByDate(list, dateSort, (p) => p.date);
   }, [scoped, search, dateSort, t]);
