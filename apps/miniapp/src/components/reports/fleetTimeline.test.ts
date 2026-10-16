@@ -105,6 +105,13 @@ describe("clipAgreementToRange", () => {
     });
   });
 
+  it("omits same-day returns because they have no billable timeline span", () => {
+    expect(clipAgreementToRange("2026-08-31", "2026-08-31", {
+      from: "2026-08-24",
+      to: "2026-08-31",
+    })).toBeNull();
+  });
+
   it("returns null when there is no overlap", () => {
     expect(clipAgreementToRange("2026-07-01", "2026-07-31", week)).toBeNull();
   });
