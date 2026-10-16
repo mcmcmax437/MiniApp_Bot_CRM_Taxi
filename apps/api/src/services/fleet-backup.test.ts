@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { backupFilename, isFirstDayOfMonth, kyivCalendarDate } from "./fleet-backup.js";
+import {
+  activeBackupOwnerWhere,
+  backupFilename,
+  isFirstDayOfMonth,
+  kyivCalendarDate,
+} from "./fleet-backup.js";
 
 describe("monthly backup calendar", () => {
   it("uses the Kyiv date", () => {
@@ -12,5 +17,15 @@ describe("monthly backup calendar", () => {
 
   it("is not the first on other Kyiv days", () => {
     expect(isFirstDayOfMonth(new Date("2026-10-01T21:30:00.000Z"))).toBe(false);
+  });
+});
+
+describe("monthly backup owner eligibility", () => {
+  it("excludes expired active owners from scheduled backups", () => {
+    const now = new Date("2026-10-01T06:00:00.000Z");
+    expect(activeBackupOwnerWhere(now)).toEqual({
+      status: "ACTIVE",
+      OR: [{ subscriptionExpiresAt: null }, { subscriptionExpiresAt: { gt: now } }],
+    });
   });
 });

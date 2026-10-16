@@ -1,5 +1,4 @@
 import { prisma } from "../prisma.js";
-import { sendTelegramDocument, sendTelegramMessage } from "../notify.js";
 
 const MAX_BYTES = 45 * 1024 * 1024;
 
@@ -23,6 +22,13 @@ export function isFirstDayOfMonth(now = new Date()): boolean {
 export function backupFilename(now = new Date()): string {
   const { year, month, day } = kyivCalendarDate(now);
   return `taxi-backup-${year}-${month}-${day}.json`;
+}
+
+export function activeBackupOwnerWhere(now = new Date()) {
+  return {
+    status: "ACTIVE" as const,
+    OR: [{ subscriptionExpiresAt: null }, { subscriptionExpiresAt: { gt: now } }],
+  };
 }
 
 function backupCaption(locale: string, filename: string): string {
@@ -127,6 +133,7 @@ export async function deliverOwnerBackup(owner: {
   const snapshot = await buildOwnerBackup(owner.id);
   const filename = backupFilename();
   const body = Buffer.from(JSON.stringify(snapshot, null, 2), "utf8");
+  const { sendTelegramDocument, sendTelegramMessage } = await import("../notify.js");
   if (body.byteLength > MAX_BYTES) {
     await sendTelegramMessage(owner.telegramUserId, tooLargeCaption(owner.locale));
     return;
@@ -136,9 +143,10 @@ export async function deliverOwnerBackup(owner: {
 
 /** Send each active fleet owner their own backup. */
 export async function runMonthlyBackupJob(log: (msg: string, meta?: unknown) => void = () => {}): Promise<void> {
-  if (!isFirstDayOfMonth()) return;
+  const now = new Date();
+  if (!isFirstDayOfMonth(now)) return;
   const owners = await prisma.owner.findMany({
-    where: { status: "ACTIVE" },
+    where: activeBackupOwnerWhere(now),
     select: { id: true, telegramUserId: true, locale: true },
   });
   for (const owner of owners) {
