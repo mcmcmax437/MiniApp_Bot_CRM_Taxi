@@ -14,9 +14,9 @@ import {
   toYmd,
   type TimelineScale,
 } from "./fleetTimeline";
+import { loadPaidMarks, paidMarkId, savePaidMarks, togglePaidMark } from "./fleetTimelinePaidMarks";
 
 const SCALE_KEY = "reports-fleet-timeline-scale";
-const PAID_KEY = "reports-fleet-timeline-paid";
 
 function todayLocal(): string {
   return toYmd(new Date());
@@ -26,26 +26,6 @@ function loadScale(): TimelineScale {
   const stored = localStorage.getItem(SCALE_KEY);
   if (stored === "week" || stored === "month" || stored === "year") return stored;
   return "week";
-}
-
-function paidMarkId(from: string, to: string, agreementId: string): string {
-  return `${from}|${to}|${agreementId}`;
-}
-
-function loadPaidMarks(): Record<string, true> {
-  try {
-    const raw = localStorage.getItem(PAID_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    const out: Record<string, true> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (value) out[key] = true;
-    }
-    return out;
-  } catch {
-    return {};
-  }
 }
 
 function PaidCheck(props: {
@@ -76,14 +56,12 @@ export function FleetTimelineCard() {
   const cars = useCars();
   const [scale, setScale] = useState<TimelineScale>(loadScale);
   const [range, setRange] = useState(() => defaultTimelineRange(loadScale(), todayLocal()));
-  const [paidMarks, setPaidMarks] = useState(loadPaidMarks);
+  const [paidMarks, setPaidMarks] = useState(() => loadPaidMarks(localStorage));
 
   function togglePaid(id: string) {
     setPaidMarks((prev) => {
-      const next = { ...prev };
-      if (next[id]) delete next[id];
-      else next[id] = true;
-      localStorage.setItem(PAID_KEY, JSON.stringify(next));
+      const next = togglePaidMark(prev, id);
+      savePaidMarks(localStorage, next);
       return next;
     });
   }
