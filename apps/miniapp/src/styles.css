@@ -5203,20 +5203,30 @@ div.crm-finance-item {
   flex-shrink: 0;
 }
 
-.crm-gps-week {
-  margin-top: 12px;
-}
-
 .crm-odo-chart__svg {
   width: 100%;
-  height: 120px;
+  height: 180px;
   display: block;
+}
+
+.crm-odo-chart__grid {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+}
+
+.crm-odo-chart__grid--v {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.crm-odo-chart__axis {
+  fill: rgba(255, 255, 255, 0.55);
+  font-size: 9px;
 }
 
 .crm-odo-chart__line {
   fill: none;
   stroke: #ffc107;
-  stroke-width: 2;
+  stroke-width: 2.5;
 }
 
 .crm-odo-chart__dot {
@@ -5237,6 +5247,41 @@ div.crm-finance-item {
   margin-top: 8px;
   font-size: 13px;
 }
+
+.crm-gps-week {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+}
+
+.crm-gps-week--0 {
+  background: rgba(105, 240, 174, 0.08);
+  border-color: rgba(105, 240, 174, 0.28);
+}
+.crm-gps-week--0 .crm-gps-week__bar span { background: #69f0ae; }
+.crm-gps-week--0 .crm-gps-week__head strong { color: #69f0ae; }
+
+.crm-gps-week--1 {
+  background: rgba(68, 138, 255, 0.1);
+  border-color: rgba(68, 138, 255, 0.32);
+}
+.crm-gps-week--1 .crm-gps-week__bar span { background: #82b1ff; }
+.crm-gps-week--1 .crm-gps-week__head strong { color: #82b1ff; }
+
+.crm-gps-week--2 {
+  background: rgba(255, 193, 7, 0.08);
+  border-color: rgba(255, 193, 7, 0.32);
+}
+.crm-gps-week--2 .crm-gps-week__bar span { background: #ffc107; }
+.crm-gps-week--2 .crm-gps-week__head strong { color: #ffe082; }
+
+.crm-gps-week--3 {
+  background: rgba(179, 136, 255, 0.1);
+  border-color: rgba(179, 136, 255, 0.32);
+}
+.crm-gps-week--3 .crm-gps-week__bar span { background: #b388ff; }
+.crm-gps-week--3 .crm-gps-week__head strong { color: #d1c4ff; }
 
 .crm-gps-load {
   display: flex;

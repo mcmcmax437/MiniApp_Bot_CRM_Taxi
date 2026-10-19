@@ -62,22 +62,50 @@ function OdometerChart(props: {
   const [selectedId, setSelectedId] = useState<string | null>(props.logs[0]?.id ?? null);
   const points = [...props.logs].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   const selected = points.find((log) => log.id === selectedId) ?? points[points.length - 1];
-  const width = 320;
-  const height = 120;
-  const pad = 16;
+  const width = 340;
+  const height = 168;
+  const padL = 46;
+  const padR = 10;
+  const padT = 12;
+  const padB = 28;
   const min = Math.min(...points.map((log) => log.odometer));
   const max = Math.max(...points.map((log) => log.odometer));
   const span = Math.max(max - min, 1);
+  const plotW = width - padL - padR;
+  const plotH = height - padT - padB;
+  const yOf = (km: number) => padT + (1 - (km - min) / span) * plotH;
   const coords = points.map((log, index) => {
-    const x = points.length === 1 ? width / 2 : pad + (index / (points.length - 1)) * (width - pad * 2);
-    const y = height - pad - ((log.odometer - min) / span) * (height - pad * 2);
-    return { log, x, y };
+    const x = points.length === 1 ? padL + plotW / 2 : padL + (index / (points.length - 1)) * plotW;
+    return { log, x, y: yOf(log.odometer) };
   });
   const line = coords.map((point) => `${point.x},${point.y}`).join(" ");
+  const yTicks = [max, min + span / 2, min];
+  const dateIndexes =
+    points.length <= 5
+      ? points.map((_, index) => index)
+      : [0, Math.floor((points.length - 1) / 2), points.length - 1];
 
   return (
     <div className="crm-odo-chart">
       <svg viewBox={`0 0 ${width} ${height}`} className="crm-odo-chart__svg" role="img">
+        {yTicks.map((tick) => (
+          <g key={tick}>
+            <line x1={padL} x2={width - padR} y1={yOf(tick)} y2={yOf(tick)} className="crm-odo-chart__grid" />
+            <text x={padL - 6} y={yOf(tick) + 3} className="crm-odo-chart__axis" textAnchor="end">
+              {Math.round(tick).toLocaleString()}
+            </text>
+          </g>
+        ))}
+        {coords.map((point) => (
+          <line
+            key={`v-${point.log.id}`}
+            x1={point.x}
+            x2={point.x}
+            y1={padT}
+            y2={height - padB}
+            className="crm-odo-chart__grid crm-odo-chart__grid--v"
+          />
+        ))}
         {coords.length > 1 ? <polyline points={line} className="crm-odo-chart__line" /> : null}
         {coords.map((point) => (
           <circle
@@ -89,6 +117,16 @@ function OdometerChart(props: {
             onClick={() => setSelectedId(point.log.id)}
           />
         ))}
+        {dateIndexes.map((index) => {
+          const point = coords[index];
+          if (!point) return null;
+          const [, month, day] = point.log.recordedAt.slice(0, 10).split("-");
+          return (
+            <text key={`d-${point.log.id}`} x={point.x} y={height - 8} className="crm-odo-chart__axis" textAnchor="middle">
+              {`${day}.${month}`}
+            </text>
+          );
+        })}
       </svg>
       {selected ? (
         <div className="crm-odo-chart__info">
@@ -184,11 +222,12 @@ function GpsDistanceSection(props: { car: Car; readOnly?: boolean }) {
       ) : weeks.length === 0 ? (
         <p className="crm-form-hint">{t("tracking.gpsEmpty")}</p>
       ) : (
-        weeks.map((week) => {
+        weeks.map((week, index) => {
           const open = shownWeek === week.start;
           const end = week.rows[week.rows.length - 1]?.day ?? week.start;
+          const tone = index % 4;
           return (
-            <div key={week.start} className="crm-gps-week">
+            <div key={week.start} className={`crm-gps-week crm-gps-week--${tone}${open ? " crm-gps-week--open" : ""}`}>
               <button
                 type="button"
                 className="crm-gps-week__head"
