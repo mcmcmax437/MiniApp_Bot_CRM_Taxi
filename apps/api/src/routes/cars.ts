@@ -8,6 +8,7 @@ import {
 import { ownerId, parse, toDates } from "./helpers.js";
 import { isImageDocument } from "../services/document-image.js";
 import { fetchMkingPosition, TrackerError, type TrackerPosition } from "../services/mking-tracker.js";
+import { syncCarTrackerWeek } from "../services/tracker-daily.js";
 import { replacePurchaseExpenses } from "../services/purchase-expenses.js";
 
 const TRACKER_CACHE_TTL_MS = 20_000;
@@ -236,6 +237,43 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     trackerCache.delete(id);
     await prisma.car.delete({ where: { id } });
     return { ok: true };
+  });
+
+  app.get("/cars/:id/tracker/days", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const car = await prisma.car.findFirst({ where: { id, ownerId: ownerId(req) } });
+    if (!car) return reply.code(404).send({ error: "not_found" });
+    return prisma.trackerDayDistance.findMany({
+      where: { ownerId: ownerId(req), carId: id },
+      orderBy: { day: "desc" },
+      take: 84,
+    });
+  });
+
+  app.post("/cars/:id/tracker/days/sync", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const car = await prisma.car.findFirst({ where: { id, ownerId: ownerId(req) } });
+    if (!car) return reply.code(404).send({ error: "not_found" });
+    if (!car.trackerLogin || !car.trackerPassword) {
+      return reply.code(400).send({ error: "tracker_not_configured" });
+    }
+    try {
+      const saved = await syncCarTrackerWeek({
+        id: car.id,
+        ownerId: car.ownerId,
+        trackerLogin: car.trackerLogin,
+        trackerPassword: car.trackerPassword,
+        trackerUrl: car.trackerUrl,
+      });
+      return { saved };
+    } catch (err) {
+      if (err instanceof TrackerError) {
+        const status = err.code === "tracker_unavailable" ? 502 : 400;
+        return reply.code(status).send({ error: err.code });
+      }
+      req.log.error({ err }, "tracker week sync failed");
+      return reply.code(502).send({ error: "tracker_unavailable" });
+    }
   });
 
   // Live GPS for every car that has a tracker. One failure does not drop the rest.

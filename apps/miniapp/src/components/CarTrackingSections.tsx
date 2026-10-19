@@ -10,8 +10,11 @@ import {
   useMaintenanceRecords,
   useMaintenanceRules,
   useMileageLogs,
+  useSyncTrackerDays,
+  useTrackerDays,
 } from "../hooks";
-import { confirmAction } from "../telegram";
+import { confirmAction, showAlert } from "../telegram";
+import { ApiError } from "../api";
 import { IconActionButton } from "./crm";
 import type { Car, MaintenanceRule } from "../types";
 import {
@@ -33,9 +36,104 @@ const MAINTENANCE_PRESETS: Array<{
   { nameKey: "presetInspectionService", intervalKind: MaintenanceIntervalKind.MONTHS, intervalValue: 12 },
 ];
 
+function weekStartKey(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDriven(km: number): string {
+  const rounded = Math.round(km * 10) / 10;
+  return `${rounded.toLocaleString()} km`;
+}
+
 function formatMileage(km: number | null | undefined): string {
   if (km == null) return "—";
   return `${km.toLocaleString()} km`;
+}
+
+function GpsDistanceSection(props: { car: Car; readOnly?: boolean }) {
+  const { t } = useTranslation();
+  const days = useTrackerDays(props.car.id);
+  const sync = useSyncTrackerDays(props.car.id);
+  const canSync = Boolean(props.car.trackerLogin && props.car.trackerPassword);
+  const weeks = (() => {
+    const groups = new Map<string, Array<{ id: string; day: string; distanceKm: number }>>();
+    for (const row of days.data ?? []) {
+      const key = weekStartKey(row.day);
+      const list = groups.get(key) ?? [];
+      list.push(row);
+      groups.set(key, list);
+    }
+    return [...groups.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([start, rows]) => {
+        const sorted = [...rows].sort((a, b) => a.day.localeCompare(b.day));
+        const total = Math.round(sorted.reduce((sum, row) => sum + row.distanceKm, 0) * 10) / 10;
+        const peak = Math.max(...sorted.map((row) => row.distanceKm), 1);
+        return { start, rows: sorted, total, peak };
+      });
+  })();
+
+  return (
+    <section className="glass-card crm-car-detail-section">
+      <div className="crm-section-head">
+        <h3 className="crm-car-detail-section__title">{t("tracking.gpsDistanceTitle")}</h3>
+        {!props.readOnly && canSync ? (
+          <button
+            type="button"
+            className="crm-link-btn"
+            disabled={sync.isPending}
+            onClick={() =>
+              sync.mutate(undefined, {
+                onError: (err) => {
+                  const code = err instanceof ApiError ? err.code : undefined;
+                  const key =
+                    code === "tracker_not_configured"
+                      ? "cars.trackerMap.errorNotConfigured"
+                      : code === "tracker_login_failed"
+                        ? "cars.trackerMap.errorLogin"
+                        : "cars.trackerMap.errorUnavailable";
+                  showAlert(t(key));
+                },
+              })
+            }
+          >
+            {sync.isPending ? t("common.loading") : t("tracking.loadGpsWeek")}
+          </button>
+        ) : null}
+      </div>
+      <p className="crm-form-hint">{t("tracking.gpsDistanceHint")}</p>
+      {days.isLoading ? (
+        <p className="crm-form-hint">{t("common.loading")}</p>
+      ) : weeks.length === 0 ? (
+        <p className="crm-form-hint">{t("tracking.gpsEmpty")}</p>
+      ) : (
+        weeks.map((week) => (
+          <div key={week.start} className="crm-gps-week">
+            <div className="crm-gps-week__head">
+              <span>{formatDate(week.start)}</span>
+              <strong>
+                {t("tracking.gpsWeekTotal")}: {formatDriven(week.total)}
+              </strong>
+            </div>
+            <ul className="crm-gps-week__days">
+              {week.rows.map((row) => (
+                <li key={row.id} className="crm-gps-week__day">
+                  <span className="crm-gps-week__date">{formatDate(row.day)}</span>
+                  <span className="crm-gps-week__bar">
+                    <span style={{ width: `${Math.max(4, (row.distanceKm / week.peak) * 100)}%` }} />
+                  </span>
+                  <span className="crm-gps-week__km">{formatDriven(row.distanceKm)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
+    </section>
+  );
 }
 
 function ruleDueLabel(rule: MaintenanceRule, currentMileage: number | null | undefined): string {
@@ -133,6 +231,8 @@ export function CarTrackingSections(props: {
           <p className="crm-form-hint">{t("tracking.noMileageHistory")}</p>
         )}
       </section>
+
+      <GpsDistanceSection car={props.car} readOnly={readOnly} />
 
       <section className="glass-card crm-car-detail-section">
         <div className="crm-section-head">

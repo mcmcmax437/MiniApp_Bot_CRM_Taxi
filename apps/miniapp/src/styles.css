@@ -5203,7 +5203,53 @@ div.crm-finance-item {
   flex-shrink: 0;
 }
 
-.crm-tracking-history--mileage {
+.crm-gps-week {
+  margin-top: 12px;
+}
+
+.crm-gps-week__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.crm-gps-week__days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crm-gps-week__day {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.crm-gps-week__bar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.crm-gps-week__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: #69f0ae;
+}
+
+.crm-gps-week__km {
+  font-weight: 700;
+  white-space: nowrap;
+}
   gap: 4px;
   margin-top: 8px;
 }

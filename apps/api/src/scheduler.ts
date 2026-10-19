@@ -3,9 +3,16 @@ import type { FastifyBaseLogger } from "fastify";
 import { env } from "./env.js";
 import { runReminderJob, runWeeklyMileageJob } from "./services/reminders.js";
 import { runMonthlyBackupJob } from "./services/fleet-backup.js";
+import { runWeeklyTrackerDistanceJob } from "./services/tracker-daily.js";
 import { sendTelegramMessage } from "./notify.js";
 
 export function startScheduler(log: FastifyBaseLogger): void {
+  cron.schedule("15 9 * * 1", () => {
+    log.info("Saving last week's GPS distance");
+    runWeeklyTrackerDistanceJob((msg, meta) => log.info({ meta }, msg)).catch((err) =>
+      log.error({ err }, "Weekly tracker distance job failed"),
+    );
+  });
   cron.schedule("0 9 1 * *", () => {
     log.info("Running monthly fleet backup");
     runMonthlyBackupJob((msg, meta) => log.info({ meta }, msg)).catch((err) =>

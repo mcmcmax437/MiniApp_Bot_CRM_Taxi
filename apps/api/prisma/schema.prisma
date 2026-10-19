@@ -127,6 +127,7 @@ model Owner {
   maintenanceRules    MaintenanceRule[]
   maintenanceRecords  MaintenanceRecord[]
   mileageLogs         MileageLog[]
+  trackerDays         TrackerDayDistance[]
   fleetMembers        FleetMember[] @relation("FleetMembers")
 }
 
@@ -198,6 +199,7 @@ model Car {
   maintenanceRules   MaintenanceRule[]
   maintenanceRecords MaintenanceRecord[]
   mileageLogs        MileageLog[]
+  trackerDays        TrackerDayDistance[]
 
   @@index([ownerId])
   @@index([ownerId, status])
@@ -316,6 +318,22 @@ model MileageLog {
 
   @@index([ownerId])
   @@index([carId, recordedAt])
+}
+
+/** Kilometres the GPS tracker says the car drove on one calendar day. Not an odometer reading. */
+model TrackerDayDistance {
+  id         String   @id @default(cuid())
+  ownerId    String
+  owner      Owner    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  carId      String
+  car        Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  day        DateTime
+  distanceKm Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([carId, day])
+  @@index([ownerId, carId])
 }
 
 model Driver {

@@ -504,6 +504,21 @@ export function useDeleteMileageLog() {
     },
   });
 }
+export function useTrackerDays(carId: string | undefined) {
+  return useQuery({
+    queryKey: ["tracker-days", carId],
+    queryFn: () =>
+      apiFetch<Array<{ id: string; day: string; distanceKm: number }>>(`/cars/${carId}/tracker/days`),
+    enabled: Boolean(carId),
+  });
+}
+export function useSyncTrackerDays(carId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<{ saved: number }>(`/cars/${carId}/tracker/days/sync`, { method: "POST" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["tracker-days", carId] }),
+  });
+}
 export function useReminderSettings() {
   return useQuery({
     queryKey: ["reminder-settings"],

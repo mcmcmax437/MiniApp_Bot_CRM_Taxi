@@ -443,3 +443,87 @@ export async function fetchMkingPosition(creds: MkingCredentials): Promise<Track
   if (authenticated) throw new TrackerError("tracker_unavailable");
   throw new TrackerError("tracker_login_failed");
 }
+
+export interface MileageReportDay {
+  /** Calendar day YYYY-MM-DD. */
+  date: string;
+  distanceKm: number;
+  name: string | null;
+}
+
+function normalizeReportDate(raw: string): string | null {
+  const match = raw.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+  if (!match) return null;
+  return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+}
+
+/** Parses the `{reports:[...]}` payload from ReportAjax.asmx/GetReport. */
+export function parseMileageReports(payload: string): MileageReportDay[] {
+  const chunks = payload.split(/\{(?=[^{}]*createDate)/i).slice(1);
+  const byDate = new Map<string, MileageReportDay>();
+  for (const chunk of chunks) {
+    const dateRaw =
+      chunk.match(/createDate\s*:\s*"([^"]+)"/i)?.[1] ??
+      chunk.match(/createDate\s*:\s*'([^']+)'/i)?.[1];
+    const distRaw = chunk.match(/distance\s*:\s*"?([0-9]+(?:\.[0-9]+)?)"?/i)?.[1];
+    const name = chunk.match(/name\s*:\s*"([^"]*)"/i)?.[1] ?? null;
+    if (!dateRaw || distRaw == null) continue;
+    const date = normalizeReportDate(dateRaw);
+    const distanceKm = Number(distRaw);
+    if (!date || !Number.isFinite(distanceKm)) continue;
+    const prev = byDate.get(date);
+    byDate.set(date, {
+      date,
+      distanceKm: Math.round(((prev?.distanceKm ?? 0) + distanceKm) * 100) / 100,
+      name: name ?? prev?.name ?? null,
+    });
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Daily kilometres driven (not the odometer) from the tracker statistics page.
+ * `start` and `end` are `YYYY-MM-DD`; `end` is exclusive, matching the portal.
+ */
+export async function fetchMkingDailyDistances(
+  creds: MkingCredentials,
+  start: string,
+  end: string,
+): Promise<MileageReportDay[]> {
+  if (!creds.login?.trim() || !creds.password?.trim()) {
+    throw new TrackerError("tracker_not_configured");
+  }
+  const base = originOf(creds.baseUrl);
+  const primary: TrackerLoginType = creds.loginType ?? "DEVICE";
+  const order: TrackerLoginType[] = primary === "DEVICE" ? ["DEVICE", "ACCOUNT"] : ["ACCOUNT", "DEVICE"];
+  const startStamp = `${start} 00:00`;
+  const endStamp = `${end} 00:00`;
+
+  let authenticated = false;
+  for (const loginType of order) {
+    for (const attempt of ["postback", "urlget"] as const) {
+      const jar = new CookieJar();
+      const ok =
+        attempt === "postback"
+          ? await loginPostback(base, creds.baseUrl, creds, loginType, jar)
+          : await loginViaUrl(base, creds, loginType, jar);
+      if (!ok) continue;
+      const ctx = await resolveContext(base, jar);
+      if (!ctx) continue;
+      authenticated = true;
+      for (const tz of TIMEZONE_CANDIDATES) {
+        const res = await rawFetch(`${base}/Ajax/ReportAjax.asmx/GetReport`, jar, {
+          method: "POST",
+          headers: { "Content-Type": "application/json; charset=UTF-8" },
+          body: `{UserID:${Number(ctx.userId)},TimeZones:'${tz}',StartDates:'${startStamp}',EndDates:'${endStamp}',DeviceID:${Number(ctx.deviceId) || 0}}`,
+        });
+        if (!res.ok) continue;
+        const envelope = (await res.json().catch(() => null)) as { d?: string } | null;
+        if (!envelope || typeof envelope.d !== "string" || !envelope.d.includes("reports")) continue;
+        return parseMileageReports(envelope.d);
+      }
+    }
+  }
+  if (authenticated) throw new TrackerError("tracker_unavailable");
+  throw new TrackerError("tracker_login_failed");
+}
