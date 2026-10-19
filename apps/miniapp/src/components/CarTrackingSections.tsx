@@ -210,9 +210,15 @@ function GpsDistanceSection(props: { car: Car; readOnly?: boolean }) {
       </div>
       {!props.readOnly && canSync ? (
         <div className="crm-gps-load">
-          <DateInput value={from} onChange={setFrom} />
-          <DateInput value={to} onChange={setTo} />
-          <button type="button" className="crm-btn-outline crm-gps-load__btn" disabled={sync.isPending} onClick={loadRange}>
+          <label className="crm-gps-load__field">
+            <span>{t("tracking.gpsFrom")}</span>
+            <DateInput value={from} onChange={setFrom} max={to || undefined} />
+          </label>
+          <label className="crm-gps-load__field">
+            <span>{t("tracking.gpsTo")}</span>
+            <DateInput value={to} onChange={setTo} min={from || undefined} />
+          </label>
+          <button type="button" className="crm-btn-primary crm-gps-load__btn" disabled={sync.isPending} onClick={loadRange}>
             {sync.isPending ? t("common.loading") : t("tracking.loadGpsWeek")}
           </button>
         </div>
