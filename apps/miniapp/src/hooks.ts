@@ -515,7 +515,11 @@ export function useTrackerDays(carId: string | undefined) {
 export function useSyncTrackerDays(carId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => apiFetch<{ saved: number }>(`/cars/${carId}/tracker/days/sync`, { method: "POST" }),
+    mutationFn: (range?: { start: string; end: string }) =>
+      apiFetch<{ saved: number }>(`/cars/${carId}/tracker/days/sync`, {
+        method: "POST",
+        body: range ?? {},
+      }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["tracker-days", carId] }),
   });
 }

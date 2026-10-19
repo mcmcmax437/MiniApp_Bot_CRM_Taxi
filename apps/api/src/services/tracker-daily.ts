@@ -12,8 +12,8 @@ export async function syncCarTrackerWeek(car: {
   trackerLogin: string;
   trackerPassword: string;
   trackerUrl: string | null;
-}, now = new Date()): Promise<number> {
-  const range = previousWeekRange(now);
+}, range?: { start: string; end: string }, now = new Date()): Promise<number> {
+  const window = range ?? previousWeekRange(now);
   const days = await fetchMkingDailyDistances(
     {
       baseUrl: car.trackerUrl,
@@ -21,11 +21,11 @@ export async function syncCarTrackerWeek(car: {
       password: car.trackerPassword,
       loginType: "DEVICE",
     },
-    range.start,
-    range.end,
+    window.start,
+    window.end,
   );
   for (const row of days) {
-    if (row.date < range.start || row.date >= range.end) continue;
+    if (row.date < window.start || row.date >= window.end) continue;
     const day = dayDate(row.date);
     await prisma.trackerDayDistance.upsert({
       where: { carId_day: { carId: car.id, day } },
@@ -38,7 +38,7 @@ export async function syncCarTrackerWeek(car: {
       update: { distanceKm: row.distanceKm },
     });
   }
-  return days.filter((row) => row.date >= range.start && row.date < range.end).length;
+  return days.filter((row) => row.date >= window.start && row.date < window.end).length;
 }
 
 /** Pull last week's GPS kilometres for every car that has a tracker. */

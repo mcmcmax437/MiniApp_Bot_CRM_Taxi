@@ -246,7 +246,7 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     return prisma.trackerDayDistance.findMany({
       where: { ownerId: ownerId(req), carId: id },
       orderBy: { day: "desc" },
-      take: 84,
+      take: 400,
     });
   });
 
@@ -257,6 +257,17 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     if (!car.trackerLogin || !car.trackerPassword) {
       return reply.code(400).send({ error: "tracker_not_configured" });
     }
+    const body = (req.body ?? {}) as { start?: string; end?: string };
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    let range: { start: string; end: string } | undefined;
+    if (body.start || body.end) {
+      if (!body.start || !body.end || !iso.test(body.start) || !iso.test(body.end) || body.start > body.end) {
+        return reply.code(400).send({ error: "invalid_date" });
+      }
+      const end = new Date(`${body.end}T12:00:00.000Z`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      range = { start: body.start, end: end.toISOString().slice(0, 10) };
+    }
     try {
       const saved = await syncCarTrackerWeek({
         id: car.id,
@@ -264,7 +275,7 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
         trackerLogin: car.trackerLogin,
         trackerPassword: car.trackerPassword,
         trackerUrl: car.trackerUrl,
-      });
+      }, range);
       return { saved };
     } catch (err) {
       if (err instanceof TrackerError) {

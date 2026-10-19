@@ -53,11 +53,81 @@ function formatMileage(km: number | null | undefined): string {
   return `${km.toLocaleString()} km`;
 }
 
+function OdometerChart(props: {
+  logs: Array<{ id: string; odometer: number; recordedAt: string; source: string }>;
+  readOnly?: boolean;
+  onDelete?: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [selectedId, setSelectedId] = useState<string | null>(props.logs[0]?.id ?? null);
+  const points = [...props.logs].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+  const selected = points.find((log) => log.id === selectedId) ?? points[points.length - 1];
+  const width = 320;
+  const height = 120;
+  const pad = 16;
+  const min = Math.min(...points.map((log) => log.odometer));
+  const max = Math.max(...points.map((log) => log.odometer));
+  const span = Math.max(max - min, 1);
+  const coords = points.map((log, index) => {
+    const x = points.length === 1 ? width / 2 : pad + (index / (points.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((log.odometer - min) / span) * (height - pad * 2);
+    return { log, x, y };
+  });
+  const line = coords.map((point) => `${point.x},${point.y}`).join(" ");
+
+  return (
+    <div className="crm-odo-chart">
+      <svg viewBox={`0 0 ${width} ${height}`} className="crm-odo-chart__svg" role="img">
+        {coords.length > 1 ? <polyline points={line} className="crm-odo-chart__line" /> : null}
+        {coords.map((point) => (
+          <circle
+            key={point.log.id}
+            cx={point.x}
+            cy={point.y}
+            r={selected?.id === point.log.id ? 6 : 4.5}
+            className={`crm-odo-chart__dot${selected?.id === point.log.id ? " crm-odo-chart__dot--on" : ""}`}
+            onClick={() => setSelectedId(point.log.id)}
+          />
+        ))}
+      </svg>
+      {selected ? (
+        <div className="crm-odo-chart__info">
+          <strong>{formatMileage(selected.odometer)}</strong>
+          <span>
+            {formatDate(selected.recordedAt)} · {t(`tracking.source.${selected.source}`)}
+          </span>
+          {!props.readOnly && props.onDelete ? (
+            <button type="button" className="crm-link-btn" onClick={() => props.onDelete?.(selected.id)}>
+              {t("common.delete")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function previousWeekInputs(now = new Date()): { from: string; to: string } {
+  const [y, m, d] = now.toISOString().slice(0, 10).split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  const sinceMonday = (date.getUTCDay() + 6) % 7;
+  const thisMonday = new Date(date);
+  thisMonday.setUTCDate(date.getUTCDate() - sinceMonday);
+  const prevMonday = new Date(thisMonday);
+  prevMonday.setUTCDate(thisMonday.getUTCDate() - 7);
+  const sunday = new Date(thisMonday);
+  sunday.setUTCDate(thisMonday.getUTCDate() - 1);
+  return { from: prevMonday.toISOString().slice(0, 10), to: sunday.toISOString().slice(0, 10) };
+}
 function GpsDistanceSection(props: { car: Car; readOnly?: boolean }) {
   const { t } = useTranslation();
   const days = useTrackerDays(props.car.id);
   const sync = useSyncTrackerDays(props.car.id);
   const canSync = Boolean(props.car.trackerLogin && props.car.trackerPassword);
+  const initial = previousWeekInputs();
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
+  const [openWeek, setOpenWeek] = useState<string | null>(null);
   const weeks = (() => {
     const groups = new Map<string, Array<{ id: string; day: string; distanceKm: number }>>();
     for (const row of days.data ?? []) {
@@ -75,62 +145,79 @@ function GpsDistanceSection(props: { car: Car; readOnly?: boolean }) {
         return { start, rows: sorted, total, peak };
       });
   })();
+  const shownWeek = openWeek ?? weeks[0]?.start ?? null;
+
+  function loadRange() {
+    sync.mutate(
+      from && to ? { start: from <= to ? from : to, end: from <= to ? to : from } : undefined,
+      {
+        onError: (err) => {
+          const code = err instanceof ApiError ? err.code : undefined;
+          const key =
+            code === "tracker_not_configured"
+              ? "cars.trackerMap.errorNotConfigured"
+              : code === "tracker_login_failed"
+                ? "cars.trackerMap.errorLogin"
+                : "cars.trackerMap.errorUnavailable";
+          showAlert(t(key));
+        },
+      },
+    );
+  }
 
   return (
     <section className="glass-card crm-car-detail-section">
       <div className="crm-section-head">
         <h3 className="crm-car-detail-section__title">{t("tracking.gpsDistanceTitle")}</h3>
-        {!props.readOnly && canSync ? (
-          <button
-            type="button"
-            className="crm-link-btn"
-            disabled={sync.isPending}
-            onClick={() =>
-              sync.mutate(undefined, {
-                onError: (err) => {
-                  const code = err instanceof ApiError ? err.code : undefined;
-                  const key =
-                    code === "tracker_not_configured"
-                      ? "cars.trackerMap.errorNotConfigured"
-                      : code === "tracker_login_failed"
-                        ? "cars.trackerMap.errorLogin"
-                        : "cars.trackerMap.errorUnavailable";
-                  showAlert(t(key));
-                },
-              })
-            }
-          >
+      </div>
+      {!props.readOnly && canSync ? (
+        <div className="crm-gps-load">
+          <DateInput value={from} onChange={setFrom} />
+          <DateInput value={to} onChange={setTo} />
+          <button type="button" className="crm-btn-outline crm-gps-load__btn" disabled={sync.isPending} onClick={loadRange}>
             {sync.isPending ? t("common.loading") : t("tracking.loadGpsWeek")}
           </button>
-        ) : null}
-      </div>
-      <p className="crm-form-hint">{t("tracking.gpsDistanceHint")}</p>
+        </div>
+      ) : null}
       {days.isLoading ? (
         <p className="crm-form-hint">{t("common.loading")}</p>
       ) : weeks.length === 0 ? (
         <p className="crm-form-hint">{t("tracking.gpsEmpty")}</p>
       ) : (
-        weeks.map((week) => (
-          <div key={week.start} className="crm-gps-week">
-            <div className="crm-gps-week__head">
-              <span>{formatDate(week.start)}</span>
-              <strong>
-                {t("tracking.gpsWeekTotal")}: {formatDriven(week.total)}
-              </strong>
+        weeks.map((week) => {
+          const open = shownWeek === week.start;
+          const end = week.rows[week.rows.length - 1]?.day ?? week.start;
+          return (
+            <div key={week.start} className="crm-gps-week">
+              <button
+                type="button"
+                className="crm-gps-week__head"
+                aria-expanded={open}
+                onClick={() => setOpenWeek(open ? "" : week.start)}
+              >
+                <span>
+                  {formatDate(week.start)} – {formatDate(end)}
+                </span>
+                <strong>
+                  {formatDriven(week.total)} {open ? "▴" : "▾"}
+                </strong>
+              </button>
+              {open ? (
+                <ul className="crm-gps-week__days">
+                  {week.rows.map((row) => (
+                    <li key={row.id} className="crm-gps-week__day">
+                      <span className="crm-gps-week__date">{formatDate(row.day)}</span>
+                      <span className="crm-gps-week__bar">
+                        <span style={{ width: `${Math.max(4, (row.distanceKm / week.peak) * 100)}%` }} />
+                      </span>
+                      <span className="crm-gps-week__km">{formatDriven(row.distanceKm)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
-            <ul className="crm-gps-week__days">
-              {week.rows.map((row) => (
-                <li key={row.id} className="crm-gps-week__day">
-                  <span className="crm-gps-week__date">{formatDate(row.day)}</span>
-                  <span className="crm-gps-week__bar">
-                    <span style={{ width: `${Math.max(4, (row.distanceKm / week.peak) * 100)}%` }} />
-                  </span>
-                  <span className="crm-gps-week__km">{formatDriven(row.distanceKm)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
+          );
+        })
       )}
     </section>
   );
@@ -193,40 +280,17 @@ export function CarTrackingSections(props: {
         {mileageLogs.isLoading ? (
           <p className="crm-form-hint">{t("common.loading")}</p>
         ) : mileageLogs.data && mileageLogs.data.length > 0 ? (
-          <ul className="crm-tracking-history crm-tracking-history--mileage">
-            {mileageLogs.data.slice(0, 8).map((log) => (
-              <li key={log.id} className="crm-tracking-history__item crm-tracking-history__item--compact">
-                <span className="crm-tracking-history__line">
-                  <strong>{formatMileage(log.odometer)}</strong>
-                  <span className="crm-tracking-history__meta">
-                    {" · "}
-                    {formatDate(log.recordedAt)} · {t(`tracking.source.${log.source}`)}
-                  </span>
-                </span>
-                {!readOnly ? (
-                  <button
-                    type="button"
-                    className="crm-icon-btn crm-icon-btn--sm crm-tracking-history__delete"
-                    disabled={deleteMileage.isPending && deleteMileage.variables === log.id}
-                    aria-label={t("common.delete")}
-                    onClick={() => {
-                      void confirmAction(
-                        t("tracking.deleteMileageConfirm"),
-                        t("common.delete"),
-                        t("common.cancel"),
-                      ).then((ok) => {
-                        if (ok) {
-                          deleteMileage.mutate(log.id, { onSuccess: () => props.onUpdated?.() });
-                        }
-                      });
-                    }}
-                  >
-                    ×
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <OdometerChart
+            logs={mileageLogs.data}
+            readOnly={readOnly}
+            onDelete={(id) => {
+              void confirmAction(t("tracking.deleteMileageConfirm"), t("common.delete"), t("common.cancel")).then(
+                (ok) => {
+                  if (ok) deleteMileage.mutate(id, { onSuccess: () => props.onUpdated?.() });
+                },
+              );
+            }}
+          />
         ) : (
           <p className="crm-form-hint">{t("tracking.noMileageHistory")}</p>
         )}

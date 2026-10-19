@@ -5207,12 +5207,63 @@ div.crm-finance-item {
   margin-top: 12px;
 }
 
+.crm-odo-chart__svg {
+  width: 100%;
+  height: 120px;
+  display: block;
+}
+
+.crm-odo-chart__line {
+  fill: none;
+  stroke: #ffc107;
+  stroke-width: 2;
+}
+
+.crm-odo-chart__dot {
+  fill: #101c2e;
+  stroke: #ffc107;
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.crm-odo-chart__dot--on {
+  fill: #ffc107;
+}
+
+.crm-odo-chart__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.crm-gps-load {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.crm-gps-load__btn {
+  width: auto;
+  padding: 8px 12px;
+}
+
 .crm-gps-week__head {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   font-size: 13px;
+  cursor: pointer;
+  text-align: left;
 }
 
 .crm-gps-week__days {
