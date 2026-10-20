@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PaymentType,
+  RentalCompany,
   agreementCreateSchema,
   agreementDriverDisplayName,
   agreementIsTemporaryDriver,
@@ -52,6 +53,7 @@ describe("agreementCreateSchema", () => {
     rentAmount: 700,
     startDate: "2026-03-20",
     endDate: "2026-04-27",
+    company: RentalCompany.FLG,
   };
 
   it("accepts a registered driver without temporary name", () => {
@@ -75,6 +77,16 @@ describe("agreementCreateSchema", () => {
         true,
       );
     }
+  });
+
+  it("rejects a contract without a company", () => {
+    const result = agreementCreateSchema.safeParse({
+      carId,
+      driverId,
+      rentAmount: 700,
+      startDate: "2026-03-20",
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejects when both driver and temporary name are provided", () => {

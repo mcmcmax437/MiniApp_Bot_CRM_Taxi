@@ -1,4 +1,4 @@
-import { RentPeriod, agreementDriverDisplayName } from "@taxi/shared";
+import { RentPeriod, RentalCompany, agreementDriverDisplayName } from "@taxi/shared";
 import type { Agreement } from "../../types";
 
 export type TimelineScale = "week" | "month" | "year";
@@ -10,6 +10,7 @@ export type TimelineBar = {
   carId: string;
   plate: string;
   driverName: string;
+  company: RentalCompany | null;
   overlapFrom: string;
   overlapTo: string;
   days: number;
@@ -24,6 +25,7 @@ export type TimelineBar = {
 export type TimelineRow = {
   carId: string;
   plate: string;
+  companies: RentalCompany[];
   bars: TimelineBar[];
   days: number;
   expectedRent: number;
@@ -180,11 +182,16 @@ export function clipAgreementToRange(
   return { from, to, days: daysInclusive(from, to) };
 }
 
+function rentalCompanyOf(value: string | null | undefined): RentalCompany | null {
+  return value === RentalCompany.FLG || value === RentalCompany.STA ? value : null;
+}
+
 type RawClip = {
   agreementId: string;
   carId: string;
   plate: string;
   driverName: string;
+  company: RentalCompany | null;
   startDate: string;
   overlapFrom: string;
   overlapTo: string;
@@ -327,6 +334,7 @@ export function buildFleetTimeline(
       carId: a.carId,
       plate: plateOf(a),
       driverName: agreementDriverDisplayName(a),
+      company: rentalCompanyOf(a.company),
       startDate: a.startDate.slice(0, 10),
       overlapFrom: clip.from,
       overlapTo: clip.to,
@@ -353,6 +361,7 @@ export function buildFleetTimeline(
           carId: clip.carId,
           plate: clip.plate,
           driverName: clip.driverName,
+          company: clip.company,
           overlapFrom: clip.overlapFrom,
           overlapTo: clip.overlapTo,
           days,
@@ -371,9 +380,14 @@ export function buildFleetTimeline(
           daySet.add(cur);
         }
       }
+      const companies: RentalCompany[] = [];
+      for (const bar of bars) {
+        if (bar.company && !companies.includes(bar.company)) companies.push(bar.company);
+      }
       return {
         carId,
         plate: carLabel.get(carId) ?? bars[0]?.plate ?? carId,
+        companies,
         bars,
         days: daySet.size,
         expectedRent: round2(expected),

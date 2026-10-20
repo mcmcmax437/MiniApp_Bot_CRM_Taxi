@@ -7,6 +7,7 @@ import type { Agreement } from "../../types";
 import { Modal, formatDate, formatMoney } from "../ui";
 import { Icon, IconActionButton } from "../crm";
 import { AgreementEditModal } from "./AgreementEditModal";
+import { CompanyTag } from "../CompanyTag";
 
 export function CarDriverHistoryModal(props: {
   open: boolean;
@@ -69,6 +70,7 @@ export function CarDriverHistoryModal(props: {
                             color={active ? "#69f0ae" : "rgba(255,255,255,0.55)"}
                           />
                           {agreementDriverDisplayName(agreement)}
+                          {agreement.company ? <CompanyTag company={agreement.company} /> : null}
                           {agreementIsTemporaryDriver(agreement) ? (
                             <span className="crm-fleet-card__temp-badge">
                               {t("fleet.temporaryDriver")}

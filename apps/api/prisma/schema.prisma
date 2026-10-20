@@ -41,6 +41,12 @@ enum AgreementStatus {
   ENDED
 }
 
+/// Company the car is given to for this rental contract.
+enum RentalCompany {
+  FLG
+  STA
+}
+
 enum PaymentMethod {
   CASH
   BANK
@@ -382,6 +388,8 @@ model RentalAgreement {
   period        RentPeriod      @default(DAILY)
   /** Reminder only: this driver prefers to pay rent in cash. */
   paysCash      Boolean         @default(false)
+  /** Company this car is given to for this contract. Empty on older rentals. */
+  company       RentalCompany?
   startDate  DateTime
   endDate    DateTime?
   status     AgreementStatus @default(ACTIVE)

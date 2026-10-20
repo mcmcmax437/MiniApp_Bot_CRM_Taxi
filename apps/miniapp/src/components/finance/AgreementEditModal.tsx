@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   AgreementStatus,
   RentPeriod,
+  type RentalCompany,
   agreementIsTemporaryDriver,
   inferAgreementStatus,
   validateAgreementDates,
@@ -25,6 +26,7 @@ import {
   formatDate,
   todayInput,
 } from "../ui";
+import { CompanyPick } from "../CompanyTag";
 
 type EditFormField = "driver" | "rentAmount" | "startDate";
 
@@ -53,6 +55,7 @@ export function AgreementEditModal(props: {
   const [rentAmount, setRentAmount] = useState<number | "">("");
   const [depositAmount, setDepositAmount] = useState<number | "">("");
   const [period, setPeriod] = useState<RentPeriod>(RentPeriod.DAILY);
+  const [company, setCompany] = useState<RentalCompany | "">("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Set<EditFormField>>(new Set());
@@ -67,6 +70,7 @@ export function AgreementEditModal(props: {
     setRentAmount(a.rentAmount);
     setDepositAmount(a.depositAmount);
     setPeriod(a.period);
+    setCompany(a.company ?? "");
     setStartDate(isoDateOnly(a.startDate));
     setEndDate(a.endDate ? isoDateOnly(a.endDate) : "");
     setFieldErrors(new Set());
@@ -122,6 +126,7 @@ export function AgreementEditModal(props: {
       rentAmount,
       depositAmount: depositAmount === "" ? 0 : depositAmount,
       period,
+      company: company || null,
       startDate,
       endDate: end || null,
     };
@@ -277,6 +282,10 @@ export function AgreementEditModal(props: {
           onChange={setPeriod}
           options={Object.values(RentPeriod).map((p) => ({ value: p, label: t(`drivers.${p}`) }))}
         />
+      </Field>
+      <Field label={t("fleet.company")}>
+        <CompanyPick value={company} label={t("fleet.company")} onChange={setCompany} />
+        <p className="crm-form-hint">{t("fleet.companyHint")}</p>
       </Field>
     </Modal>
   );

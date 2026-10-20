@@ -3,6 +3,7 @@ import type {
   DriverStatus,
   RentPeriod,
   AgreementStatus,
+  RentalCompany,
   PaymentMethod,
   PaymentBank,
   PaymentType,
@@ -187,6 +188,7 @@ export interface Agreement {
   depositAmount: number;
   period: RentPeriod;
   paysCash?: boolean;
+  company?: RentalCompany | null;
   startDate: string;
   endDate: string | null;
   status: AgreementStatus;

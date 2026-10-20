@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AgreementStatus, RentPeriod } from "@taxi/shared";
+import { AgreementStatus, RentPeriod, RentalCompany } from "@taxi/shared";
 import type { Agreement } from "../../types";
 import {
   barColor,
@@ -173,11 +173,52 @@ describe("buildFleetTimeline", () => {
     expect(model.carDays).toBe(7 + 3);
     expect(model.expectedRent).toBe(700 + 300);
     expect(model.rows[0]?.plate).toBe("DX12345");
+    expect(model.rows[0]?.companies).toEqual([]);
     expect(model.rows[0]?.bars[0]?.driverName).toBe("New driver");
     expect(model.rows[1]?.bars[0]?.leftPct).toBe(0);
     expect(model.rows[1]?.bars[0]?.widthPct).toBe(100);
     expect(model.rows[1]?.bars[0]?.colSpan).toBe(7);
     expect(model.rows[0]?.bars[0]?.colSpan).toBe(3);
+  });
+
+  it("keeps one company tag per car, in rental order", () => {
+    const model = buildFleetTimeline(
+      [
+        agreement({
+          id: "a1",
+          carId: "c1",
+          company: RentalCompany.FLG,
+          startDate: "2026-08-10",
+          endDate: "2026-08-13",
+        }),
+        agreement({
+          id: "a2",
+          carId: "c1",
+          company: RentalCompany.STA,
+          startDate: "2026-08-13",
+          endDate: null,
+        }),
+        agreement({
+          id: "a3",
+          carId: "c2",
+          company: RentalCompany.STA,
+          startDate: "2026-08-10",
+          endDate: null,
+        }),
+      ],
+      [
+        { id: "c1", plate: "DX1" },
+        { id: "c2", plate: "DX2" },
+      ],
+      { from: "2026-08-10", to: "2026-08-16" },
+      "week",
+      (ymd) => ymd.slice(8),
+      "2026-12-31",
+    );
+
+    const byPlate = new Map(model.rows.map((row) => [row.plate, row.companies]));
+    expect(byPlate.get("DX1")).toEqual([RentalCompany.FLG, RentalCompany.STA]);
+    expect(byPlate.get("DX2")).toEqual([RentalCompany.STA]);
   });
 
   it("picks a stable color per driver", () => {

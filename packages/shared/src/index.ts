@@ -39,6 +39,15 @@ export const AgreementStatus = {
 } as const;
 export type AgreementStatus = (typeof AgreementStatus)[keyof typeof AgreementStatus];
 
+/** Company a car is given to on a rental contract. */
+export const RentalCompany = {
+  FLG: "FLG",
+  STA: "STA",
+} as const;
+export type RentalCompany = (typeof RentalCompany)[keyof typeof RentalCompany];
+
+export const RENTAL_COMPANIES = [RentalCompany.FLG, RentalCompany.STA] as const;
+
 export const PaymentMethod = {
   CASH: "CASH",
   BANK: "BANK",
@@ -433,11 +442,18 @@ const agreementBaseSchema = z.object({
   notes: z.string().trim().max(2000).optional().nullable(),
 });
 
-export const agreementCreateSchema = agreementBaseSchema.superRefine(refineAgreementDriverFields);
-export const agreementUpdateSchema = agreementBaseSchema.partial().superRefine((data, ctx) => {
-  if (data.driverId === undefined && data.temporaryDriverName === undefined) return;
-  refineAgreementDriverFields(data, ctx);
-});
+const rentalCompanySchema = z.nativeEnum(RentalCompany);
+
+export const agreementCreateSchema = agreementBaseSchema
+  .extend({ company: rentalCompanySchema })
+  .superRefine(refineAgreementDriverFields);
+export const agreementUpdateSchema = agreementBaseSchema
+  .extend({ company: rentalCompanySchema.nullable().optional() })
+  .partial()
+  .superRefine((data, ctx) => {
+    if (data.driverId === undefined && data.temporaryDriverName === undefined) return;
+    refineAgreementDriverFields(data, ctx);
+  });
 export type AgreementCreateInput = z.infer<typeof agreementCreateSchema>;
 export type AgreementUpdateInput = z.infer<typeof agreementUpdateSchema>;
 

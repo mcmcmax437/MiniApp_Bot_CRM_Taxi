@@ -8342,7 +8342,7 @@ select.crm-input option {
 
 .crm-fleet-gantt {
   display: grid;
-  grid-template-columns: minmax(5.2rem, 26%) auto minmax(0, 1fr);
+  grid-template-columns: minmax(6.6rem, 30%) auto minmax(0, 1fr);
   column-gap: 6px;
   align-items: start;
 }
@@ -8479,6 +8479,14 @@ select.crm-input option {
   padding-right: 2px;
 }
 
+.crm-fleet-gantt__plate-line,
+.crm-fleet-card__plate-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .crm-fleet-gantt__plate-id {
   font-size: 12px;
   font-weight: 700;
@@ -8486,6 +8494,65 @@ select.crm-input option {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+}
+
+.crm-company-tag {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.45;
+}
+
+.crm-company-tag--FLG {
+  background: rgba(255, 193, 7, 0.18);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  color: #ffe082;
+}
+
+.crm-company-tag--STA {
+  background: rgba(68, 138, 255, 0.18);
+  border: 1px solid rgba(100, 181, 246, 0.55);
+  color: #90caf9;
+}
+
+.crm-company-pick {
+  display: flex;
+  gap: 8px;
+}
+
+.crm-company-pick__btn {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.crm-company-pick__btn--FLG.crm-company-pick__btn--on {
+  border-color: rgba(255, 193, 7, 0.55);
+  background: rgba(255, 193, 7, 0.16);
+  color: #ffe082;
+}
+
+.crm-company-pick__btn--STA.crm-company-pick__btn--on {
+  border-color: rgba(100, 181, 246, 0.55);
+  background: rgba(68, 138, 255, 0.18);
+  color: #90caf9;
+}
+
+.crm-field--error .crm-company-pick__btn {
+  border-color: rgba(255, 69, 58, 0.55);
 }
 
 .crm-fleet-gantt__paid {

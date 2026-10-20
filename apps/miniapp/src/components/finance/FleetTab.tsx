@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   AgreementStatus,
   RentPeriod,
+  type RentalCompany,
   agreementDriverDisplayName,
   inferAgreementStatus,
   validateAgreementDates,
@@ -31,6 +32,7 @@ import {
   todayInput,
 } from "../ui";
 import { Icon } from "../crm";
+import { CompanyPick } from "../CompanyTag";
 import {
   FinanceAddButton,
   FinanceStatCard,
@@ -50,7 +52,7 @@ import {
 } from "../../agreementOverlap";
 import { ApiError } from "../../api";
 
-type AssignFormField = "driver" | "car" | "rentAmount" | "startDate";
+type AssignFormField = "driver" | "car" | "company" | "rentAmount" | "startDate";
 
 function scrollToFirstFieldError() {
   requestAnimationFrame(() => {
@@ -81,6 +83,7 @@ export function FleetTab() {
     driverId: "",
     temporaryDriverName: "",
     carId: "",
+    company: "" as RentalCompany | "",
     startDate: todayInput(),
     endDate: "",
     rentAmount: "" as number | "",
@@ -140,6 +143,7 @@ export function FleetTab() {
           car.model,
           agreement ? agreementDriverDisplayName(agreement) : "",
           agreement ? agreement.temporaryDriverName : "",
+          agreement?.company ?? "",
           agreement ? formatDate(agreement.startDate) : "",
         ]
           .filter(Boolean)
@@ -163,6 +167,7 @@ export function FleetTab() {
       driverId: drivers.data?.[0]?.id ?? "",
       temporaryDriverName: "",
       carId: carId || (availableCars[0]?.id ?? cars.data?.[0]?.id ?? ""),
+      company: "",
       startDate: todayInput(),
       endDate: "",
       rentAmount: "",
@@ -193,6 +198,7 @@ export function FleetTab() {
         next.delete("driver");
       }
       if ("carId" in patch) next.delete("car");
+      if ("company" in patch) next.delete("company");
       if ("rentAmount" in patch) next.delete("rentAmount");
       if ("startDate" in patch) next.delete("startDate");
       return next;
@@ -205,6 +211,7 @@ export function FleetTab() {
     const hasTemp = form.useTemporaryDriver && Boolean(form.temporaryDriverName.trim());
     if (!hasDriver && !hasTemp) errors.add("driver");
     if (!form.carId) errors.add("car");
+    if (!form.company) errors.add("company");
     if (form.rentAmount === "") errors.add("rentAmount");
     if (!form.startDate.trim()) errors.add("startDate");
     return errors;
@@ -251,6 +258,7 @@ export function FleetTab() {
       showAlert(rentalOverlapMessage(conflict, t, formatDate));
       return;
     }
+    if (!form.company) return;
 
     create.mutate(
       {
@@ -258,6 +266,7 @@ export function FleetTab() {
           ? { temporaryDriverName: form.temporaryDriverName.trim(), driverId: null }
           : { driverId: form.driverId, temporaryDriverName: null }),
         carId: form.carId,
+        company: form.company,
         rentAmount: form.rentAmount,
         depositAmount: form.depositAmount === "" ? 0 : form.depositAmount,
         period: form.period,
@@ -473,6 +482,18 @@ export function FleetTab() {
             />
           </Field>
         )}
+        <Field
+          label={t("fleet.company")}
+          invalid={fieldInvalid("company")}
+          errorMessage={fieldInvalid("company") ? t("fleet.companyRequired") : undefined}
+        >
+          <CompanyPick
+            value={form.company}
+            label={t("fleet.company")}
+            onChange={(company) => patchForm({ company })}
+          />
+          <p className="crm-form-hint">{t("fleet.companyHint")}</p>
+        </Field>
         <Field
           label={t("drivers.startDate")}
           invalid={fieldInvalid("startDate")}

@@ -5,6 +5,7 @@ import {
   AgreementStatus,
   DriverStatus,
   RentPeriod,
+  type RentalCompany,
   inferAgreementStatus,
   validateAgreementDates,
   driverFormFieldErrors,
@@ -23,6 +24,7 @@ import {
   useShifts,
 } from "../hooks";
 import type { Agreement, Driver } from "../types";
+import { CompanyPick, CompanyTag } from "../components/CompanyTag";
 import {
   Modal,
   type ModalHandle,
@@ -772,6 +774,7 @@ function AgreementSection(props: {
   const create = useCreateAgreement();
   const end = useEndAgreement();
   const [carId, setCarId] = useState("");
+  const [company, setCompany] = useState<RentalCompany | "">("");
   const [rentAmount, setRentAmount] = useState<number | "">("");
   const [depositAmount, setDepositAmount] = useState<number | "">("");
   const [period, setPeriod] = useState<RentPeriod>(RentPeriod.DAILY);
@@ -809,7 +812,10 @@ function AgreementSection(props: {
           {active.map((a) => (
             <div key={a.id} className="crm-agreement-section__active">
               <div className="crm-agreement-section__summary">
-                <div>{a.car?.plate ?? "—"}</div>
+                <div className="crm-fleet-card__plate-row">
+                  <span>{a.car?.plate ?? "—"}</span>
+                  {a.company ? <CompanyTag company={a.company} /> : null}
+                </div>
                 <div className="crm-agreement-section__meta">
                   {formatMoney(a.rentAmount)} / {t(`drivers.${a.period}`)} • {t("drivers.deposit")}:{" "}
                   {formatMoney(a.depositAmount)} • {formatDate(a.startDate)}
@@ -839,6 +845,10 @@ function AgreementSection(props: {
           options={[{ value: "", label: t("common.none") }, ...selectableCarOptions]}
           placeholder={t("common.searchToFilter")}
         />
+      </Field>
+      <Field label={t("fleet.company")}>
+        <CompanyPick value={company} label={t("fleet.company")} onChange={setCompany} />
+        <p className="crm-form-hint">{t("fleet.companyHint")}</p>
       </Field>
       <Field label={t("drivers.rentAmount")}>
         <MoneyNumberInput
@@ -871,8 +881,9 @@ function AgreementSection(props: {
       <button
         type="button"
         className="crm-btn-primary"
-        disabled={!carId || rentAmount === "" || create.isPending}
+        disabled={!carId || !company || rentAmount === "" || create.isPending}
         onClick={() => {
+          if (!company) return;
           const end = endDate.trim();
           const asOf = todayInput();
           const requireEnd = isHistorical;
@@ -906,6 +917,7 @@ function AgreementSection(props: {
             {
               driverId: props.driverId,
               carId,
+              company,
               rentAmount: rentAmount === "" ? 0 : rentAmount,
               depositAmount: depositAmount === "" ? 0 : depositAmount,
               period,
@@ -915,6 +927,7 @@ function AgreementSection(props: {
             {
               onSuccess: () => {
                 setCarId("");
+                setCompany("");
                 setRentAmount("");
                 setDepositAmount("");
                 setStartDate(todayInput());

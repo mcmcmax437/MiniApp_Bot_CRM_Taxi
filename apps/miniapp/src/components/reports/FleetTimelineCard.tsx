@@ -4,6 +4,7 @@ import { useAgreements, useCars } from "../../hooks";
 import { formatDate } from "../../dates";
 import { formatMoney } from "../ui";
 import { Icon } from "../crm";
+import { CompanyTag } from "../CompanyTag";
 import { CollapsibleReportBlock, ReportBlockHead } from "./ReportSections";
 import {
   barColor,
@@ -227,7 +228,12 @@ export function FleetTimelineCard() {
                 <div className="crm-fleet-gantt__corner" />
                 {model.rows.map((row) => (
                   <div key={row.carId} className="crm-fleet-gantt__plate" title={row.plate}>
-                    <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
+                    <span className="crm-fleet-gantt__plate-line">
+                      <span className="crm-fleet-gantt__plate-id">{row.plate}</span>
+                      {row.companies.map((company) => (
+                        <CompanyTag key={company} company={company} />
+                      ))}
+                    </span>
                     <span className="crm-fleet-gantt__plate-meta">
                       {t("reports.fleetTimelineDayCount", { count: row.days })} · {formatMoney(row.expectedRent)}
                     </span>

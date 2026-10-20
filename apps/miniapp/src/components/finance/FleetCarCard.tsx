@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
+import { CompanyTag } from "../CompanyTag";
 import type { Agreement, Car } from "../../types";
 import { DocumentThumbnail } from "../DocumentThumbnail";
 import { Icon } from "../crm";
@@ -48,7 +49,10 @@ export function FleetCarCard(props: {
         <div className="crm-fleet-card__main">
           <div className="crm-fleet-card__head">
             <div className="crm-fleet-card__identity">
-              <span className="crm-fleet-card__plate">{car.plate}</span>
+              <span className="crm-fleet-card__plate-row">
+                <span className="crm-fleet-card__plate">{car.plate}</span>
+                {agreement?.company ? <CompanyTag company={agreement.company} /> : null}
+              </span>
               {modelLine ? <span className="crm-fleet-card__model">{modelLine}</span> : null}
             </div>
             <span
