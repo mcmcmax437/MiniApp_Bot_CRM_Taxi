@@ -40,6 +40,11 @@ function downloadFileName(fileName: string): string {
   return fileName.replace(/\.heif?c$/i, ".jpg");
 }
 
+function looksLikeImageFile(fileName: string, blob?: Blob): boolean {
+  if (blob?.type.startsWith("image/")) return true;
+  return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(fileName);
+}
+
 /** Browsers cannot render HEIC in <img>; server converts HEIC to JPEG, client fallback if needed. */
 export async function blobForImagePreview(blob: Blob, fileName?: string): Promise<Blob> {
   if (!isHeicBlob(blob, fileName)) return blob;
@@ -64,30 +69,40 @@ export async function fetchDocumentBlob(documentId: string, fileName?: string): 
 
 function isIosLike(): boolean {
   if (typeof navigator === "undefined") return false;
-  return /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return (
+    /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 }
 
 async function shareBlobAsFile(blob: Blob, fileName: string): Promise<boolean> {
   const name = downloadFileName(fileName);
-  const type = blob.type || "application/octet-stream";
-  const file = new File([blob], name, { type });
-  const payload = { files: [file] };
+  const type = blob.type?.startsWith("image/") ? blob.type : "image/jpeg";
   const nav = navigator as Navigator & {
     canShare?: (data?: { files?: File[] }) => boolean;
     share?: (data: { files?: File[]; title?: string }) => Promise<void>;
   };
-  if (typeof nav.canShare === "function" && !nav.canShare(payload)) return false;
   if (typeof nav.share !== "function") return false;
+
   try {
+    const file = new File([blob], name, { type });
+    const payload = { files: [file] };
+    // Telegram iOS often reports canShare(files)=false even when share works.
+    // Only skip when canShare exists AND we are not on iOS.
+    if (!isIosLike() && typeof nav.canShare === "function" && !nav.canShare(payload)) {
+      return false;
+    }
     await nav.share(payload);
     return true;
   } catch {
-    // User cancelled or share failed.
     return false;
   }
 }
 
+/**
+ * Classic anchor download. NEVER use for images inside Telegram/iOS WebViews —
+ * iOS ignores `download` and navigates to the blob URL (fullscreen image, no Back).
+ */
 function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -115,38 +130,61 @@ async function downloadViaTelegramNative(documentId: string, fileName: string): 
 }
 
 /**
- * Save a document to the device.
- * Telegram iOS WebView ignores blob + <a download>, so we prefer:
- * 1) Telegram.WebApp.downloadFile with a short-lived HTTPS URL
- * 2) Web Share sheet (Save Image) on iOS
- * 3) Classic blob download elsewhere
+ * Save a document to the device without navigating away from the Mini App.
+ *
+ * iOS/Telegram WebView will open images fullscreen (no Back) if we use
+ * blob:/<a download> or open an image URL — so those paths are avoided there.
  */
 export async function downloadDocumentFile(documentId: string, fileName: string): Promise<void> {
+  const ios = isIosLike();
+  const image = looksLikeImageFile(fileName);
+
   try {
+    // On iPhone/iPad: NEVER use blob/<a download> — iOS ignores `download` and
+    // navigates the WebView to the image (fullscreen, no Mini App Back).
+    // Prefer Share → Save Image; then Telegram native downloadFile.
+    if (ios) {
+      const blob = await fetchDocumentBlob(documentId, fileName);
+      if (image && (await shareBlobAsFile(blob, fileName))) return;
+      if (await downloadViaTelegramNative(documentId, fileName)) return;
+      if (!image && (await shareBlobAsFile(blob, fileName))) return;
+      showAlert(i18n.t("documents.downloadIosHint"));
+      return;
+    }
+
     if (await downloadViaTelegramNative(documentId, fileName)) return;
 
     const blob = await fetchDocumentBlob(documentId, fileName);
-    if (isIosLike() && (await shareBlobAsFile(blob, fileName))) return;
+    if (await shareBlobAsFile(blob, fileName)) return;
 
     downloadBlob(blob, fileName);
-
-    // On iOS without share/Telegram APIs, blob download is often a silent no-op.
-    if (isIosLike()) {
-      showAlert(i18n.t("documents.downloadIosHint"));
-    }
   } catch {
     showAlert(i18n.t("documents.downloadFailed"));
   }
 }
 
+/**
+ * Open a non-image document. Images should use the in-app viewer — never
+ * window.open a blob image on iOS (traps the user with no Back).
+ */
 export async function openDocumentFile(documentId: string, fileName: string): Promise<void> {
+  if (isIosLike() && looksLikeImageFile(fileName)) {
+    // Prefer share from the viewer; opening blob URLs breaks navigation.
+    await downloadDocumentFile(documentId, fileName);
+    return;
+  }
+
   const blob = await fetchDocumentBlob(documentId, fileName);
+  if (isIosLike()) {
+    if (await shareBlobAsFile(blob, fileName)) return;
+    showAlert(i18n.t("documents.downloadIosHint"));
+    return;
+  }
+
   const url = URL.createObjectURL(blob);
   const opened = window.open(url, "_blank");
   if (!opened) {
-    if (!(await shareBlobAsFile(blob, fileName))) {
-      downloadBlob(blob, fileName);
-    }
+    downloadBlob(blob, fileName);
   }
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

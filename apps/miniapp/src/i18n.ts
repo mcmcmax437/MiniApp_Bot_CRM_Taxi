@@ -935,7 +935,8 @@ const en = {
     files: "Files",
     download: "Download",
     downloadFailed: "Download failed. Please try again.",
-    downloadIosHint: "If the file did not save, update Telegram or use Share → Save Image.",
+    downloadIosHint:
+      "To save the photo: tap Download again and choose «Save Image», or long-press the photo → Save to Photos.",
     rotateRight: "Rotate 90°",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
@@ -1912,7 +1913,8 @@ const uk: Resources = {
     files: "Файли",
     download: "Завантажити",
     downloadFailed: "Не вдалося завантажити. Спробуйте ще раз.",
-    downloadIosHint: "Якщо файл не зберігся, оновіть Telegram або натисніть «Поділитися» → «Зберегти зображення».",
+    downloadIosHint:
+      "Щоб зберегти фото: натисніть «Завантажити» ще раз і оберіть «Зберегти зображення», або затисніть фото → «Зберегти в Фото».",
     rotateRight: "Повернути на 90°",
     zoomIn: "Збільшити",
     zoomOut: "Зменшити",
@@ -2887,7 +2889,8 @@ const ru: Resources = {
     files: "Файлы",
     download: "Скачать",
     downloadFailed: "Не удалось скачать. Попробуйте ещё раз.",
-    downloadIosHint: "Если файл не сохранился, обновите Telegram или нажмите «Поделиться» → «Сохранить изображение».",
+    downloadIosHint:
+      "Чтобы сохранить фото: нажмите «Скачать» ещё раз и выберите «Сохранить изображение», или зажмите фото → «Сохранить в Фото».",
     rotateRight: "Повернуть на 90°",
     zoomIn: "Увеличить",
     zoomOut: "Уменьшить",

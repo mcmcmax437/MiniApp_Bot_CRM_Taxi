@@ -142,7 +142,7 @@ export function canTelegramDownloadFile(): boolean {
 
 /**
  * Ask Telegram to download an HTTPS file. Resolves true if the user accepted.
- * Rejects / returns false when the API is unavailable or the user declines.
+ * Times out as false when the client never callbacks (older clients).
  */
 export function telegramDownloadFile(url: string, fileName: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -150,10 +150,19 @@ export function telegramDownloadFile(url: string, fileName: string): Promise<boo
       resolve(false);
       return;
     }
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(ok);
+    };
+    // If Telegram never responds, don't hang the download UI forever.
+    const timer = window.setTimeout(() => finish(false), 2500);
     try {
-      tg.downloadFile({ url, file_name: fileName }, (accepted) => resolve(Boolean(accepted)));
+      tg.downloadFile({ url, file_name: fileName }, (accepted) => finish(Boolean(accepted)));
     } catch {
-      resolve(false);
+      finish(false);
     }
   });
 }
