@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { createReadStream } from "node:fs";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -8,6 +8,7 @@ import { ownerId } from "./helpers.js";
 import { DocumentRelatedType, documentUpdateSchema } from "@taxi/shared";
 import { isImageDocument } from "../services/document-image.js";
 import { heicBufferToJpeg, isHeicFile } from "../services/heic.js";
+import { mintDocumentDownloadToken } from "../services/download-token.js";
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
@@ -25,13 +26,51 @@ function resolveMimeType(doc: { mimeType: string | null; fileName: string }): st
 }
 
 /** HTTP headers allow ASCII only in quoted filename=; use RFC 5987 filename* for Unicode. */
-function contentDispositionInline(fileName: string): string {
+function contentDisposition(fileName: string, disposition: "inline" | "attachment"): string {
   const ascii = fileName
     .replace(/[\r\n"\\]/g, "")
     .replace(/[^\x20-\x7E]/g, "_")
     .trim()
     .slice(0, 180) || "file";
-  return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+  return `${disposition}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+}
+
+async function sendDocumentFile(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  doc: { id: string; fileName: string; filePath: string; mimeType: string | null },
+  opts: { attachment: boolean },
+): Promise<unknown> {
+  const fullPath = path.resolve(env.uploadsDir, doc.filePath);
+  const mimeType = resolveMimeType(doc);
+  const disposition = opts.attachment ? "attachment" : "inline";
+
+  // Telegram's downloadFile needs CORS + attachment for consistent saves.
+  if (opts.attachment) {
+    reply.header("Access-Control-Allow-Origin", "https://web.telegram.org");
+    reply.header("Cache-Control", "private, no-store");
+  }
+
+  if (isHeicFile(doc.fileName, doc.mimeType)) {
+    try {
+      const jpeg = await heicBufferToJpeg(await readFile(fullPath));
+      const previewName = doc.fileName.replace(/\.heif?c$/i, ".jpg");
+      reply.header("Content-Disposition", contentDisposition(previewName, disposition));
+      reply.type("image/jpeg");
+      if (!opts.attachment) reply.header("Cache-Control", "private, max-age=3600");
+      return reply.send(jpeg);
+    } catch (err) {
+      req.log.warn({ err, documentId: doc.id }, "HEIC conversion failed on download");
+      return reply.code(422).send({ error: "heic_conversion_failed" });
+    }
+  }
+
+  reply.header("Content-Disposition", contentDisposition(doc.fileName, disposition));
+  reply.type(mimeType);
+  if (!opts.attachment && mimeType.startsWith("image/")) {
+    reply.header("Cache-Control", "private, max-age=3600");
+  }
+  return reply.send(createReadStream(fullPath));
 }
 
 async function relatedExists(
@@ -160,31 +199,32 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     return doc;
   });
 
+  /**
+   * Mint a short-lived HTTPS download URL for Telegram's native downloadFile
+   * (blob: + <a download> is a no-op in Telegram/iOS WebViews).
+   * GET so read-only viewers can download too.
+   */
+  app.get("/documents/:id/download-link", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const oid = ownerId(req);
+    const doc = await prisma.document.findFirst({ where: { id, ownerId: oid } });
+    if (!doc) return reply.code(404).send({ error: "not_found" });
+
+    const { token, expiresAt } = mintDocumentDownloadToken(doc.id, oid);
+    const fileName = isHeicFile(doc.fileName, doc.mimeType)
+      ? doc.fileName.replace(/\.heif?c$/i, ".jpg")
+      : doc.fileName;
+    const pathUrl = `/api/documents/${encodeURIComponent(doc.id)}/download?token=${encodeURIComponent(token)}`;
+    return { path: pathUrl, fileName, expiresAt };
+  });
+
   app.get("/documents/:id/file", async (req, reply) => {
     const { id } = req.params as { id: string };
+    const q = req.query as { dl?: string };
+    const attachment = q.dl === "1" || q.dl === "true";
     const doc = await prisma.document.findFirst({ where: { id, ownerId: ownerId(req) } });
     if (!doc) return reply.code(404).send({ error: "not_found" });
-    const fullPath = path.resolve(env.uploadsDir, doc.filePath);
-    const mimeType = resolveMimeType(doc);
-    if (isHeicFile(doc.fileName, doc.mimeType)) {
-      try {
-        const jpeg = await heicBufferToJpeg(await readFile(fullPath));
-        const previewName = doc.fileName.replace(/\.heif?c$/i, ".jpg");
-        reply.header("Content-Disposition", contentDispositionInline(previewName));
-        reply.type("image/jpeg");
-        reply.header("Cache-Control", "private, max-age=3600");
-        return reply.send(jpeg);
-      } catch (err) {
-        req.log.warn({ err, documentId: id }, "HEIC conversion failed on download");
-        return reply.code(422).send({ error: "heic_conversion_failed" });
-      }
-    }
-    reply.header("Content-Disposition", contentDispositionInline(doc.fileName));
-    reply.type(mimeType);
-    if (mimeType.startsWith("image/")) {
-      reply.header("Cache-Control", "private, max-age=3600");
-    }
-    return reply.send(createReadStream(fullPath));
+    return sendDocumentFile(req, reply, doc, { attachment });
   });
 
   app.patch("/documents/:id", async (req, reply) => {
