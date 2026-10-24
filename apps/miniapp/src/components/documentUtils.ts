@@ -1,6 +1,12 @@
+import i18n from "../i18n";
 import type { DocumentItem } from "../types";
-import { apiFileUrl } from "../api";
-import { getInitData } from "../telegram";
+import { apiFetch, apiFileUrl } from "../api";
+import {
+  canTelegramDownloadFile,
+  getInitData,
+  showAlert,
+  telegramDownloadFile,
+} from "../telegram";
 
 export function documentDisplayName(doc: Pick<DocumentItem, "displayName" | "fileName">): string {
   const custom = doc.displayName?.trim();
@@ -30,6 +36,10 @@ function isHeicBlob(blob: Blob, fileName?: string): boolean {
   return false;
 }
 
+function downloadFileName(fileName: string): string {
+  return fileName.replace(/\.heif?c$/i, ".jpg");
+}
+
 /** Browsers cannot render HEIC in <img>; server converts HEIC to JPEG, client fallback if needed. */
 export async function blobForImagePreview(blob: Blob, fileName?: string): Promise<Blob> {
   if (!isHeicBlob(blob, fileName)) return blob;
@@ -52,18 +62,81 @@ export async function fetchDocumentBlob(documentId: string, fileName?: string): 
   return blobForImagePreview(blob, fileName);
 }
 
+function isIosLike(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+async function shareBlobAsFile(blob: Blob, fileName: string): Promise<boolean> {
+  const name = downloadFileName(fileName);
+  const type = blob.type || "application/octet-stream";
+  const file = new File([blob], name, { type });
+  const payload = { files: [file] };
+  const nav = navigator as Navigator & {
+    canShare?: (data?: { files?: File[] }) => boolean;
+    share?: (data: { files?: File[]; title?: string }) => Promise<void>;
+  };
+  if (typeof nav.canShare === "function" && !nav.canShare(payload)) return false;
+  if (typeof nav.share !== "function") return false;
+  try {
+    await nav.share(payload);
+    return true;
+  } catch {
+    // User cancelled or share failed.
+    return false;
+  }
+}
+
 function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = fileName.replace(/\.heic$/i, ".jpg");
+  link.download = downloadFileName(fileName);
+  link.rel = "noopener";
+  document.body.appendChild(link);
   link.click();
+  link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+async function downloadViaTelegramNative(documentId: string, fileName: string): Promise<boolean> {
+  if (!canTelegramDownloadFile()) return false;
+  try {
+    const link = await apiFetch<{ path: string; fileName: string }>(
+      `/documents/${encodeURIComponent(documentId)}/download-link`,
+    );
+    const absoluteUrl = new URL(link.path, window.location.origin).toString();
+    if (!/^https:/i.test(absoluteUrl)) return false;
+    return telegramDownloadFile(absoluteUrl, downloadFileName(link.fileName || fileName));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Save a document to the device.
+ * Telegram iOS WebView ignores blob + <a download>, so we prefer:
+ * 1) Telegram.WebApp.downloadFile with a short-lived HTTPS URL
+ * 2) Web Share sheet (Save Image) on iOS
+ * 3) Classic blob download elsewhere
+ */
 export async function downloadDocumentFile(documentId: string, fileName: string): Promise<void> {
-  const blob = await fetchDocumentBlob(documentId, fileName);
-  downloadBlob(blob, fileName);
+  try {
+    if (await downloadViaTelegramNative(documentId, fileName)) return;
+
+    const blob = await fetchDocumentBlob(documentId, fileName);
+    if (isIosLike() && (await shareBlobAsFile(blob, fileName))) return;
+
+    downloadBlob(blob, fileName);
+
+    // On iOS without share/Telegram APIs, blob download is often a silent no-op.
+    if (isIosLike()) {
+      showAlert(i18n.t("documents.downloadIosHint"));
+    }
+  } catch {
+    showAlert(i18n.t("documents.downloadFailed"));
+  }
 }
 
 export async function openDocumentFile(documentId: string, fileName: string): Promise<void> {
@@ -71,7 +144,9 @@ export async function openDocumentFile(documentId: string, fileName: string): Pr
   const url = URL.createObjectURL(blob);
   const opened = window.open(url, "_blank");
   if (!opened) {
-    downloadBlob(blob, fileName);
+    if (!(await shareBlobAsFile(blob, fileName))) {
+      downloadBlob(blob, fileName);
+    }
   }
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

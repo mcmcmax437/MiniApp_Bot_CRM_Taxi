@@ -29,6 +29,11 @@ interface TelegramWebApp {
     },
     callback?: (buttonId: string) => void,
   ) => void;
+  /** Bot API 8.0+ — native file download dialog (works on iOS, unlike blob downloads). */
+  downloadFile?: (
+    params: { url: string; file_name: string },
+    callback?: (accepted: boolean) => void,
+  ) => void;
 }
 
 const DESKTOP_PLATFORMS = new Set(["tdesktop", "macos", "web", "weba", "unigram", "unknown"]);
@@ -128,6 +133,29 @@ export function showAlert(message: string, okLabel = "OK"): void {
     return;
   }
   window.alert(message);
+}
+
+/** True when Telegram can open its native download dialog (Bot API 8.0+). */
+export function canTelegramDownloadFile(): boolean {
+  return typeof tg?.downloadFile === "function";
+}
+
+/**
+ * Ask Telegram to download an HTTPS file. Resolves true if the user accepted.
+ * Rejects / returns false when the API is unavailable or the user declines.
+ */
+export function telegramDownloadFile(url: string, fileName: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!tg?.downloadFile) {
+      resolve(false);
+      return;
+    }
+    try {
+      tg.downloadFile({ url, file_name: fileName }, (accepted) => resolve(Boolean(accepted)));
+    } catch {
+      resolve(false);
+    }
+  });
 }
 
 /** Works in Telegram WebView where native dialogs are often blocked or never callback on desktop. */

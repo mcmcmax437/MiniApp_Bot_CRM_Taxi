@@ -12,6 +12,7 @@ import { finesRoutes } from "./fines.js";
 import { shiftsRoutes } from "./shifts.js";
 import { reportsRoutes } from "./reports.js";
 import { documentsRoutes } from "./documents.js";
+import { documentPublicDownloadRoutes } from "./document-public-download.js";
 import { importRoutes } from "./import.js";
 import { maintenanceRoutes } from "./maintenance.js";
 import { mileageRoutes } from "./mileage.js";
@@ -29,6 +30,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       await api.register(fleetAccessRoutes);
       await api.register(adminRoutes);
       await api.register(botLedgerRoutes);
+      // Token-gated downloads for Telegram.WebApp.downloadFile (no auth header).
+      await api.register(documentPublicDownloadRoutes);
 
       // Tenant data routes: require an authenticated, ACTIVE owner.
       await api.register(async (scoped) => {
