@@ -63,12 +63,14 @@ export async function documentPublicDownloadRoutes(app: FastifyInstance): Promis
     const fullPath = path.resolve(env.uploadsDir, doc.filePath);
     const mimeType = resolveMimeType(doc);
 
+    // Use application/octet-stream so Telegram/iOS does not open the URL as an
+    // inline image preview (which traps the user with no Mini App Back button).
     if (isHeicFile(doc.fileName, doc.mimeType)) {
       try {
         const jpeg = await heicBufferToJpeg(await readFile(fullPath));
         const previewName = doc.fileName.replace(/\.heif?c$/i, ".jpg");
         reply.header("Content-Disposition", contentDispositionAttachment(previewName));
-        reply.type("image/jpeg");
+        reply.type("application/octet-stream");
         return reply.send(jpeg);
       } catch (err) {
         req.log.warn({ err, documentId: id }, "HEIC conversion failed on public download");
@@ -77,7 +79,8 @@ export async function documentPublicDownloadRoutes(app: FastifyInstance): Promis
     }
 
     reply.header("Content-Disposition", contentDispositionAttachment(doc.fileName));
-    reply.type(mimeType);
+    reply.type("application/octet-stream");
+    void mimeType; // real type is in Content-Disposition filename
     return reply.send(createReadStream(fullPath));
   });
 }
