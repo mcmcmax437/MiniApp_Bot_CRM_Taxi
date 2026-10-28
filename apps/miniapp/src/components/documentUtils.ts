@@ -4,6 +4,8 @@ import { apiFetch, apiFileUrl } from "../api";
 import {
   canTelegramDownloadFile,
   getInitData,
+  getPlatform,
+  isInsideTelegram,
   showAlert,
   telegramDownloadFile,
 } from "../telegram";
@@ -82,6 +84,27 @@ function isIosLike(): boolean {
   );
 }
 
+/**
+ * Phone Telegram keeps the share sheet / native downloadFile path.
+ * Desktop (and a normal browser) must not: Windows share and Telegram
+ * Desktop's downloadFile save a tiny gray JPEG instead of the photo.
+ */
+function useDirectFileDownload(): boolean {
+  if (isIosLike()) return false;
+  const platform = getPlatform().toLowerCase();
+  if (platform === "android" || platform === "android_x") return false;
+  if (!isInsideTelegram) return true;
+  return (
+    platform === "tdesktop" ||
+    platform === "macos" ||
+    platform === "web" ||
+    platform === "weba" ||
+    platform === "unigram" ||
+    platform === "unknown" ||
+    platform === "base"
+  );
+}
+
 async function shareBlobAsFile(blob: Blob, fileName: string): Promise<boolean> {
   const name = downloadFileName(fileName);
   const type = blob.type?.startsWith("image/") ? blob.type : "image/jpeg";
@@ -156,6 +179,12 @@ export async function downloadDocumentFile(documentId: string, fileName: string)
       if (await downloadViaTelegramNative(documentId, fileName)) return;
       if (!image && (await shareBlobAsFile(blob, fileName))) return;
       showAlert(i18n.t("documents.downloadIosHint"));
+      return;
+    }
+
+    if (useDirectFileDownload()) {
+      const blob = await fetchDocumentBlob(documentId, fileName);
+      downloadBlob(blob, fileName);
       return;
     }
 
