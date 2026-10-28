@@ -935,6 +935,8 @@ const en = {
     files: "Files",
     download: "Download",
     downloadFailed: "Download failed. Please try again.",
+    downloadSentToChat: "The file was sent to the bot chat. Open that chat to save it.",
+    downloadOpenBot: "Open the bot chat, press Start, then tap Download again.",
     downloadIosHint:
       "To save the photo: tap Download again and choose «Save Image», or long-press the photo → Save to Photos.",
     rotateRight: "Rotate 90°",
@@ -1913,6 +1915,8 @@ const uk: Resources = {
     files: "Файли",
     download: "Завантажити",
     downloadFailed: "Не вдалося завантажити. Спробуйте ще раз.",
+    downloadSentToChat: "Файл надіслано в чат бота. Відкрийте чат, щоб зберегти його.",
+    downloadOpenBot: "Відкрийте чат бота, натисніть Start, потім знову «Завантажити».",
     downloadIosHint:
       "Щоб зберегти фото: натисніть «Завантажити» ще раз і оберіть «Зберегти зображення», або затисніть фото → «Зберегти в Фото».",
     rotateRight: "Повернути на 90°",
@@ -2889,6 +2893,8 @@ const ru: Resources = {
     files: "Файлы",
     download: "Скачать",
     downloadFailed: "Не удалось скачать. Попробуйте ещё раз.",
+    downloadSentToChat: "Файл отправлен в чат бота. Откройте чат, чтобы сохранить его.",
+    downloadOpenBot: "Откройте чат бота, нажмите Start, затем снова «Скачать».",
     downloadIosHint:
       "Чтобы сохранить фото: нажмите «Скачать» ещё раз и выберите «Сохранить изображение», или зажмите фото → «Сохранить в Фото».",
     rotateRight: "Повернуть на 90°",

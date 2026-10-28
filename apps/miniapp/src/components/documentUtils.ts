@@ -1,6 +1,6 @@
 import i18n from "../i18n";
 import type { DocumentItem } from "../types";
-import { apiFetch, apiFileUrl } from "../api";
+import { ApiError, apiFetch, apiFileUrl } from "../api";
 import {
   canTelegramDownloadFile,
   getInitData,
@@ -145,6 +145,26 @@ function downloadBlob(blob: Blob, fileName: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+let chatSendInFlight = false;
+
+/** Ask the bot to post this file in the user's Telegram chat. */
+async function sendDocumentToChat(documentId: string): Promise<void> {
+  if (chatSendInFlight) return;
+  chatSendInFlight = true;
+  try {
+    await apiFetch(`/documents/${encodeURIComponent(documentId)}/send-to-chat`);
+    showAlert(i18n.t("documents.downloadSentToChat"));
+  } catch (err) {
+    if (err instanceof ApiError && err.code === "bot_chat_unavailable") {
+      showAlert(i18n.t("documents.downloadOpenBot"));
+      return;
+    }
+    showAlert(i18n.t("documents.downloadFailed"));
+  } finally {
+    chatSendInFlight = false;
+  }
+}
+
 async function downloadViaTelegramNative(documentId: string, fileName: string): Promise<boolean> {
   if (!canTelegramDownloadFile()) return false;
   try {
@@ -183,8 +203,7 @@ export async function downloadDocumentFile(documentId: string, fileName: string)
     }
 
     if (useDirectFileDownload()) {
-      const blob = await fetchDocumentBlob(documentId, fileName);
-      downloadBlob(blob, fileName);
+      await sendDocumentToChat(documentId);
       return;
     }
 

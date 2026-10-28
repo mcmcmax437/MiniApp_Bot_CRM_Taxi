@@ -9,6 +9,7 @@ import { DocumentRelatedType, documentUpdateSchema } from "@taxi/shared";
 import { isImageDocument } from "../services/document-image.js";
 import { heicBufferToJpeg, isHeicFile } from "../services/heic.js";
 import { mintDocumentDownloadToken } from "../services/download-token.js";
+import { sendTelegramDocument } from "../notify.js";
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
@@ -216,6 +217,50 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
       : doc.fileName;
     const pathUrl = `/api/documents/${encodeURIComponent(doc.id)}/download?token=${encodeURIComponent(token)}`;
     return { path: pathUrl, fileName, expiresAt };
+  });
+
+  /**
+   * Desktop Telegram cannot save the file inside the mini app. Send it to the
+   * user's chat with the bot instead. GET so read-only viewers can request it.
+   */
+  app.get("/documents/:id/send-to-chat", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const doc = await prisma.document.findFirst({ where: { id, ownerId: ownerId(req) } });
+    if (!doc) return reply.code(404).send({ error: "not_found" });
+
+    const chatId = req.telegramUser?.id ?? req.owner?.telegramUserId;
+    if (!chatId) return reply.code(400).send({ error: "no_telegram_chat" });
+
+    let bytes: Buffer;
+    let fileName = doc.fileName;
+    try {
+      bytes = await readFile(path.resolve(env.uploadsDir, doc.filePath));
+    } catch {
+      return reply.code(404).send({ error: "file_missing" });
+    }
+
+    if (isHeicFile(doc.fileName, doc.mimeType)) {
+      try {
+        bytes = await heicBufferToJpeg(bytes);
+        fileName = doc.fileName.replace(/\.heif?c$/i, ".jpg");
+      } catch (err) {
+        req.log.warn({ err, documentId: id }, "HEIC conversion failed before chat send");
+        return reply.code(422).send({ error: "heic_conversion_failed" });
+      }
+    }
+
+    try {
+      await sendTelegramDocument(chatId, fileName, bytes, fileName);
+    } catch (err) {
+      req.log.warn({ err, documentId: id }, "send document to chat failed");
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("403") || /initiate conversation|bot was blocked/i.test(message)) {
+        return reply.code(403).send({ error: "bot_chat_unavailable" });
+      }
+      return reply.code(502).send({ error: "send_failed" });
+    }
+
+    return { ok: true };
   });
 
   app.get("/documents/:id/file", async (req, reply) => {
