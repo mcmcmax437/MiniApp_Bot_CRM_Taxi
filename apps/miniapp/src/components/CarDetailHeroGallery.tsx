@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useDocuments } from "../hooks";
 import { isCarGalleryPhoto } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
-import { useDocumentImageViewer } from "./useDocumentImageViewer";
+import { documentViewerItems, useDocumentImageViewer } from "./useDocumentImageViewer";
 import { Icon } from "./crm";
 
 export function CarDetailHeroGallery(props: {
@@ -47,11 +47,7 @@ export function CarDetailHeroGallery(props: {
 
   function openCurrentPhoto() {
     openDocuments(
-      photos.map((doc) => ({
-        documentId: doc.id,
-        fileName: doc.fileName,
-        alt: props.alt,
-      })),
+      documentViewerItems(photos).map((item) => ({ ...item, alt: props.alt })),
       index,
     );
   }
@@ -74,6 +70,7 @@ export function CarDetailHeroGallery(props: {
           documentId={current.id}
           fileName={current.fileName}
           alt={props.alt}
+          rotation={current.rotation}
           className="crm-car-detail-hero__img"
         />
         <button

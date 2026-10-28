@@ -2,10 +2,10 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDocuments, useUploadDocument, useDeleteDocument } from "../hooks";
 import type { DocumentItem } from "../types";
-import { downloadDocumentFile } from "./documentUtils";
+import { downloadDocumentFile, isImageDocument } from "./documentUtils";
 import { DocumentFileRow } from "./DocumentFileRow";
 import { DocumentMetaModal } from "./DocumentMetaModal";
-import { useDocumentImageViewer } from "./useDocumentImageViewer";
+import { documentViewerItems, useDocumentImageViewer } from "./useDocumentImageViewer";
 import { confirmAction } from "../telegram";
 import { useReadOnly } from "../readOnly";
 
@@ -18,7 +18,7 @@ export function CarDocumentsSection(props: { carId: string; embedded?: boolean }
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [editDoc, setEditDoc] = useState<DocumentItem | null>(null);
-  const { openDocument, viewer } = useDocumentImageViewer();
+  const { openDocument, openDocuments, viewer } = useDocumentImageViewer();
 
   const items = (docs.data ?? []).filter((d) => !d.isCarPhoto);
 
@@ -105,7 +105,17 @@ export function CarDocumentsSection(props: { carId: string; embedded?: boolean }
             <DocumentFileRow
               key={doc.id}
               doc={doc}
-              onOpen={() => openDocument(doc)}
+              onOpen={() => {
+                if (!isImageDocument(doc)) {
+                  openDocument(doc);
+                  return;
+                }
+                const images = items.filter(isImageDocument);
+                openDocuments(
+                  documentViewerItems(images),
+                  Math.max(0, images.findIndex((item) => item.id === doc.id)),
+                );
+              }}
               onDownload={() => void downloadDocumentFile(doc.id, doc.fileName)}
               onEdit={readOnly ? undefined : () => setEditDoc(doc)}
               onDelete={readOnly ? undefined : () => void handleDelete(doc)}

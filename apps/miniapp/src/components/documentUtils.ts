@@ -13,6 +13,13 @@ export function isCarGalleryPhoto(
   return Boolean(doc.isCarPhoto) && isImageDocument(doc);
 }
 
+/** Clockwise degrees stored on a document image. */
+export function normalizeRotation(value: number | null | undefined): 0 | 90 | 180 | 270 {
+  const quarter = ((Math.round((value ?? 0) / 90) * 90) % 360 + 360) % 360;
+  if (quarter === 90 || quarter === 180 || quarter === 270) return quarter;
+  return 0;
+}
+
 export function isImageDocument(doc: Pick<DocumentItem, "mimeType" | "fileName">): boolean {
   if (doc.mimeType?.startsWith("image/")) return true;
   return /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(doc.fileName);

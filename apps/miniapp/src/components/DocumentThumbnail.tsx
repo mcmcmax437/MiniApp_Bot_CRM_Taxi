@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { fetchDocumentBlob } from "./documentUtils";
+import { fetchDocumentBlob, normalizeRotation } from "./documentUtils";
 import { Icon } from "./crm";
 
 export function DocumentThumbnail(props: {
   documentId: string;
   alt: string;
   fileName?: string;
+  rotation?: number;
   className?: string;
   onClick?: () => void;
 }) {
@@ -39,7 +40,15 @@ export function DocumentThumbnail(props: {
     );
   }
 
-  const img = <img className={`crm-doc-thumb__img${props.className ? ` ${props.className}` : ""}`} src={src} alt={props.alt} />;
+  const turn = normalizeRotation(props.rotation);
+  const img = (
+    <img
+      className={`crm-doc-thumb__img${props.className ? ` ${props.className}` : ""}`}
+      src={src}
+      alt={props.alt}
+      style={turn ? { transform: `rotate(${turn}deg)` } : undefined}
+    />
+  );
 
   if (props.onClick) {
     return (

@@ -1,10 +1,23 @@
 import { useCallback, useState, type ReactNode } from "react";
 import type { DocumentItem } from "../types";
+import { useUpdateDocument } from "../hooks";
 import { DocumentImageViewer, type DocumentViewerItem, type ImageViewerState } from "./DocumentImageViewer";
-import { isImageDocument, openDocumentFile } from "./documentUtils";
+import { isImageDocument, normalizeRotation, openDocumentFile } from "./documentUtils";
+
+export function documentViewerItems(
+  docs: Array<Pick<DocumentItem, "id" | "fileName" | "rotation">>,
+): DocumentViewerItem[] {
+  return docs.map((doc) => ({
+    documentId: doc.id,
+    fileName: doc.fileName,
+    alt: doc.fileName,
+    rotation: normalizeRotation(doc.rotation),
+  }));
+}
 
 export function useDocumentImageViewer() {
   const [state, setState] = useState<ImageViewerState | null>(null);
+  const updateDocument = useUpdateDocument();
 
   const close = useCallback(() => setState(null), []);
 
@@ -14,9 +27,9 @@ export function useDocumentImageViewer() {
   }, []);
 
   const openDocument = useCallback(
-    (doc: Pick<DocumentItem, "id" | "fileName" | "mimeType">) => {
+    (doc: Pick<DocumentItem, "id" | "fileName" | "mimeType" | "rotation">) => {
       if (isImageDocument(doc)) {
-        openDocuments([{ documentId: doc.id, fileName: doc.fileName }]);
+        openDocuments(documentViewerItems([doc]));
       } else {
         void openDocumentFile(doc.id, doc.fileName);
       }
@@ -35,8 +48,29 @@ export function useDocumentImageViewer() {
     });
   }, []);
 
+  const saveRotation = useCallback(
+    (documentId: string, rotation: number) => {
+      setState((prev) => {
+        if (prev?.kind !== "document") return prev;
+        return {
+          ...prev,
+          items: prev.items.map((item) =>
+            item.documentId === documentId ? { ...item, rotation } : item,
+          ),
+        };
+      });
+      updateDocument.mutate({ id: documentId, rotation });
+    },
+    [updateDocument],
+  );
+
   const viewer: ReactNode = (
-    <DocumentImageViewer state={state} onClose={close} onIndexChange={setIndex} />
+    <DocumentImageViewer
+      state={state}
+      onClose={close}
+      onIndexChange={setIndex}
+      onRotationChange={saveRotation}
+    />
   );
 
   return { openDocument, openDocuments, openUrl, close, viewer, isOpen: state != null };

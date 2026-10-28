@@ -22,7 +22,7 @@ import {
   isCarGalleryPhoto,
   isImageDocument,
 } from "../components/documentUtils";
-import { useDocumentImageViewer } from "../components/useDocumentImageViewer";
+import { documentViewerItems, useDocumentImageViewer } from "../components/useDocumentImageViewer";
 import { confirmAction } from "../telegram";
 import { useReadOnly } from "../readOnly";
 
@@ -259,16 +259,7 @@ export function DocumentsPage() {
                 docs={imageDocs}
                 del={del}
                 readOnly={readOnly}
-                onPreview={(docs, index) =>
-                  openDocuments(
-                    docs.map((d) => ({
-                      documentId: d.id,
-                      fileName: d.fileName,
-                      alt: d.fileName,
-                    })),
-                    index,
-                  )
-                }
+                onPreview={(docs, index) => openDocuments(documentViewerItems(docs), index)}
                 onDelete={handleDelete}
                 t={t}
               />
@@ -280,16 +271,7 @@ export function DocumentsPage() {
                 docs={documentImageDocs}
                 del={del}
                 readOnly={readOnly}
-                onPreview={(docs, index) =>
-                  openDocuments(
-                    docs.map((d) => ({
-                      documentId: d.id,
-                      fileName: d.fileName,
-                      alt: d.fileName,
-                    })),
-                    index,
-                  )
-                }
+                onPreview={(docs, index) => openDocuments(documentViewerItems(docs), index)}
                 onDelete={handleDelete}
                 t={t}
               />
@@ -465,6 +447,7 @@ function DocImageGridSection(props: {
                 documentId={doc.id}
                 fileName={doc.fileName}
                 alt={doc.fileName}
+                rotation={doc.rotation}
                 className="crm-car-photo-tile__img"
               />
             </button>

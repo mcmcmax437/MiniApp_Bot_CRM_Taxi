@@ -6542,31 +6542,45 @@ select.crm-input option {
   padding: 0 24px;
 }
 
-.crm-image-viewer__nav {
+.crm-image-viewer__side {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 64px;
+  bottom: 0;
+  width: 22%;
+  border: none;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  z-index: 2;
+  padding: 0;
+}
+
+.crm-image-viewer__side--prev {
+  left: 0;
+  justify-content: flex-start;
+  padding-left: 10px;
+}
+
+.crm-image-viewer__side--next {
+  right: 0;
+  justify-content: flex-end;
+  padding-right: 10px;
+}
+
+.crm-image-viewer__side-icon {
   width: 44px;
   height: 44px;
-  border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  z-index: 2;
+  pointer-events: none;
 }
 
-.crm-image-viewer__nav--prev {
-  left: 12px;
-}
-
-.crm-image-viewer__nav--next {
-  right: 12px;
-}
-
-.crm-image-viewer__nav:active {
+.crm-image-viewer__side:active .crm-image-viewer__side-icon {
   background: rgba(0, 0, 0, 0.65);
 }
 

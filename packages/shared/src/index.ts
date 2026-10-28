@@ -580,6 +580,11 @@ export const carDocumentUpdateSchema = carDocumentCreateSchema.omit({ carId: tru
 export const documentUpdateSchema = z.object({
   displayName: z.string().trim().max(120).optional().nullable(),
   notes: z.string().trim().max(500).optional().nullable(),
+  rotation: z
+    .number()
+    .int()
+    .refine((n) => n === 0 || n === 90 || n === 180 || n === 270)
+    .optional(),
 });
 
 export const mileageLogCreateSchema = z.object({

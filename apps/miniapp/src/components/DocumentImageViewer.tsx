@@ -2,12 +2,13 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Icon } from "./crm";
-import { downloadDocumentFile, fetchDocumentBlob } from "./documentUtils";
+import { downloadDocumentFile, fetchDocumentBlob, normalizeRotation } from "./documentUtils";
 
 export type DocumentViewerItem = {
   documentId: string;
   fileName: string;
   alt?: string;
+  rotation?: number;
 };
 
 export type ImageViewerState =
@@ -61,6 +62,7 @@ export function DocumentImageViewer(props: {
   state: ImageViewerState | null;
   onClose: () => void;
   onIndexChange?: (index: number) => void;
+  onRotationChange?: (documentId: string, rotation: number) => void;
 }) {
   const { t } = useTranslation();
   const [src, setSrc] = useState<string | null>(null);
@@ -112,7 +114,11 @@ export function DocumentImageViewer(props: {
   }
 
   useEffect(() => {
-    setRotation(0);
+    const saved =
+      props.state?.kind === "document"
+        ? normalizeRotation(props.state.items[props.state.index]?.rotation)
+        : 0;
+    setRotation(saved);
     zoomRef.current = 1;
     panRef.current = { x: 0, y: 0 };
     setZoom(1);
@@ -189,6 +195,8 @@ export function DocumentImageViewer(props: {
     if (!props.state) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") props.onClose();
+      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "ArrowRight") goNext();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -354,9 +362,11 @@ export function DocumentImageViewer(props: {
             className="crm-image-viewer__tool"
             aria-label={t("documents.rotateRight")}
             onClick={() => {
-              setRotation((value) => (value + 90) % 360);
+              const next = (rotation + 90) % 360;
+              setRotation(next);
               panRef.current = { x: 0, y: 0 };
               setPan({ x: 0, y: 0 });
+              if (current) props.onRotationChange?.(current.documentId, next);
             }}
           >
             <RotateRightIcon />
@@ -368,19 +378,23 @@ export function DocumentImageViewer(props: {
         <>
           <button
             type="button"
-            className="crm-image-viewer__nav crm-image-viewer__nav--prev"
+            className="crm-image-viewer__side crm-image-viewer__side--prev"
             onClick={goPrev}
             aria-label={t("cars.prevPhoto")}
           >
-            <Icon name="arrow-left-01" size={24} color="#fff" />
+            <span className="crm-image-viewer__side-icon">
+              <Icon name="arrow-left-01" size={24} color="#fff" />
+            </span>
           </button>
           <button
             type="button"
-            className="crm-image-viewer__nav crm-image-viewer__nav--next"
+            className="crm-image-viewer__side crm-image-viewer__side--next"
             onClick={goNext}
             aria-label={t("cars.nextPhoto")}
           >
-            <Icon name="arrow-right-01" size={24} color="#fff" />
+            <span className="crm-image-viewer__side-icon">
+              <Icon name="arrow-right-01" size={24} color="#fff" />
+            </span>
           </button>
         </>
       ) : null}

@@ -509,6 +509,8 @@ model Document {
   isCarPhoto  Boolean             @default(false)
   displayName String?
   notes       String?             @db.Text
+  /// Clockwise viewing rotation in degrees: 0, 90, 180, or 270.
+  rotation    Int                 @default(0)
   uploadedAt  DateTime            @default(now())
 
   @@index([ownerId])

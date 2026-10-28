@@ -270,6 +270,7 @@ export interface DocumentItem {
   isCarPhoto: boolean;
   displayName: string | null;
   notes: string | null;
+  rotation?: number;
   uploadedAt: string;
 }
 

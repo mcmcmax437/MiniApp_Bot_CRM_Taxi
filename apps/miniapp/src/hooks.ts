@@ -641,11 +641,21 @@ export function useDeleteDocument() {
 export function useUpdateDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { id: string; displayName?: string | null; notes?: string | null }) =>
-      apiFetch<DocumentItem>(`/documents/${input.id}`, {
+    mutationFn: (input: {
+      id: string;
+      displayName?: string | null;
+      notes?: string | null;
+      rotation?: number;
+    }) => {
+      const body: Record<string, unknown> = {};
+      if (input.displayName !== undefined) body.displayName = input.displayName;
+      if (input.notes !== undefined) body.notes = input.notes;
+      if (input.rotation !== undefined) body.rotation = input.rotation;
+      return apiFetch<DocumentItem>(`/documents/${input.id}`, {
         method: "PATCH",
-        body: { displayName: input.displayName, notes: input.notes },
-      }),
+        body,
+      });
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["documents"] });
     },

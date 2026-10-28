@@ -194,12 +194,15 @@ export async function documentsRoutes(app: FastifyInstance): Promise<void> {
     const existing = await prisma.document.findFirst({ where: { id, ownerId: ownerId(req) } });
     if (!existing) return reply.code(404).send({ error: "not_found" });
 
-    const data: { displayName?: string | null; notes?: string | null } = {};
+    const data: { displayName?: string | null; notes?: string | null; rotation?: number } = {};
     if (parsed.data.displayName !== undefined) {
       data.displayName = parsed.data.displayName?.trim() ? parsed.data.displayName.trim() : null;
     }
     if (parsed.data.notes !== undefined) {
       data.notes = parsed.data.notes?.trim() ? parsed.data.notes.trim() : null;
+    }
+    if (parsed.data.rotation !== undefined) {
+      data.rotation = parsed.data.rotation;
     }
     if (Object.keys(data).length === 0) return existing;
 

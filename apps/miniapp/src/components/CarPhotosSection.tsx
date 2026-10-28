@@ -9,7 +9,7 @@ import {
 import type { DocumentItem } from "../types";
 import { isCarGalleryPhoto } from "./documentUtils";
 import { DocumentThumbnail } from "./DocumentThumbnail";
-import { useDocumentImageViewer } from "./useDocumentImageViewer";
+import { documentViewerItems, useDocumentImageViewer } from "./useDocumentImageViewer";
 import { confirmAction } from "../telegram";
 import { useReadOnly } from "../readOnly";
 
@@ -77,14 +77,7 @@ export function CarPhotosSection(props: {
   }
 
   function openPhoto(index: number) {
-    openDocuments(
-      images.map((doc) => ({
-        documentId: doc.id,
-        fileName: doc.fileName,
-        alt: doc.fileName,
-      })),
-      index,
-    );
+    openDocuments(documentViewerItems(images), index);
   }
 
   return (
@@ -200,6 +193,7 @@ function CarImageTile(props: {
           documentId={props.doc.id}
           fileName={props.doc.fileName}
           alt={props.doc.fileName}
+          rotation={props.doc.rotation}
           className="crm-car-photo-tile__img"
         />
       </button>

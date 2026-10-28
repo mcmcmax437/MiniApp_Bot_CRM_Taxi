@@ -37,6 +37,7 @@ export function DocumentFileRow(props: {
               documentId={props.doc.id}
               fileName={props.doc.fileName}
               alt={title}
+              rotation={props.doc.rotation}
             />
           </div>
         ) : (
