@@ -101,6 +101,28 @@ describe("sumFatherSelectedCars", () => {
     });
   });
 
+  it("shares one expense across the selected cars", () => {
+    const totals = sumFatherSelectedCars(
+      [],
+      [
+        expense({
+          id: "shared",
+          carId: "a",
+          cars: [
+            { id: "a", plate: "A" },
+            { id: "b", plate: "B" },
+          ],
+          amount: 100,
+          date: "2026-07-10",
+        }),
+      ],
+      new Set(["a"]),
+      new Set(["2026-07"]),
+    );
+    expect(totals.expenseMine).toBe(50);
+    expect(totals.expenseSum).toBe(50);
+  });
+
   it("sums the whole fleet when carIds is null", () => {
     const totals = sumFatherInMonths(
       [

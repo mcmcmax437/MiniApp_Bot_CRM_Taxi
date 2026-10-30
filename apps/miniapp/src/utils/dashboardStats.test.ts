@@ -233,4 +233,27 @@ describe("sumExpensesByPayer", () => {
       total: 330,
     });
   });
+
+  it("counts an even share when one expense is on several cars", () => {
+    const shared: Expense[] = [
+      {
+        id: "shared",
+        carId: "car-1",
+        cars: [
+          { id: "car-1", plate: "A" },
+          { id: "car-2", plate: "B" },
+        ],
+        category: ExpenseCategory.FUEL,
+        amount: 100,
+        date: "2001-01-10",
+        note: null,
+        tag: null,
+        paidByPartner: false,
+        partnerSettled: false,
+        paidByFather: false,
+      },
+    ];
+    expect(sumExpensesByPayer(shared, "all", "car-1").total).toBe(50);
+    expect(sumExpensesByPayer(shared, "all", "").total).toBe(100);
+  });
 });

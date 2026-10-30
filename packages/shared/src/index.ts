@@ -492,6 +492,8 @@ export type PaymentUpdateInput = z.infer<typeof paymentUpdateSchema>;
 
 export const expenseCreateSchema = z.object({
   carId: z.string().cuid().optional().nullable(),
+  /** Every car this expense belongs to. When set, replaces `carId`. */
+  carIds: z.array(z.string().cuid()).max(40).optional(),
   category: z.nativeEnum(ExpenseCategory).default(ExpenseCategory.OTHER),
   amount: money,
   date: isoDate,
@@ -882,3 +884,12 @@ export {
   type AgreementDateValidation,
   type RentalPeriodLike,
 } from "./agreement-overlap.js";
+
+export {
+  expenseAmountForSelection,
+  expenseMatchesCarFilter,
+  expensePlateLabel,
+  linkedExpenseCarIds,
+  roundMoney,
+  splitExpenseAmount,
+} from "./expense-cars.js";

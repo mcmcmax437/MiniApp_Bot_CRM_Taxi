@@ -1,4 +1,4 @@
-import { ExpenseCategory, PaymentMethod, PaymentType } from "@taxi/shared";
+import { ExpenseCategory, PaymentMethod, PaymentType, expenseAmountForSelection, linkedExpenseCarIds } from "@taxi/shared";
 import type { Expense, Payment } from "../../types";
 import { isIncomePayment } from "./partnerSettlementFormat";
 
@@ -85,13 +85,13 @@ export function sumFatherInMonths(
   }
 
   for (const e of expenses) {
-    if (carIds) {
-      if (!e.carId || !carIds.has(e.carId)) continue;
-    }
     if (!selectedMonths.has(e.date.slice(0, 7))) continue;
     if (e.category === ExpenseCategory.TAX) continue;
-    if (e.paidByPartner) out.expensePartner += e.amount;
-    else out.expenseMine += e.amount;
+    const ids = linkedExpenseCarIds(e);
+    const amount = carIds ? expenseAmountForSelection(e.amount, ids, carIds) : e.amount;
+    if (carIds && amount === 0) continue;
+    if (e.paidByPartner) out.expensePartner += amount;
+    else out.expenseMine += amount;
   }
 
   out.incomeCash = round2(out.incomeCash);

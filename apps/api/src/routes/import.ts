@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import { ownerId } from "./helpers.js";
 import { CarStatus, ExpenseCategory, PaymentMethod, PaymentType } from "@taxi/shared";
+import { replaceExpenseCarLinks } from "../services/expense-cars.js";
 
 const MAX_NOTE_LENGTH = 2000;
 const NAME_TWO_WORD = /^[\p{L}’'\-]+\s+[\p{L}’'\-]+$/u;
@@ -341,7 +342,7 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
         errors.push(`Line ${i + 1}: car "${plate}" not found`);
         continue;
       }
-      await prisma.expense.create({
+      const createdExpense = await prisma.expense.create({
         data: {
           ownerId: oid,
           carId: carId ?? null,
@@ -352,6 +353,7 @@ export async function importRoutes(app: FastifyInstance): Promise<void> {
           note: noteRaw ? truncateNote(noteRaw) : null,
         },
       });
+      if (carId) await replaceExpenseCarLinks(prisma, createdExpense.id, [carId]);
       created++;
     }
     return { created, total: lines.length, errors };

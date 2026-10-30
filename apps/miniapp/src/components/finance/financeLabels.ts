@@ -1,4 +1,5 @@
 import type { ExpenseCategory, PaymentType } from "@taxi/shared";
+import { expensePlateLabel } from "@taxi/shared";
 
 // i18next's `t` can be called with a single key (e.g. `t("finance.RENT")`)
 // or with a key plus an interpolation object (e.g. `t("finance.discountTag", {
@@ -31,6 +32,7 @@ export function expenseDisplaySubtitle(
     paidByFather?: boolean;
     category: ExpenseCategory;
     car?: { plate: string } | null;
+    cars?: { plate: string }[] | null;
   },
   dateLabel: string,
   t: Translate,
@@ -39,7 +41,7 @@ export function expenseDisplaySubtitle(
   const hasCustomTitle = Boolean(expense.note?.trim() || expense.tag?.trim());
   return [
     dateLabel,
-    expense.car?.plate ?? noneLabel,
+    expensePlateLabel(expense, noneLabel),
     expense.paidByFather ? t("finance.paidByFather") : null,
     expense.paidByPartner ? t("finance.paidByPartner") : null,
     hasCustomTitle ? t(`finance.${expense.category}`) : null,

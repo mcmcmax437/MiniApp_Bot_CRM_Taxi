@@ -1,4 +1,4 @@
-import { PaymentType } from "@taxi/shared";
+import { PaymentType, expensePlateLabel } from "@taxi/shared";
 import type { Expense, Payment } from "../../types";
 
 export function monthKeyFromIso(dateStr: string): string {
@@ -20,9 +20,9 @@ export function partnerPaymentDescription(
 
 /** Plate and action note only — no category or grouping tags. */
 export function partnerExpenseDescription(
-  expense: Pick<Expense, "car" | "note">,
+  expense: Pick<Expense, "car" | "cars" | "note">,
 ): string {
-  const plate = expense.car?.plate?.trim();
+  const plate = expensePlateLabel(expense, "");
   const note = expense.note?.trim();
   if (plate && note) return `${plate} · ${note}`;
   return note || plate || "—";

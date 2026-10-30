@@ -84,6 +84,7 @@ async function main(): Promise<void> {
       amount: 40,
       date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       note: "Full tank",
+      carLinks: { create: { carId: car.id } },
     },
   });
 

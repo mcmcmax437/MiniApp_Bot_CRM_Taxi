@@ -233,6 +233,8 @@ export interface Expense {
   paidByFather: boolean;
   createdAt?: string;
   car?: { id: string; plate: string } | null;
+  /** Every car this expense belongs to. Empty means it is not tied to a car. */
+  cars?: { id: string; plate: string }[];
 }
 
 export interface Fine {

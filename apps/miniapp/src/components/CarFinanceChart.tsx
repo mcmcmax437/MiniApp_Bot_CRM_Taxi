@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExpenseCategory, PaymentType } from "@taxi/shared";
+import { ExpenseCategory, PaymentType, expenseAmountForSelection, linkedExpenseCarIds } from "@taxi/shared";
 import { useExpenses, usePayments } from "../hooks";
 import { formatMoney } from "../currency";
 import { Icon } from "./crm";
@@ -114,14 +114,18 @@ export function CarFinanceChart(props: { carId: string }) {
 
     const carExpenses = (expenses.data ?? []).filter(
       (e) =>
-        e.carId === props.carId &&
+        linkedExpenseCarIds(e).includes(props.carId) &&
         e.category !== ExpenseCategory.TAX &&
         e.category !== ExpenseCategory.CAR_PURCHASE,
     );
     for (const e of carExpenses) {
       const k = getFinanceMonthKey(e.date);
       const slot = byKey.get(k) ?? { income: 0, expenses: 0, count: 0 };
-      slot.expenses += e.amount;
+      slot.expenses += expenseAmountForSelection(
+        e.amount,
+        linkedExpenseCarIds(e),
+        new Set([props.carId]),
+      );
       slot.count += 1;
       byKey.set(k, slot);
       consider(new Date(e.date));

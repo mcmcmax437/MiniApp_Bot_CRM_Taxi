@@ -8664,3 +8664,32 @@ select.crm-input option {
     border-radius: 99px;
   }
 }
+
+.crm-expense-cars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crm-expense-cars__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.crm-expense-cars__item--on {
+  border-color: rgba(68, 138, 255, 0.7);
+  background: rgba(68, 138, 255, 0.16);
+}
+
+.crm-expense-cars__item input {
+  accent-color: #448aff;
+  margin: 0;
+}

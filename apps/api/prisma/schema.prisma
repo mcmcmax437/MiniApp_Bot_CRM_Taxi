@@ -199,6 +199,7 @@ model Car {
   agreements         RentalAgreement[]
   payments           Payment[]
   expenses           Expense[]
+  expenseLinks       ExpenseCar[]
   fines              Fine[]
   shifts             Shift[]
   documents          CarDocument[]
@@ -453,9 +454,21 @@ model Expense {
   partnerSettled  Boolean         @default(false)
   paidByFather    Boolean         @default(false)
   createdAt       DateTime        @default(now())
+  carLinks        ExpenseCar[]
 
   @@index([ownerId])
   @@index([ownerId, date])
+  @@index([carId])
+}
+
+/// One expense can belong to several cars. `Expense.carId` stays the first car for older readers.
+model ExpenseCar {
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  carId     String
+  car       Car     @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  @@id([expenseId, carId])
   @@index([carId])
 }
 

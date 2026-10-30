@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExpenseCategory } from "@taxi/shared";
+import { ExpenseCategory, expenseMatchesCarFilter, expensePlateLabel, linkedExpenseCarIds } from "@taxi/shared";
+import { ExpenseCarPicker } from "./ExpenseCarPicker";
 import { useExpenses, useCars, useSaveExpense, useDeleteExpense } from "../../hooks";
 import {
   Modal,
   Field,
   TextArea,
   DateInput,
-  SelectInput,
   FormActions,
   formatMoney,
   formatDate,
@@ -63,12 +63,12 @@ export function TaxesTab() {
   const [dateSort, setDateSort] = useState<FinanceDateSort>("newest");
   const [carFilters, setCarFilters] = useState<string[]>([]);
   const [form, setForm] = useState<{
-    carId: string;
+    carIds: string[];
     amount: number | "";
     date: string;
     note: string;
   }>({
-    carId: "",
+    carIds: [],
     amount: "",
     date: todayInput(),
     note: "",
@@ -82,10 +82,7 @@ export function TaxesTab() {
   const scoped = useMemo(() => {
     return taxItems.filter((e) => {
       if (!financeInPeriod(e.date, period, dateRange)) return false;
-      if (carFilters.length > 0) {
-        const carId = e.carId ?? "";
-        if (!carFilters.includes(carId)) return false;
-      }
+      if (!expenseMatchesCarFilter(e, carFilters)) return false;
       return true;
     });
   }, [taxItems, period, dateRange, carFilters]);
@@ -125,7 +122,7 @@ export function TaxesTab() {
     const q = search.trim().toLowerCase();
     const list = scoped.filter((e) => {
       if (!q) return true;
-      const hay = `${e.car?.plate ?? ""} ${e.note ?? ""} ${e.amount}`.toLowerCase();
+      const hay = `${expensePlateLabel(e, "")} ${e.note ?? ""} ${e.amount}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (e) => e.date);
@@ -133,7 +130,7 @@ export function TaxesTab() {
 
   function openCreate() {
     setEditId(null);
-    setForm({ carId: "", amount: "", date: todayInput(), note: "" });
+    setForm({ carIds: [], amount: "", date: todayInput(), note: "" });
     setOpen(true);
   }
 
@@ -143,7 +140,8 @@ export function TaxesTab() {
       {
         id: editId ?? undefined,
         data: {
-          carId: form.carId || null,
+          carIds: form.carIds,
+          carId: form.carIds[0] ?? null,
           category: ExpenseCategory.TAX,
           amount: form.amount,
           date: form.date,
@@ -224,7 +222,7 @@ export function TaxesTab() {
             renderItem={(e) => (
               <FinanceListItem
                 title={e.note?.trim() || t("finance.TAX")}
-                subtitle={[formatDate(e.date), e.car?.plate ?? t("finance.allCars"), t("finance.TAX")]
+                subtitle={[formatDate(e.date), expensePlateLabel(e, t("finance.allCars")), t("finance.TAX")]
                   .filter(Boolean)
                   .join(" • ")}
                 amount={formatMoney(e.amount)}
@@ -235,7 +233,7 @@ export function TaxesTab() {
                     : () => {
                         setEditId(e.id);
                         setForm({
-                          carId: e.carId ?? "",
+                          carIds: linkedExpenseCarIds(e),
                           amount: e.amount,
                           date: e.date.slice(0, 10),
                           note: e.note ?? "",
@@ -270,14 +268,13 @@ export function TaxesTab() {
           </div>
         }
       >
-        <Field label={t("finance.car")}>
-          <SelectInput
-            value={form.carId}
-            onChange={(v) => setForm({ ...form, carId: v })}
-            options={[
-              { value: "", label: t("finance.allCars") },
-              ...(cars.data ?? []).map((c) => ({ value: c.id, label: c.plate })),
-            ]}
+        <Field label={t("finance.cars")}>
+          <ExpenseCarPicker
+            cars={(cars.data ?? []).map((c) => ({ id: c.id, plate: c.plate }))}
+            selected={form.carIds}
+            onChange={(carIds) => setForm({ ...form, carIds })}
+            emptyHint={t("finance.allCars")}
+            splitHint={t("finance.expenseCarsSplitHint")}
           />
         </Field>
         <Field label={t("finance.amount")}>

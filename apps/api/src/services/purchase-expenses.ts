@@ -1,5 +1,6 @@
 import { Currency, ExpenseCategory, type CarPurchasePartInput } from "@taxi/shared";
 import { prisma } from "../prisma.js";
+import { replaceExpenseCarLinks } from "./expense-cars.js";
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -97,6 +98,13 @@ export async function replacePurchaseExpenses(args: {
     });
     if (rows.length === 0) return;
     await tx.expense.createMany({ data: rows as never });
+    const created = await tx.expense.findMany({
+      where: purchaseExpenseWhere(args.ownerId, args.carId),
+      select: { id: true },
+    });
+    for (const row of created) {
+      await replaceExpenseCarLinks(tx, row.id, [args.carId]);
+    }
   });
 }
 

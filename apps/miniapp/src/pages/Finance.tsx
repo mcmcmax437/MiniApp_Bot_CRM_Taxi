@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { PAYMENT_METHODS, PAYMENT_BANKS, PaymentBank, PaymentMethod, PaymentType, ExpenseCategory, AgreementStatus, RentPeriod, isCarPurchaseExpense } from "@taxi/shared";
+import { PAYMENT_METHODS, PAYMENT_BANKS, PaymentBank, PaymentMethod, PaymentType, ExpenseCategory, AgreementStatus, RentPeriod, isCarPurchaseExpense, expenseMatchesCarFilter, expensePlateLabel, linkedExpenseCarIds } from "@taxi/shared";
 import {
   usePayments,
   useExpenses,
@@ -26,6 +26,7 @@ import { daysWorkedLastWeek } from "../components/finance/paymentWorkDays";
 import { FleetTab } from "../components/finance/FleetTab";
 import { TaxesTab } from "../components/finance/TaxesTab";
 import { ExpenseTagInput } from "../components/finance/ExpenseTagInput";
+import { ExpenseCarPicker } from "../components/finance/ExpenseCarPicker";
 import { NoteViewerModal, previewNote } from "../components/finance/NoteViewerModal";
 import {
   Modal,
@@ -668,7 +669,7 @@ function ExpensesTab() {
     amount?: string;
   } | null>(null);
   const [form, setForm] = useState<{
-    carId: string;
+    carIds: string[];
     category: ExpenseCategory;
     amount: number | "";
     date: string;
@@ -678,7 +679,7 @@ function ExpensesTab() {
     partnerSettled: boolean;
     paidByFather: boolean;
   }>({
-    carId: "",
+    carIds: [],
     category: ExpenseCategory.FUEL,
     amount: "",
     date: todayInput(),
@@ -709,10 +710,7 @@ function ExpensesTab() {
         const matchMine = payerFilters.includes("MINE") && !isPartner;
         if (!matchPartner && !matchMine) return false;
       }
-      if (carFilters.length > 0) {
-        const carId = e.carId ?? "";
-        if (!carFilters.includes(carId)) return false;
-      }
+      if (!expenseMatchesCarFilter(e, carFilters)) return false;
       return true;
     });
   }, [all, period, dateRange, payerFilters, carFilters, showCarPurchases]);
@@ -728,10 +726,7 @@ function ExpensesTab() {
         const matchMine = payerFilters.includes("MINE") && !isPartner;
         if (!matchPartner && !matchMine) return false;
       }
-      if (carFilters.length > 0) {
-        const carId = e.carId ?? "";
-        if (!carFilters.includes(carId)) return false;
-      }
+      if (!expenseMatchesCarFilter(e, carFilters)) return false;
       return true;
     });
   }, [all, payerFilters, carFilters, showCarPurchases]);
@@ -790,7 +785,7 @@ function ExpensesTab() {
     const q = search.trim().toLowerCase();
     const list = scoped.filter((e) => {
       if (!q) return true;
-      const hay = `${t(`finance.${e.category}`)} ${e.car?.plate ?? ""} ${e.tag ?? ""} ${e.paidByFather ? t("finance.paidByFather") : ""} ${e.paidByPartner ? t("finance.paidByPartner") : ""} ${e.note ?? ""}`.toLowerCase();
+      const hay = `${t(`finance.${e.category}`)} ${expensePlateLabel(e, "")} ${e.tag ?? ""} ${e.paidByFather ? t("finance.paidByFather") : ""} ${e.paidByPartner ? t("finance.paidByPartner") : ""} ${e.note ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
     return sortFinanceByDate(list, dateSort, (e) => e.date);
@@ -800,7 +795,7 @@ function ExpensesTab() {
     setEditId(null);
     setFieldErrors({});
     setForm({
-      carId: "",
+      carIds: [],
       category: ExpenseCategory.FUEL,
       amount: "",
       date: todayInput(),
@@ -824,7 +819,8 @@ function ExpensesTab() {
       {
         id: editId ?? undefined,
         data: {
-          carId: form.carId || null,
+          carIds: form.carIds,
+          carId: form.carIds[0] ?? null,
           category: form.category,
           amount: form.amount,
           date: form.date,
@@ -969,7 +965,7 @@ function ExpensesTab() {
                           setEditId(e.id);
                           setFieldErrors({});
                           setForm({
-                            carId: e.carId ?? "",
+                            carIds: linkedExpenseCarIds(e),
                             category: e.category,
                             amount: e.amount,
                             date: e.date.slice(0, 10),
@@ -1019,14 +1015,12 @@ function ExpensesTab() {
               .map((x) => ({ value: x, label: t(`finance.${x}`) }))}
           />
         </Field>
-        <Field label={t("finance.car")}>
-          <SelectInput
-            value={form.carId}
-            onChange={(v) => setForm({ ...form, carId: v })}
-            options={[
-              { value: "", label: t("common.none") },
-              ...(cars.data ?? []).map((c) => ({ value: c.id, label: c.plate })),
-            ]}
+        <Field label={t("finance.cars")}>
+          <ExpenseCarPicker
+            cars={(cars.data ?? []).map((c) => ({ id: c.id, plate: c.plate }))}
+            selected={form.carIds}
+            onChange={(carIds) => setForm({ ...form, carIds })}
+            splitHint={t("finance.expenseCarsSplitHint")}
           />
         </Field>
         <Field

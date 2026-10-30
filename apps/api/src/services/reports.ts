@@ -1,11 +1,13 @@
 import { prisma } from "../prisma.js";
-import type {
-  DriverIncomeMonthDriverRow,
-  DriverIncomeReport,
-  PartnerSettlementLine,
-  PartnerSettlementMonth,
-  PartnerSettlementReport,
-  ReportSummary,
+import {
+  linkedExpenseCarIds,
+  splitExpenseAmount,
+  type DriverIncomeMonthDriverRow,
+  type DriverIncomeReport,
+  type PartnerSettlementLine,
+  type PartnerSettlementMonth,
+  type PartnerSettlementReport,
+  type ReportSummary,
 } from "@taxi/shared";
 
 function round2(n: number): number {
@@ -212,7 +214,10 @@ export async function buildReportSummary(
     prisma.payment.findMany({
       where: { ownerId, date: { gte: from, lte: to }, type: { in: ["RENT", "FINE"] } },
     }),
-    prisma.expense.findMany({ where: { ownerId, date: { gte: from, lte: to } } }),
+    prisma.expense.findMany({
+      where: { ownerId, date: { gte: from, lte: to } },
+      include: { carLinks: { select: { carId: true } } },
+    }),
     prisma.car.findMany({ where: { ownerId } }),
     prisma.driver.findMany({ where: { ownerId } }),
     prisma.payment.findMany({
@@ -246,7 +251,14 @@ export async function buildReportSummary(
   let expenseTotal = 0;
   for (const e of expenses) {
     expenseTotal += e.amount;
-    if (e.carId) expenseByCar.set(e.carId, (expenseByCar.get(e.carId) ?? 0) + e.amount);
+    const ids = linkedExpenseCarIds({
+      carId: e.carId,
+      cars: e.carLinks.map((link) => ({ id: link.carId })),
+    });
+    const shares = splitExpenseAmount(e.amount, ids.length);
+    ids.forEach((id, index) => {
+      expenseByCar.set(id, (expenseByCar.get(id) ?? 0) + (shares[index] ?? 0));
+    });
   }
 
   const carIds = new Set<string>([...incomeByCar.keys(), ...expenseByCar.keys()]);
@@ -304,10 +316,18 @@ function partnerSettlementExpenseDescription(
   e: {
     note: string | null;
     carId: string | null;
+    carLinks: { carId: string }[];
   },
   carPlate: Map<string, string>,
 ): string {
-  const plate = e.carId ? carPlate.get(e.carId) : null;
+  const ids = linkedExpenseCarIds({
+    carId: e.carId,
+    cars: e.carLinks.map((link) => ({ id: link.carId })),
+  });
+  const plate = ids
+    .map((id) => carPlate.get(id))
+    .filter(Boolean)
+    .join(", ");
   const note = e.note?.trim();
   if (plate && note) return `${plate} · ${note}`;
   if (note) return note;
@@ -355,6 +375,7 @@ export async function buildPartnerSettlementReport(
         partnerSettled: true,
         note: true,
         carId: true,
+        carLinks: { select: { carId: true } },
       },
       orderBy: { date: "asc" },
     }),

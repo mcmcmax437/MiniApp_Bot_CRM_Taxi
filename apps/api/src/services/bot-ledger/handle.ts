@@ -5,6 +5,7 @@ import { messageCalendarDate, type LedgerIntent } from "./intent.js";
 import { askLedgerModel } from "./openai.js";
 import { rememberPending, restorePending, takePending } from "./pending.js";
 import { formatLedgerAmount, formatLedgerDate, ledgerCopy } from "./copy.js";
+import { replaceExpenseCarLinks } from "../expense-cars.js";
 
 const MAX_CHOICES = 8;
 
@@ -94,7 +95,7 @@ async function saveIntent(args: {
   const noon = new Date(`${args.date}T12:00:00.000Z`);
 
   if (args.intent.kind === "expense") {
-    await prisma.expense.create({
+    const created = await prisma.expense.create({
       data: {
         ownerId: args.owner.id,
         carId: args.car.id,
@@ -105,6 +106,7 @@ async function saveIntent(args: {
         tag: "telegram",
       },
     });
+    await replaceExpenseCarLinks(prisma, created.id, [args.car.id]);
   } else {
     await prisma.payment.create({
       data: {

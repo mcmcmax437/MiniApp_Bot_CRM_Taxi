@@ -1,4 +1,4 @@
-import { PaymentType } from "@taxi/shared";
+import { PaymentType, expenseAmountForSelection, linkedExpenseCarIds, splitExpenseAmount } from "@taxi/shared";
 import type { ReportSummary } from "@taxi/shared";
 import type { DashboardStatsPeriod } from "../components/crm";
 import type { Car, Expense, Payment } from "../types";
@@ -96,6 +96,18 @@ export function matchesDashboardCar(carId: string | null | undefined, filterCarI
   return carId === filterCarId;
 }
 
+function expenseMatchesDashboardCar(expense: Expense, filterCarId: string): boolean {
+  const ids = linkedExpenseCarIds(expense);
+  if (!filterCarId) return true;
+  if (filterCarId === DASHBOARD_FLEET_OTHER_CAR_ID) return ids.length === 0;
+  return ids.includes(filterCarId);
+}
+
+function expenseCountedAmount(expense: Expense, filterCarId: string): number {
+  if (!filterCarId || filterCarId === DASHBOARD_FLEET_OTHER_CAR_ID) return expense.amount;
+  return expenseAmountForSelection(expense.amount, linkedExpenseCarIds(expense), new Set([filterCarId]));
+}
+
 export function isDashboardIncomePayment(type: PaymentType): boolean {
   return type === PaymentType.RENT || type === PaymentType.FINE;
 }
@@ -141,8 +153,9 @@ export function sumExpensesByPayer(
   let partner = 0;
   let mine = 0;
   for (const e of filterDashboardExpenses(expenses, period, carId)) {
-    if (e.paidByPartner) partner += e.amount;
-    else mine += e.amount;
+    const amount = expenseCountedAmount(e, carId);
+    if (e.paidByPartner) partner += amount;
+    else mine += amount;
   }
   return {
     partner: round2(partner),
@@ -157,7 +170,7 @@ export function filterDashboardExpenses(
   carId: string,
 ): Expense[] {
   return expenses.filter(
-    (e) => matchesDashboardCar(e.carId, carId) && expenseInStatsPeriod(e.date, period),
+    (e) => expenseMatchesDashboardCar(e, carId) && expenseInStatsPeriod(e.date, period),
   );
 }
 
@@ -187,8 +200,15 @@ export function buildDashboardByCar(
   const expenseByCar = new Map<string, number>();
   let fleetOtherExpenses = 0;
   for (const e of filterDashboardExpenses(expenses, period, "")) {
-    if (e.carId) expenseByCar.set(e.carId, (expenseByCar.get(e.carId) ?? 0) + e.amount);
-    else fleetOtherExpenses += e.amount;
+    const ids = linkedExpenseCarIds(e);
+    if (ids.length === 0) {
+      fleetOtherExpenses += e.amount;
+      continue;
+    }
+    const shares = splitExpenseAmount(e.amount, ids.length);
+    ids.forEach((id, index) => {
+      expenseByCar.set(id, (expenseByCar.get(id) ?? 0) + (shares[index] ?? 0));
+    });
   }
 
   const labelById = new Map(cars.map((c) => [c.id, carRowLabel(c)] as const));
