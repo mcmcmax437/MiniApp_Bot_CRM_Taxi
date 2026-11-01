@@ -110,6 +110,22 @@ export interface FleetTrackerLocations {
   missing: FleetTrackerMissing[];
 }
 
+export interface FleetTrackerProgressCar {
+  id: string;
+  plate: string;
+  make: string | null;
+  model: string | null;
+  status?: "pending" | "located" | "missing";
+  error?: string;
+}
+
+export interface FleetTrackerProgress {
+  done: number;
+  total: number;
+  plate?: string;
+  cars: FleetTrackerProgressCar[];
+}
+
 export interface Driver {
   id: string;
   firstName: string;

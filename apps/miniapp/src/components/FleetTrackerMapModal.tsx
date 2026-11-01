@@ -5,7 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useFleetTrackerLocations } from "../hooks";
 import { IconActionButton } from "./crm";
 import { Modal } from "./ui";
-import type { FleetTrackerCar } from "../types";
+import type { FleetTrackerCar, FleetTrackerProgress } from "../types";
 import { formatTrackerFixTime } from "../formatTrackerTime";
 
 function escapeHtml(value: string): string {
@@ -46,6 +46,81 @@ function markerHtml(car: FleetTrackerCar): string {
   return `<span class="crm-fleet-pin__label${state}">${escapeHtml(car.plate)}</span>`;
 }
 
+function FleetLoadProgress(props: { progress: FleetTrackerProgress | null }) {
+  const { t } = useTranslation();
+  const progress = props.progress;
+  const total = progress?.total ?? 0;
+  const done = progress?.done ?? 0;
+  const left = Math.max(total - done, 0);
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  const cars = progress?.cars ?? [];
+
+  return (
+    <div className="crm-fleet-map__progress" aria-live="polite">
+      <p className="crm-form-hint">{t("cars.fleetMapLoading")}</p>
+      <p className="crm-fleet-map__progress-count">
+        {total > 0
+          ? t("cars.fleetMapLoadingProgress", { done, total })
+          : t("cars.fleetMapLoading")}
+      </p>
+      {total > 0 ? (
+        <>
+          <div
+            className="crm-fleet-map__progress-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={done}
+          >
+            <div className="crm-fleet-map__progress-bar-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="crm-fleet-map__progress-meta">
+            {progress?.plate
+              ? t("cars.fleetMapLoadingCar", { plate: progress.plate })
+              : t("cars.fleetMapLoadingStart")}
+            {left > 0 ? (
+              <span className="crm-fleet-map__progress-left">
+                {" "}
+                · {t("cars.fleetMapLoadingRemaining", { count: left })}
+              </span>
+            ) : null}
+          </p>
+        </>
+      ) : null}
+      {cars.length > 0 ? (
+        <ul className="crm-fleet-map__progress-list">
+          {cars.map((car) => {
+            const state = car.status ?? "pending";
+            return (
+              <li
+                key={car.id}
+                className={`crm-fleet-map__progress-item crm-fleet-map__progress-item--${state}`}
+              >
+                <span className="crm-fleet-map__progress-mark" aria-hidden>
+                  {state === "pending" ? "…" : state === "located" ? "✓" : "–"}
+                </span>
+                <span>
+                  <strong>{car.plate}</strong>
+                  {vehicleLabel(car) ? (
+                    <span className="crm-fleet-map__vehicle"> {vehicleLabel(car)}</span>
+                  ) : null}
+                </span>
+                <span className="crm-fleet-map__progress-status">
+                  {state === "pending"
+                    ? t("cars.fleetMapLoadingPending")
+                    : state === "located"
+                      ? t("cars.fleetMapLoadingOk")
+                      : reasonLabel(car.error ?? "tracker_unavailable", t)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const query = useFleetTrackerLocations(props.open);
@@ -53,9 +128,14 @@ export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void
   const mapRef = useRef<L.Map | null>(null);
   const located = query.data?.located ?? [];
   const missing = query.data?.missing ?? [];
+  const progressTotal = query.progress?.total ?? 0;
+  const progressDone = query.progress?.done ?? 0;
+  const progressIncomplete = progressTotal > 0 && progressDone < progressTotal;
+  const showProgress =
+    query.isLoading || (query.isFetching && (!query.data || progressIncomplete));
 
   useEffect(() => {
-    if (!props.open || located.length === 0 || !mapHost.current) return;
+    if (!props.open || located.length === 0 || !mapHost.current || showProgress) return;
     const host = mapHost.current;
     const map = L.map(host, { zoomControl: true });
     mapRef.current = map;
@@ -92,7 +172,7 @@ export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void
       map.remove();
       mapRef.current = null;
     };
-  }, [props.open, located, t]);
+  }, [props.open, located, t, showProgress]);
 
   const refreshLabel = query.isFetching ? t("cars.trackerMap.refreshing") : t("cars.trackerMap.refresh");
 
@@ -112,8 +192,8 @@ export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void
       }
       onClose={props.onClose}
     >
-      {query.isLoading ? (
-        <p className="crm-form-hint">{t("cars.fleetMapLoading")}</p>
+      {showProgress ? (
+        <FleetLoadProgress progress={query.progress} />
       ) : query.isError ? (
         <p className="crm-form-hint">{t("cars.trackerMap.errorUnavailable")}</p>
       ) : (

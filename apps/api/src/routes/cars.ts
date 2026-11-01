@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { Readable } from "node:stream";
 import { prisma } from "../prisma.js";
 import {
   carCreateSchema,
@@ -288,8 +289,11 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // Live GPS for every car that has a tracker. One failure does not drop the rest.
-  app.get("/cars/tracker/locations", async (req) => {
-    const force = (req.query as { refresh?: string } | undefined)?.refresh === "1";
+  // With ?progress=1 streams NDJSON so the miniapp can show per-car load progress.
+  app.get("/cars/tracker/locations", async (req, reply) => {
+    const q = req.query as { refresh?: string; progress?: string } | undefined;
+    const force = q?.refresh === "1";
+    const wantProgress = q?.progress === "1";
     const cars = await prisma.car.findMany({
       where: { ownerId: ownerId(req) },
       select: {
@@ -316,12 +320,40 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     const ready = cars.filter((car) => car.trackerLogin && car.trackerPassword);
     const located: Array<Record<string, unknown>> = [];
 
+    let stream: Readable | null = null;
+    const writeProgress = (event: Record<string, unknown>) => {
+      if (!stream) return;
+      stream.push(`${JSON.stringify(event)}\n`);
+    };
+
+    if (wantProgress) {
+      stream = new Readable({ read() {} });
+      reply.header("Content-Type", "application/x-ndjson; charset=utf-8");
+      reply.header("Cache-Control", "no-store");
+      reply.header("X-Accel-Buffering", "no");
+      void reply.send(stream);
+      writeProgress({
+        type: "start",
+        total: ready.length,
+        skipped: missing.length,
+        cars: ready.map((car) => ({
+          id: car.id,
+          plate: car.plate,
+          make: car.make,
+          model: car.model,
+        })),
+      });
+    }
+
     let cursor = 0;
+    let done = 0;
     async function next(): Promise<void> {
       const index = cursor;
       cursor += 1;
       const car = ready[index];
       if (!car || !car.trackerLogin || !car.trackerPassword) return;
+      let status: "located" | "missing" = "missing";
+      let error: string | undefined;
       try {
         let position: TrackerPosition | undefined;
         let cached = false;
@@ -342,31 +374,33 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
           trackerCache.set(car.id, { at: Date.now(), position });
         }
         if (!position.hasFix) {
+          error = "tracker_no_fix";
           missing.push({
             id: car.id,
             plate: car.plate,
             make: car.make,
             model: car.model,
-            error: "tracker_no_fix",
+            error,
           });
-          return;
+        } else {
+          status = "located";
+          located.push({
+            id: car.id,
+            plate: car.plate,
+            make: car.make,
+            model: car.model,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            speed: position.speed,
+            course: position.course,
+            fixTime: position.fixTime,
+            online: position.online,
+            status: position.status,
+            cached,
+          });
         }
-        located.push({
-          id: car.id,
-          plate: car.plate,
-          make: car.make,
-          model: car.model,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          speed: position.speed,
-          course: position.course,
-          fixTime: position.fixTime,
-          online: position.online,
-          status: position.status,
-          cached,
-        });
       } catch (err) {
-        const error = err instanceof TrackerError ? err.code : "tracker_unavailable";
+        error = err instanceof TrackerError ? err.code : "tracker_unavailable";
         missing.push({
           id: car.id,
           plate: car.plate,
@@ -375,6 +409,18 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
           error,
         });
       }
+      done += 1;
+      writeProgress({
+        type: "progress",
+        done,
+        total: ready.length,
+        id: car.id,
+        plate: car.plate,
+        make: car.make,
+        model: car.model,
+        status,
+        error,
+      });
     }
 
     const workers = Math.min(3, ready.length);
@@ -387,6 +433,13 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
 
     located.sort((a, b) => String(a.plate).localeCompare(String(b.plate)));
     missing.sort((a, b) => a.plate.localeCompare(b.plate));
+
+    if (wantProgress) {
+      writeProgress({ type: "done", located, missing });
+      stream!.push(null);
+      return reply;
+    }
+
     return { located, missing };
   });
 
