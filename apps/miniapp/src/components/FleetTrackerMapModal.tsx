@@ -128,9 +128,11 @@ export function FleetTrackerMapModal(props: { open: boolean; onClose: () => void
   const mapRef = useRef<L.Map | null>(null);
   const located = query.data?.located ?? [];
   const missing = query.data?.missing ?? [];
+  const progressTotal = query.progress?.total ?? 0;
+  const progressDone = query.progress?.done ?? 0;
+  const progressIncomplete = progressTotal > 0 && progressDone < progressTotal;
   const showProgress =
-    query.isLoading || (query.isFetching && (!query.data || (query.progress?.total ?? 0) > 0 &&
-      (query.progress?.done ?? 0) < (query.progress?.total ?? 0)));
+    query.isLoading || (query.isFetching && (!query.data || progressIncomplete));
 
   useEffect(() => {
     if (!props.open || located.length === 0 || !mapHost.current || showProgress) return;
