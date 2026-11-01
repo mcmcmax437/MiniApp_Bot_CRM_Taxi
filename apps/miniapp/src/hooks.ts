@@ -1,6 +1,6 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch, apiUpload } from "./api";
+import { apiFetch, apiUpload, fetchFleetTrackerLocations } from "./api";
 import type {
   MeResponse,
   DriverBalance,
@@ -21,7 +21,7 @@ import type {
   OwnerRow,
   Payment,
   TrackerLocation,
-  FleetTrackerLocations,
+  FleetTrackerProgress,
   FleetMember,
 } from "./types";
 import { isCarGalleryPhoto } from "./components/documentUtils";
@@ -123,14 +123,36 @@ export function useTrackerLocation(carId: string | undefined, enabled: boolean) 
 
 export function useFleetTrackerLocations(enabled: boolean) {
   const forceRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const [progress, setProgress] = useState<FleetTrackerProgress | null>(null);
+
+  useEffect(() => {
+    if (enabled) return;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setProgress(null);
+  }, [enabled]);
+
   const query = useQuery({
     queryKey: ["cars", "tracker-locations"],
-    queryFn: () => {
+    queryFn: async () => {
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
+      setProgress({ done: 0, total: 0, cars: [] });
       const force = forceRef.current;
       forceRef.current = false;
-      return apiFetch<FleetTrackerLocations>(
-        `/cars/tracker/locations${force ? "?refresh=1" : ""}`,
-      );
+      try {
+        return await fetchFleetTrackerLocations({
+          force,
+          signal: ac.signal,
+          onProgress: setProgress,
+        });
+      } catch (err) {
+        if (ac.signal.aborted) throw err;
+        setProgress(null);
+        throw err;
+      }
     },
     enabled,
     retry: false,
@@ -140,7 +162,7 @@ export function useFleetTrackerLocations(enabled: boolean) {
     forceRef.current = true;
     return query.refetch();
   };
-  return { ...query, refresh };
+  return { ...query, progress, refresh };
 }
 
 // --- Drivers ----------------------------------------------------------------
