@@ -12,7 +12,13 @@ import { isImageDocument } from "../services/document-image.js";
 import { fetchMkingPosition, TrackerError, type TrackerPosition } from "../services/mking-tracker.js";
 import { syncCarTrackerWeek } from "../services/tracker-daily.js";
 import { replacePurchaseExpenses } from "../services/purchase-expenses.js";
-import { CarAlreadySoldError, recordCarSale } from "../services/car-sale.js";
+import {
+  CarAlreadySoldError,
+  CarNotSoldError,
+  paymentsFromSellInput,
+  recordCarSale,
+  replaceCarSalePayments,
+} from "../services/car-sale.js";
 
 const TRACKER_CACHE_TTL_MS = 20_000;
 const trackerCache = new Map<string, { at: number; position: TrackerPosition }>();
@@ -253,37 +259,7 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     if (!existing) return reply.code(404).send({ error: "not_found" });
     if (existing.status === "SOLD") return reply.code(409).send({ error: "already_sold" });
 
-    const sharedNote = body.note?.trim() || `Sale ${existing.plate}`;
-    const sourceParts =
-      body.parts && body.parts.length > 0
-        ? body.parts
-        : [
-            {
-              amount: body.amount!,
-              date: body.date!,
-              method: body.method,
-              bank: body.bank,
-              note: body.note,
-            },
-          ];
-    const payments = sourceParts.map((part, index) => {
-      const method = part.method ?? "CASH";
-      const date = part.date;
-      const saleDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
-        ? new Date(`${date}T12:00:00.000Z`)
-        : new Date(date);
-      const partNote = part.note?.trim();
-      const note =
-        partNote ||
-        (sourceParts.length > 1 ? `${sharedNote} (${index + 1}/${sourceParts.length})` : sharedNote);
-      return {
-        amount: part.amount,
-        saleDate,
-        method,
-        bank: (method === "BANK" ? (part.bank ?? "NONE") : "NONE") as "NONE" | "PKO" | "CA",
-        note,
-      };
-    });
+    const payments = paymentsFromSellInput(existing.plate, body);
 
     let car;
     try {
@@ -299,6 +275,38 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     } catch (err) {
       if (err instanceof CarAlreadySoldError) {
         return reply.code(409).send({ error: "already_sold" });
+      }
+      throw err;
+    }
+
+    return car;
+  });
+
+  /** Edit the split income payments of a car that is already sold. */
+  app.patch("/cars/:id/sale", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = parse(carSellSchema, req.body, reply);
+    if (!body) return;
+    const oid = ownerId(req);
+    const existing = await prisma.car.findFirst({ where: { id, ownerId: oid } });
+    if (!existing) return reply.code(404).send({ error: "not_found" });
+    if (existing.status !== "SOLD") return reply.code(409).send({ error: "not_sold" });
+
+    const payments = paymentsFromSellInput(existing.plate, body);
+    let car;
+    try {
+      car = await prisma.$transaction(async (tx) => {
+        await replaceCarSalePayments(tx, {
+          ownerId: oid,
+          carId: id,
+          payments,
+          saleNote: body.note?.trim() || null,
+        });
+        return tx.car.findFirstOrThrow({ where: { id, ownerId: oid }, include: carInclude });
+      });
+    } catch (err) {
+      if (err instanceof CarNotSoldError) {
+        return reply.code(409).send({ error: "not_sold" });
       }
       throw err;
     }

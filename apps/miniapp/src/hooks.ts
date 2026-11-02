@@ -100,6 +100,19 @@ export function useSellCar() {
     },
   });
 }
+export function useUpdateCarSale() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; data: Record<string, unknown> }) =>
+      apiFetch<Car>(`/cars/${input.id}/sale`, { method: "PATCH", body: input.data }),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ["cars"] });
+      void qc.invalidateQueries({ queryKey: ["cars", vars.id] });
+      void qc.invalidateQueries({ queryKey: ["payments"] });
+      void qc.invalidateQueries({ queryKey: ["reports"] });
+    },
+  });
+}
 export function useDeleteCar() {
   const qc = useQueryClient();
   return useMutation({
