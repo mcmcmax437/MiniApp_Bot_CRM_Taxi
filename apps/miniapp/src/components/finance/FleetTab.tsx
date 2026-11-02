@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AgreementStatus,
+  CarStatus,
   RentPeriod,
   type RentalCompany,
   agreementDriverDisplayName,
@@ -113,27 +114,31 @@ export function FleetTab() {
     return map;
   }, [agreements.data]);
 
+  const unsoldCars = useMemo(
+    () => (cars.data ?? []).filter((c) => c.status !== CarStatus.SOLD),
+    [cars.data],
+  );
   const availableCars = useMemo(
-    () => (cars.data ?? []).filter((c) => !activeByCarId.has(c.id)),
-    [cars.data, activeByCarId],
+    () => unsoldCars.filter((c) => !activeByCarId.has(c.id)),
+    [unsoldCars, activeByCarId],
   );
   const isHistoricalAssign =
     lockedCarId != null ||
     (Boolean(form.endDate.trim()) && form.endDate.trim() < form.startDate);
   const assignCarOptions = useMemo(() => {
-    const base = isHistoricalAssign ? (cars.data ?? []) : availableCars;
+    const base = isHistoricalAssign ? unsoldCars : availableCars;
     const selected = form.carId ? base.find((c) => c.id === form.carId) : undefined;
     const list =
       selected || !form.carId
         ? base
         : [...base, ...(cars.data ?? []).filter((c) => c.id === form.carId)];
     return list.map((c) => ({ value: c.id, label: c.plate }));
-  }, [isHistoricalAssign, cars.data, availableCars, form.carId]);
+  }, [isHistoricalAssign, unsoldCars, availableCars, form.carId]);
   const lockedCar = lockedCarId ? cars.data?.find((c) => c.id === lockedCarId) : undefined;
 
   const fleetRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (cars.data ?? [])
+    return unsoldCars
       .map((car) => ({ car, agreement: activeByCarId.get(car.id) }))
       .filter(({ car, agreement }) => {
         if (!q) return true;
@@ -156,7 +161,7 @@ export function FleetTab() {
         if (!a.agreement && b.agreement) return 1;
         return a.car.plate.localeCompare(b.car.plate);
       });
-  }, [cars.data, activeByCarId, search]);
+  }, [unsoldCars, activeByCarId, search]);
 
   function openAssign(carId = "", options?: { historical?: boolean }) {
     const historical = Boolean(options?.historical && carId);
@@ -166,7 +171,7 @@ export function FleetTab() {
       useTemporaryDriver: noDrivers,
       driverId: drivers.data?.[0]?.id ?? "",
       temporaryDriverName: "",
-      carId: carId || (availableCars[0]?.id ?? cars.data?.[0]?.id ?? ""),
+      carId: carId || (availableCars[0]?.id ?? unsoldCars[0]?.id ?? ""),
       company: "",
       startDate: todayInput(),
       endDate: "",

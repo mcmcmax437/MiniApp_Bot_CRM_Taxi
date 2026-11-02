@@ -1,5 +1,6 @@
 import { prisma } from "../prisma.js";
 import {
+  INCOME_PAYMENT_TYPES,
   linkedExpenseCarIds,
   splitExpenseAmount,
   type DriverIncomeMonthDriverRow,
@@ -212,7 +213,7 @@ export async function buildReportSummary(
 ): Promise<ReportSummary> {
   const [payments, expenses, cars, drivers, unsettledPayments, unsettledExpenses] = await Promise.all([
     prisma.payment.findMany({
-      where: { ownerId, date: { gte: from, lte: to }, type: { in: ["RENT", "FINE"] } },
+      where: { ownerId, date: { gte: from, lte: to }, type: { in: [...INCOME_PAYMENT_TYPES] } },
     }),
     prisma.expense.findMany({
       where: { ownerId, date: { gte: from, lte: to } },

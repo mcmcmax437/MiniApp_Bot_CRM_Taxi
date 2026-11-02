@@ -16,6 +16,8 @@ export const CarStatus = {
   RENTED: "RENTED",
   MAINTENANCE: "MAINTENANCE",
   INACTIVE: "INACTIVE",
+  /** Sold cars stay in the archive. They are not deleted. */
+  SOLD: "SOLD",
 } as const;
 export type CarStatus = (typeof CarStatus)[keyof typeof CarStatus];
 
@@ -74,8 +76,17 @@ export const PaymentType = {
   REFUND: "REFUND",
   FINE: "FINE",
   DISCOUNT: "DISCOUNT",
+  /** Money received when a car is sold. Counts as fleet income. */
+  SALE: "SALE",
 } as const;
 export type PaymentType = (typeof PaymentType)[keyof typeof PaymentType];
+
+/** Payment types that count as money the fleet received (not deposits or refunds). */
+export const INCOME_PAYMENT_TYPES = [PaymentType.RENT, PaymentType.FINE, PaymentType.SALE] as const;
+
+export function isFleetIncomePayment(type: string): boolean {
+  return (INCOME_PAYMENT_TYPES as readonly string[]).includes(type);
+}
 
 export const ExpenseCategory = {
   MAINTENANCE: "MAINTENANCE",
@@ -230,6 +241,16 @@ export const carCreateSchema = z.object({
 export const carUpdateSchema = carCreateSchema.partial();
 export type CarCreateInput = z.infer<typeof carCreateSchema>;
 export type CarUpdateInput = z.infer<typeof carUpdateSchema>;
+
+/** Record a car sale: archive the car and book the amount as income. */
+export const carSellSchema = z.object({
+  amount: z.number().finite().gt(0),
+  date: isoDate,
+  method: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
+  bank: z.nativeEnum(PaymentBank).optional(),
+  note: z.string().trim().max(2000).optional().nullable(),
+});
+export type CarSellInput = z.infer<typeof carSellSchema>;
 
 /** Required fields for the car add/edit form (client-side validation). */
 export const carFormSchema = z.object({

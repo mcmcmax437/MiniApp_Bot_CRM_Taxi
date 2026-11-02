@@ -84,11 +84,10 @@ function formatRoi(percent: number | null | undefined): string {
  * on operating expenses (over the selected period). When ROI > 100%, the
  * fleet brought in more than it cost to run; below 100% it ran at a loss.
  *
- * "Income" here means money actually received from drivers — i.e. payments
- * of type RENT or FINE only. Deposits and refunds that drivers leave when
- * they take a car are NOT income (they're money held on the owner's behalf
- * and returned), and DISCOUNT entries reduce what we owe back to drivers,
- * not money we received.
+ * "Income" here means money the fleet actually received — rent, fines, and
+ * car sales. Deposits and refunds that drivers leave when they take a car
+ * are NOT income (they're money held on the owner's behalf and returned),
+ * and DISCOUNT entries reduce what we owe back to drivers, not money we received.
  *
  * "Expenses" includes all money spent to run the fleet — operating costs
  * and taxes (taxes are recorded separately in Finance but still reduce profit).

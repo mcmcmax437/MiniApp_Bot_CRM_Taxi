@@ -14,8 +14,10 @@ import {
 import type { Expense, Payment } from "../types";
 
 describe("isDashboardIncomePayment", () => {
-  it("matches rent and fines only", () => {
+  it("matches rent, fines, and car sales", () => {
     expect(isDashboardIncomePayment(PaymentType.RENT)).toBe(true);
+    expect(isDashboardIncomePayment(PaymentType.FINE)).toBe(true);
+    expect(isDashboardIncomePayment(PaymentType.SALE)).toBe(true);
     expect(isDashboardIncomePayment(PaymentType.DEPOSIT)).toBe(false);
   });
 });

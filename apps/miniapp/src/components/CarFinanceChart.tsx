@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExpenseCategory, PaymentType, expenseAmountForSelection, linkedExpenseCarIds } from "@taxi/shared";
+import { ExpenseCategory, expenseAmountForSelection, isFleetIncomePayment, linkedExpenseCarIds } from "@taxi/shared";
 import { useExpenses, usePayments } from "../hooks";
 import { formatMoney } from "../currency";
 import { Icon } from "./crm";
@@ -15,7 +15,7 @@ import { formatFinanceMonthLabel, getFinanceMonthKey } from "./finance/FinanceUi
  * caches the rest of the app already uses, filter them to this car, then
  * bucket by calendar month.
  *
- * Income = payments of type RENT or FINE only — matching the dashboard's
+ * Income = rent, fines, and car sales — matching the dashboard's
  * ROI definition so the two views agree on what "income" means.
  *
  * Expenses = everything except TAX — also matching the dashboard, because
@@ -101,7 +101,7 @@ export function CarFinanceChart(props: { carId: string }) {
     };
 
     const carPayments = (payments.data ?? []).filter(
-      (p) => p.carId === props.carId && (p.type === PaymentType.RENT || p.type === PaymentType.FINE),
+      (p) => p.carId === props.carId && isFleetIncomePayment(p.type),
     );
     for (const p of carPayments) {
       const k = getFinanceMonthKey(p.date);

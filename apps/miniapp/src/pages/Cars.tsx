@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { CarStatus } from "@taxi/shared";
 import { useCars, useCarCoverPhotos, useDeleteCar, useReminders } from "../hooks";
 import { useReadOnly } from "../readOnly";
 import { carAttentionIds } from "../components/carAttention";
@@ -23,13 +24,23 @@ export function CarsPage() {
   const [mapOpen, setMapOpen] = useState(false);
   const [editCarId, setEditCarId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [listView, setListView] = useState<"fleet" | "archive">("fleet");
   const editCar = (cars.data ?? []).find((car) => car.id === editCarId);
 
-  const hasCars = (cars.data?.length ?? 0) > 0;
+  const fleetCars = useMemo(
+    () => (cars.data ?? []).filter((car) => car.status !== CarStatus.SOLD),
+    [cars.data],
+  );
+  const archivedCars = useMemo(
+    () => (cars.data ?? []).filter((car) => car.status === CarStatus.SOLD),
+    [cars.data],
+  );
+  const hasCars = fleetCars.length > 0;
+  const listSource = listView === "archive" ? archivedCars : fleetCars;
 
   const filteredCars = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (cars.data ?? []).filter((car) => {
+    return listSource.filter((car) => {
       if (!q) return true;
       const hay = [
         car.plate,
@@ -45,7 +56,7 @@ export function CarsPage() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [cars.data, search, t]);
+  }, [listSource, search, t]);
 
   return (
     <div className="crm-page">
@@ -79,6 +90,31 @@ export function CarsPage() {
         </div>
       </div>
 
+      {!cars.isLoading && (fleetCars.length > 0 || archivedCars.length > 0) && (
+        <div className="crm-car-archive-toggle" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listView === "fleet"}
+            className={listView === "fleet" ? "is-active" : undefined}
+            onClick={() => setListView("fleet")}
+          >
+            {t("cars.fleetList")}
+            <span>{fleetCars.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listView === "archive"}
+            className={listView === "archive" ? "is-active" : undefined}
+            onClick={() => setListView("archive")}
+          >
+            {t("cars.archive")}
+            <span>{archivedCars.length}</span>
+          </button>
+        </div>
+      )}
+
       {!cars.isLoading && (
         <div className="crm-search-row">
           <label className="crm-search-input">
@@ -100,11 +136,29 @@ export function CarsPage() {
         </div>
       )}
 
-      {!cars.isLoading && !hasCars && !search.trim() && !readOnly && (
+      {!cars.isLoading && listView === "fleet" && !hasCars && archivedCars.length === 0 && !search.trim() && !readOnly && (
         <CarsEmptyState onAdd={() => setCreateOpen(true)} />
       )}
 
-      {!cars.isLoading && filteredCars.length === 0 && (hasCars || search.trim()) && (
+      {!cars.isLoading && listView === "fleet" && !hasCars && archivedCars.length > 0 && !search.trim() && (
+        <div className="crm-empty-box">
+          <p className="crm-empty-box__title">{t("cars.fleetEmptyArchived")}</p>
+        </div>
+      )}
+
+      {!cars.isLoading && filteredCars.length === 0 && listView === "archive" && !search.trim() && (
+        <div className="crm-empty-box">
+          <p className="crm-empty-box__title">{t("cars.archiveEmpty")}</p>
+        </div>
+      )}
+
+      {!cars.isLoading && filteredCars.length === 0 && (listSource.length > 0 || search.trim()) && listView === "fleet" && (
+        <div className="crm-empty-box">
+          <p className="crm-empty-box__title">{t("cars.noResults")}</p>
+        </div>
+      )}
+
+      {!cars.isLoading && filteredCars.length === 0 && search.trim() && listView === "archive" && (
         <div className="crm-empty-box">
           <p className="crm-empty-box__title">{t("cars.noResults")}</p>
         </div>

@@ -459,13 +459,19 @@ export function CarFormModal(props: {
           onChange={(v) => patchForm({ year: v })}
         />
       </Field>
-      <Field label={t("cars.status")}>
-        <SelectInput
-          value={form.status}
-          onChange={(v) => patchForm({ status: v })}
-          options={Object.values(CarStatus).map((s) => ({ value: s, label: t(`cars.${s}`) }))}
-        />
-      </Field>
+      {form.status === CarStatus.SOLD ? (
+        <p className="crm-form-hint">{t("cars.soldLocked")}</p>
+      ) : (
+        <Field label={t("cars.status")}>
+          <SelectInput
+            value={form.status}
+            onChange={(v) => patchForm({ status: v })}
+            options={Object.values(CarStatus)
+              .filter((s) => s !== CarStatus.SOLD)
+              .map((s) => ({ value: s, label: t(`cars.${s}`) }))}
+          />
+        </Field>
+      )}
       <Field label={t("cars.insurance")}>
         <DateInput
           value={form.insuranceExpiry}

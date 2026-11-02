@@ -1,12 +1,12 @@
-import { PaymentType, expensePlateLabel } from "@taxi/shared";
+import { expensePlateLabel, isFleetIncomePayment } from "@taxi/shared";
 import type { Expense, Payment } from "../../types";
 
 export function monthKeyFromIso(dateStr: string): string {
   return dateStr.slice(0, 7);
 }
 
-export function isIncomePayment(type: PaymentType): boolean {
-  return type === PaymentType.RENT || type === PaymentType.FINE;
+export function isIncomePayment(type: string): boolean {
+  return isFleetIncomePayment(type);
 }
 
 export function partnerPaymentDescription(
