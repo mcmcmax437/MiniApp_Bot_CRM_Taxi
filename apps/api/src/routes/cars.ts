@@ -12,6 +12,7 @@ import { isImageDocument } from "../services/document-image.js";
 import { fetchMkingPosition, TrackerError, type TrackerPosition } from "../services/mking-tracker.js";
 import { syncCarTrackerWeek } from "../services/tracker-daily.js";
 import { replacePurchaseExpenses } from "../services/purchase-expenses.js";
+import { CarAlreadySoldError, recordCarSale } from "../services/car-sale.js";
 
 const TRACKER_CACHE_TTL_MS = 20_000;
 const trackerCache = new Map<string, { at: number; position: TrackerPosition }>();
@@ -256,37 +257,30 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
       ? new Date(`${body.date}T12:00:00.000Z`)
       : new Date(body.date);
     const note = body.note?.trim() || `Sale ${existing.plate}`;
-    const method = body.method;
+    const method = body.method ?? "CASH";
     const bank = method === "BANK" ? (body.bank ?? "NONE") : "NONE";
 
-    const car = await prisma.$transaction(async (tx) => {
-      await tx.rentalAgreement.updateMany({
-        where: { ownerId: oid, carId: id, status: "ACTIVE" },
-        data: { status: "ENDED", endDate: saleDate },
-      });
-      await tx.payment.create({
-        data: {
+    let car;
+    try {
+      car = await prisma.$transaction(async (tx) => {
+        await recordCarSale(tx, {
           ownerId: oid,
           carId: id,
           amount: body.amount,
-          date: saleDate,
+          saleDate,
           method,
           bank,
-          type: "SALE",
           note,
-        },
-      });
-      return tx.car.update({
-        where: { id },
-        data: {
-          status: "SOLD",
-          salePrice: body.amount,
-          saleDate,
           saleNote: body.note?.trim() || null,
-        },
-        include: carInclude,
+        });
+        return tx.car.findFirstOrThrow({ where: { id, ownerId: oid }, include: carInclude });
       });
-    });
+    } catch (err) {
+      if (err instanceof CarAlreadySoldError) {
+        return reply.code(409).send({ error: "already_sold" });
+      }
+      throw err;
+    }
 
     return car;
   });
