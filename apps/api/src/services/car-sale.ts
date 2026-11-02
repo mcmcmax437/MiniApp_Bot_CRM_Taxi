@@ -8,25 +8,42 @@ export class CarAlreadySoldError extends Error {
   }
 }
 
+export type CarSalePaymentInput = {
+  amount: number;
+  saleDate: Date;
+  method: PaymentMethod;
+  bank: PaymentBank;
+  note: string;
+};
+
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 export async function recordCarSale(
   tx: Prisma.TransactionClient,
   input: {
     ownerId: string;
     carId: string;
-    amount: number;
-    saleDate: Date;
-    method: PaymentMethod;
-    bank: PaymentBank;
-    note: string;
+    payments: CarSalePaymentInput[];
     saleNote: string | null;
   },
 ): Promise<void> {
+  if (input.payments.length === 0) {
+    throw new Error("sale_payments_required");
+  }
+
+  const total = round2(input.payments.reduce((sum, payment) => sum + payment.amount, 0));
+  const saleDate = input.payments
+    .map((payment) => payment.saleDate)
+    .reduce((earliest, date) => (date.getTime() < earliest.getTime() ? date : earliest));
+
   const updated = await tx.car.updateMany({
     where: { id: input.carId, ownerId: input.ownerId, status: { not: "SOLD" } },
     data: {
       status: "SOLD",
-      salePrice: input.amount,
-      saleDate: input.saleDate,
+      salePrice: total,
+      saleDate,
       saleNote: input.saleNote,
     },
   });
@@ -37,18 +54,18 @@ export async function recordCarSale(
 
   await tx.rentalAgreement.updateMany({
     where: { ownerId: input.ownerId, carId: input.carId, status: "ACTIVE" },
-    data: { status: "ENDED", endDate: input.saleDate },
+    data: { status: "ENDED", endDate: saleDate },
   });
-  await tx.payment.create({
-    data: {
+  await tx.payment.createMany({
+    data: input.payments.map((payment) => ({
       ownerId: input.ownerId,
       carId: input.carId,
-      amount: input.amount,
-      date: input.saleDate,
-      method: input.method,
-      bank: input.bank,
-      type: "SALE",
-      note: input.note,
-    },
+      amount: payment.amount,
+      date: payment.saleDate,
+      method: payment.method,
+      bank: payment.bank,
+      type: "SALE" as const,
+      note: payment.note,
+    })),
   });
 }

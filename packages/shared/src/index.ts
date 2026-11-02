@@ -242,14 +242,38 @@ export const carUpdateSchema = carCreateSchema.partial();
 export type CarCreateInput = z.infer<typeof carCreateSchema>;
 export type CarUpdateInput = z.infer<typeof carUpdateSchema>;
 
-/** Record a car sale: archive the car and book the amount as income. */
-export const carSellSchema = z.object({
+/** One income payment that makes up a car sale. Several parts split one sale. */
+export const carSalePartSchema = z.object({
   amount: z.number().finite().gt(0),
   date: isoDate,
   method: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
   bank: z.nativeEnum(PaymentBank).optional(),
-  note: z.string().trim().max(2000).optional().nullable(),
+  note: z.string().trim().max(500).optional().nullable(),
 });
+export type CarSalePartInput = z.infer<typeof carSalePartSchema>;
+
+/**
+ * Record a car sale: archive the car and book the amount as income.
+ * `parts` splits the sale into several payments. A single amount+date still works.
+ */
+export const carSellSchema = z
+  .object({
+    amount: z.number().finite().gt(0).optional(),
+    date: isoDate.optional(),
+    method: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
+    bank: z.nativeEnum(PaymentBank).optional(),
+    note: z.string().trim().max(2000).optional().nullable(),
+    parts: z.array(carSalePartSchema).min(1).max(20).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.parts && value.parts.length > 0) return;
+    if (value.amount == null || value.amount <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "amount_required", path: ["amount"] });
+    }
+    if (!value.date) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "date_required", path: ["date"] });
+    }
+  });
 export type CarSellInput = z.infer<typeof carSellSchema>;
 
 /** Required fields for the car add/edit form (client-side validation). */

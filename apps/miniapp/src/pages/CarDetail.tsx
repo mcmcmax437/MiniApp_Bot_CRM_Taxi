@@ -149,13 +149,8 @@ export function CarDetailPage() {
       />
 
       <div className="crm-doc-detail-head crm-car-detail-head">
-        <span className="crm-doc-detail-head__badge">{t("cars.title")}</span>
-        <div className="crm-car-detail-head__title-row">
-          <h1 className="crm-doc-detail-head__title">
-            <span className="crm-doc-detail-head__title-line">
-              <CopyOnDoubleTap value={car.plate}>{car.plate}</CopyOnDoubleTap>
-            </span>
-          </h1>
+        <div className="crm-car-detail-head__toolbar">
+          <span className="crm-doc-detail-head__badge">{t("cars.title")}</span>
           <div className="crm-car-detail-head__actions">
             {needsAttention ? (
               <span className="crm-car-detail-head__attention">
@@ -169,6 +164,17 @@ export function CarDetailPage() {
                 onClick={() => setEditOpen(true)}
               />
             ) : null}
+          </div>
+        </div>
+        <h1 className="crm-doc-detail-head__title crm-car-detail-head__plate">
+          <CopyOnDoubleTap value={car.plate}>{car.plate}</CopyOnDoubleTap>
+        </h1>
+        {subtitle ? <p className="crm-doc-detail-head__subtitle crm-car-detail-head__model">{subtitle}</p> : null}
+        <div className="crm-car-detail-head__meta">
+          <div className={`crm-car-status ${statusClass[car.status]}`}>
+            <Icon name="checkmark-circle-01" size={16} color="currentColor" />
+            <span>{t(`cars.${car.status}`)}</span>
+          </div>
           {assignedDriver ? (
             assignedDriver.temporary ? (
               <span
@@ -193,12 +199,6 @@ export function CarDetailPage() {
               </button>
             )
           ) : null}
-          </div>
-        </div>
-        {subtitle ? <p className="crm-doc-detail-head__subtitle">{subtitle}</p> : null}
-        <div className={`crm-car-status ${statusClass[car.status]}`} style={{ marginTop: 8 }}>
-          <Icon name="checkmark-circle-01" size={16} color="currentColor" />
-          <span>{t(`cars.${car.status}`)}</span>
         </div>
         {car.status === CarStatus.SOLD && car.salePrice != null ? (
           <p className="crm-form-hint crm-car-sold-note">
@@ -206,9 +206,12 @@ export function CarDetailPage() {
           </p>
         ) : null}
         {!readOnly && car.status !== CarStatus.SOLD ? (
-          <button type="button" className="crm-btn-outline crm-car-sell-btn" onClick={() => setSellOpen(true)}>
-            {t("cars.sellCar")}
-          </button>
+          <div className="crm-car-detail-head__sell">
+            <button type="button" className="crm-car-sell-btn" onClick={() => setSellOpen(true)}>
+              <Icon name="wallet-01" size={18} color="currentColor" />
+              <span>{t("cars.sellCar")}</span>
+            </button>
+          </div>
         ) : null}
       </div>
 

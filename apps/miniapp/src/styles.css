@@ -2106,6 +2106,56 @@ button.crm-stat {
 
 .crm-car-detail-head {
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.crm-car-detail-head__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.crm-car-detail-head__toolbar .crm-car-detail-head__actions,
+.crm-car-detail-head__toolbar .crm-car-detail-head__attention {
+  margin-top: 0;
+}
+
+.crm-car-detail-head__plate {
+  width: 100%;
+  margin-top: 14px;
+  letter-spacing: 0.04em;
+}
+
+.crm-car-detail-head__model {
+  width: 100%;
+}
+
+.crm-car-detail-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.crm-car-detail-head__meta .crm-car-detail-head__driver-pill,
+.crm-car-detail-head__meta .crm-car-detail-head__attention {
+  margin-top: 0;
+  max-width: min(100%, 240px);
+}
+
+.crm-car-detail-head__sell {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 16px;
 }
 
 .crm-car-detail-head__title-row {
@@ -2551,11 +2601,81 @@ button.crm-stat {
 }
 
 .crm-car-sell-btn {
-  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 168px;
+  height: 46px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffe08a 0%, #f5c542 100%);
+  color: #1a1404;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 20px rgba(245, 197, 66, 0.28);
+  cursor: pointer;
+}
+
+.crm-car-sell-btn:active {
+  transform: translateY(1px);
 }
 
 .crm-car-sold-note {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
+  text-align: center;
+}
+
+.crm-sale-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crm-sale-part {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.crm-sale-part__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.crm-sale-part__head h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.crm-sale-part__remove {
+  border: 0;
+  background: transparent;
+  color: #ff8a80;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.crm-sale-parts__add {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.crm-sale-parts__total {
+  margin: 12px 0 0;
+  font-size: 15px;
+  font-weight: 650;
 }
 
 .crm-car-card__dates {
