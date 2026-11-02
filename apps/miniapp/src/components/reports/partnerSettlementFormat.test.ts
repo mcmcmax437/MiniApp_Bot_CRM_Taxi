@@ -11,6 +11,7 @@ describe("isIncomePayment", () => {
   it("counts rent and fines as income", () => {
     expect(isIncomePayment(PaymentType.RENT)).toBe(true);
     expect(isIncomePayment(PaymentType.FINE)).toBe(true);
+    expect(isIncomePayment(PaymentType.SALE)).toBe(true);
   });
 
   it("excludes deposits, refunds, and discounts from income", () => {

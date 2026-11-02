@@ -20,6 +20,7 @@ const statusClass: Record<CarStatus, string> = {
   [CarStatus.RENTED]: "crm-car-status--rented",
   [CarStatus.MAINTENANCE]: "crm-car-status--maintenance",
   [CarStatus.INACTIVE]: "crm-car-status--inactive",
+  [CarStatus.SOLD]: "crm-car-status--sold",
 };
 
 function formatMileage(km: number | null | undefined): string {
@@ -199,6 +200,12 @@ export function CarOverviewPanel(props: {
         ) : null}
         {car.purchaseDate ? (
           <OverviewCell label={t("cars.purchaseDate")} value={formatDate(car.purchaseDate)} />
+        ) : null}
+        {car.status === CarStatus.SOLD && car.salePrice != null ? (
+          <OverviewCell label={t("cars.salePrice")} value={formatMoney(car.salePrice)} />
+        ) : null}
+        {car.status === CarStatus.SOLD && car.saleDate ? (
+          <OverviewCell label={t("cars.saleDate")} value={formatDate(car.saleDate)} />
         ) : null}
         {(car.purchaseParts?.length ?? 0) > 0 ? (
           <OverviewCell

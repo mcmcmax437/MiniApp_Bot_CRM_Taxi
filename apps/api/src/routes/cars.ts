@@ -3,6 +3,7 @@ import { Readable } from "node:stream";
 import { prisma } from "../prisma.js";
 import {
   carCreateSchema,
+  carSellSchema,
   carUpdateSchema,
   type CarPurchasePartInput,
 } from "@taxi/shared";
@@ -168,6 +169,13 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     const existing = await prisma.car.findFirst({ where: { id, ownerId: oid } });
     if (!existing) return reply.code(404).send({ error: "not_found" });
 
+    if (body.status === "SOLD" && existing.status !== "SOLD") {
+      return reply.code(400).send({ error: "use_sell" });
+    }
+    if (existing.status === "SOLD" && body.status && body.status !== "SOLD") {
+      return reply.code(400).send({ error: "car_sold" });
+    }
+
     const { coverDocumentId, purchaseParts, ...rest } = body;
     const resolvedCover = await resolveCoverDocumentId(oid, id, coverDocumentId);
     if (coverDocumentId && resolvedCover === null) {
@@ -229,6 +237,58 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
       data: patch,
       include: carInclude,
     });
+  });
+
+  /**
+   * Mark a car sold: keep the row (archive), end active rentals, and book
+   * the sale amount as a SALE payment so it shows up as income.
+   */
+  app.post("/cars/:id/sell", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = parse(carSellSchema, req.body, reply);
+    if (!body) return;
+    const oid = ownerId(req);
+    const existing = await prisma.car.findFirst({ where: { id, ownerId: oid } });
+    if (!existing) return reply.code(404).send({ error: "not_found" });
+    if (existing.status === "SOLD") return reply.code(409).send({ error: "already_sold" });
+
+    const saleDate = /^\d{4}-\d{2}-\d{2}$/.test(body.date)
+      ? new Date(`${body.date}T12:00:00.000Z`)
+      : new Date(body.date);
+    const note = body.note?.trim() || `Sale ${existing.plate}`;
+    const method = body.method;
+    const bank = method === "BANK" ? (body.bank ?? "NONE") : "NONE";
+
+    const car = await prisma.$transaction(async (tx) => {
+      await tx.rentalAgreement.updateMany({
+        where: { ownerId: oid, carId: id, status: "ACTIVE" },
+        data: { status: "ENDED", endDate: saleDate },
+      });
+      await tx.payment.create({
+        data: {
+          ownerId: oid,
+          carId: id,
+          amount: body.amount,
+          date: saleDate,
+          method,
+          bank,
+          type: "SALE",
+          note,
+        },
+      });
+      return tx.car.update({
+        where: { id },
+        data: {
+          status: "SOLD",
+          salePrice: body.amount,
+          saleDate,
+          saleNote: body.note?.trim() || null,
+        },
+        include: carInclude,
+      });
+    });
+
+    return car;
   });
 
   app.delete("/cars/:id", async (req, reply) => {
@@ -295,7 +355,7 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     const force = q?.refresh === "1";
     const wantProgress = q?.progress === "1";
     const cars = await prisma.car.findMany({
-      where: { ownerId: ownerId(req) },
+      where: { ownerId: ownerId(req), status: { not: "SOLD" } },
       select: {
         id: true,
         plate: true,

@@ -33,6 +33,9 @@ export interface Car {
   mileageUpdatedAt?: string | null;
   purchasePrice?: number | null;
   purchaseDate?: string | null;
+  salePrice?: number | null;
+  saleDate?: string | null;
+  saleNote?: string | null;
   purchaseParts?: Array<{
     id: string;
     amount: number;

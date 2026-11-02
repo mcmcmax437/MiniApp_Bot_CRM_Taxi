@@ -15,6 +15,7 @@ import { CarDocumentsSection } from "../components/CarDocumentsSection";
 import { CarTrackingSections } from "../components/CarTrackingSections";
 import { CarTrackerSection } from "../components/CarTrackerSection";
 import { CarFormModal } from "../components/CarFormModal";
+import { CarSellModal } from "../components/CarSellModal";
 import { CarTiresModal } from "../components/CarTiresModal";
 import { CarTrackerModal } from "../components/CarTrackerModal";
 import { CarTrackerMapModal } from "../components/CarTrackerMapModal";
@@ -25,6 +26,7 @@ const statusClass: Record<CarStatus, string> = {
   [CarStatus.RENTED]: "crm-car-status--rented",
   [CarStatus.MAINTENANCE]: "crm-car-status--maintenance",
   [CarStatus.INACTIVE]: "crm-car-status--inactive",
+  [CarStatus.SOLD]: "crm-car-status--sold",
 };
 
 export function CarDetailPage() {
@@ -45,6 +47,7 @@ export function CarDetailPage() {
   const [tiresOpen, setTiresOpen] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
   const [trackerMapOpen, setTrackerMapOpen] = useState(false);
+  const [sellOpen, setSellOpen] = useState(false);
 
   const car = carQuery.data;
 
@@ -197,6 +200,16 @@ export function CarDetailPage() {
           <Icon name="checkmark-circle-01" size={16} color="currentColor" />
           <span>{t(`cars.${car.status}`)}</span>
         </div>
+        {car.status === CarStatus.SOLD && car.salePrice != null ? (
+          <p className="crm-form-hint crm-car-sold-note">
+            {t("cars.soldOn", { date: car.saleDate ? car.saleDate.slice(0, 10) : "—" })}
+          </p>
+        ) : null}
+        {!readOnly && car.status !== CarStatus.SOLD ? (
+          <button type="button" className="crm-btn-outline crm-car-sell-btn" onClick={() => setSellOpen(true)}>
+            {t("cars.sellCar")}
+          </button>
+        ) : null}
       </div>
 
       <CarOverviewPanel car={car} readOnly={readOnly} onEditTires={() => setTiresOpen(true)} />
@@ -259,6 +272,14 @@ export function CarDetailPage() {
         carId={car.id}
         plate={car.plate}
         onClose={() => setTrackerMapOpen(false)}
+      />
+
+      <CarSellModal
+        open={sellOpen}
+        carId={car.id}
+        plate={car.plate}
+        onClose={() => setSellOpen(false)}
+        onSold={refresh}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { PaymentType, expenseAmountForSelection, linkedExpenseCarIds, splitExpenseAmount } from "@taxi/shared";
+import { PaymentType, expenseAmountForSelection, isFleetIncomePayment, linkedExpenseCarIds, splitExpenseAmount } from "@taxi/shared";
 import type { ReportSummary } from "@taxi/shared";
 import type { DashboardStatsPeriod } from "../components/crm";
 import type { Car, Expense, Payment } from "../types";
@@ -109,7 +109,7 @@ function expenseCountedAmount(expense: Expense, filterCarId: string): number {
 }
 
 export function isDashboardIncomePayment(type: PaymentType): boolean {
-  return type === PaymentType.RENT || type === PaymentType.FINE;
+  return isFleetIncomePayment(type);
 }
 
 export function filterDashboardIncomePayments(

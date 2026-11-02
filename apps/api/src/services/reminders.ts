@@ -84,7 +84,7 @@ async function findCarsNeedingMileage(
   if (!settings.weeklyMileageEnabled) return [];
   if (isWeeklyMileageSkipped(settings, now)) return [];
   const cars = await prisma.car.findMany({
-    where: { ownerId },
+    where: { ownerId, status: { not: "SOLD" } },
     select: { id: true, plate: true, make: true, model: true },
   });
   if (cars.length === 0) return [];
@@ -129,7 +129,7 @@ export async function buildReminders(ownerId: string): Promise<ReminderItem[]> {
   const items: ReminderItem[] = [];
   const now = new Date();
 
-  const cars = await prisma.car.findMany({ where: { ownerId } });
+  const cars = await prisma.car.findMany({ where: { ownerId, status: { not: "SOLD" } } });
   const insuranceDays = parseDaysBeforeList(settings.insuranceDaysBefore);
   const inspectionDays = parseDaysBeforeList(settings.inspectionDaysBefore);
 

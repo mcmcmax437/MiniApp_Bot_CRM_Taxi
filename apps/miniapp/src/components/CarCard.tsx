@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { CarStatus } from "@taxi/shared";
 import type { ReminderItem } from "@taxi/shared";
 import type { Car } from "../types";
-import { formatDate } from "./ui";
+import { formatDate, formatMoney } from "./ui";
 import { Icon } from "./crm";
 import { DocumentThumbnail } from "./DocumentThumbnail";
 import { CardOpenHint } from "./CardOpenHint";
@@ -15,6 +15,7 @@ const statusClass: Record<CarStatus, string> = {
   [CarStatus.RENTED]: "crm-car-status--rented",
   [CarStatus.MAINTENANCE]: "crm-car-status--maintenance",
   [CarStatus.INACTIVE]: "crm-car-status--inactive",
+  [CarStatus.SOLD]: "crm-car-status--sold",
 };
 
 export function CarCard(props: {
@@ -58,21 +59,42 @@ export function CarCard(props: {
       </div>
 
       <div className="crm-car-card__dates">
-        <DateInfo
-          tone="insurance"
-          label={t("cars.insurance")}
-          date={formatDate(car.insuranceExpiry)}
-          rawDate={car.insuranceExpiry}
-          icon={<Icon name="calendar-01" size={22} color="#448AFF" />}
-        />
-        <div className="crm-car-card__divider" />
-        <DateInfo
-          tone="inspection"
-          label={t("cars.inspection")}
-          date={formatDate(car.inspectionExpiry)}
-          rawDate={car.inspectionExpiry}
-          icon={<Icon name="pencil" size={22} color="#FF9800" />}
-        />
+        {car.status === CarStatus.SOLD ? (
+          <>
+            <DateInfo
+              tone="insurance"
+              label={t("cars.salePrice")}
+              date={car.salePrice != null ? formatMoney(car.salePrice) : "—"}
+              icon={<Icon name="wallet-01" size={22} color="#f5c542" />}
+            />
+            <div className="crm-car-card__divider" />
+            <DateInfo
+              tone="inspection"
+              label={t("cars.saleDate")}
+              date={formatDate(car.saleDate)}
+              rawDate={car.saleDate}
+              icon={<Icon name="calendar-01" size={22} color="#448AFF" />}
+            />
+          </>
+        ) : (
+          <>
+            <DateInfo
+              tone="insurance"
+              label={t("cars.insurance")}
+              date={formatDate(car.insuranceExpiry)}
+              rawDate={car.insuranceExpiry}
+              icon={<Icon name="calendar-01" size={22} color="#448AFF" />}
+            />
+            <div className="crm-car-card__divider" />
+            <DateInfo
+              tone="inspection"
+              label={t("cars.inspection")}
+              date={formatDate(car.inspectionExpiry)}
+              rawDate={car.inspectionExpiry}
+              icon={<Icon name="pencil" size={22} color="#FF9800" />}
+            />
+          </>
+        )}
       </div>
     </div>
   );
