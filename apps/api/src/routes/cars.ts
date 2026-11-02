@@ -253,12 +253,37 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
     if (!existing) return reply.code(404).send({ error: "not_found" });
     if (existing.status === "SOLD") return reply.code(409).send({ error: "already_sold" });
 
-    const saleDate = /^\d{4}-\d{2}-\d{2}$/.test(body.date)
-      ? new Date(`${body.date}T12:00:00.000Z`)
-      : new Date(body.date);
-    const note = body.note?.trim() || `Sale ${existing.plate}`;
-    const method = body.method ?? "CASH";
-    const bank = method === "BANK" ? (body.bank ?? "NONE") : "NONE";
+    const sharedNote = body.note?.trim() || `Sale ${existing.plate}`;
+    const sourceParts =
+      body.parts && body.parts.length > 0
+        ? body.parts
+        : [
+            {
+              amount: body.amount!,
+              date: body.date!,
+              method: body.method,
+              bank: body.bank,
+              note: body.note,
+            },
+          ];
+    const payments = sourceParts.map((part, index) => {
+      const method = part.method ?? "CASH";
+      const date = part.date;
+      const saleDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? new Date(`${date}T12:00:00.000Z`)
+        : new Date(date);
+      const partNote = part.note?.trim();
+      const note =
+        partNote ||
+        (sourceParts.length > 1 ? `${sharedNote} (${index + 1}/${sourceParts.length})` : sharedNote);
+      return {
+        amount: part.amount,
+        saleDate,
+        method,
+        bank: (method === "BANK" ? (part.bank ?? "NONE") : "NONE") as "NONE" | "PKO" | "CA",
+        note,
+      };
+    });
 
     let car;
     try {
@@ -266,11 +291,7 @@ export async function carsRoutes(app: FastifyInstance): Promise<void> {
         await recordCarSale(tx, {
           ownerId: oid,
           carId: id,
-          amount: body.amount,
-          saleDate,
-          method,
-          bank,
-          note,
+          payments,
           saleNote: body.note?.trim() || null,
         });
         return tx.car.findFirstOrThrow({ where: { id, ownerId: oid }, include: carInclude });
