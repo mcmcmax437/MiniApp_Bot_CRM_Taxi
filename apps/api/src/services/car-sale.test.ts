@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import { PaymentBank, PaymentMethod } from "@taxi/shared";
-import { CarAlreadySoldError, recordCarSale } from "./car-sale.js";
+import { CarAlreadySoldError, CarNotSoldError, recordCarSale, replaceCarSalePayments } from "./car-sale.js";
 
 function payment(amount: number, day: string) {
   return {
@@ -65,5 +65,59 @@ describe("recordCarSale", () => {
     ).rejects.toBeInstanceOf(CarAlreadySoldError);
     expect(tx.rentalAgreement.updateMany).not.toHaveBeenCalled();
     expect(tx.payment.createMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("replaceCarSalePayments", () => {
+  it("replaces only the sale income rows and updates the stored total", async () => {
+    const tx = {
+      car: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      payment: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
+        createMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
+    } as unknown as Prisma.TransactionClient;
+
+    await replaceCarSalePayments(tx, {
+      ownerId: "owner1",
+      carId: "car1",
+      saleNote: "Updated buyer",
+      payments: [payment(4_000, "2026-11-03"), payment(8_000, "2026-11-12")],
+    });
+
+    expect(tx.car.updateMany).toHaveBeenCalledWith({
+      where: { id: "car1", ownerId: "owner1", status: "SOLD" },
+      data: {
+        salePrice: 12_000,
+        saleDate: new Date("2026-11-03T12:00:00.000Z"),
+        saleNote: "Updated buyer",
+      },
+    });
+    expect(tx.payment.deleteMany).toHaveBeenCalledWith({
+      where: { ownerId: "owner1", carId: "car1", type: "SALE" },
+    });
+    expect(tx.payment.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({ amount: 4_000, type: "SALE" }),
+        expect.objectContaining({ amount: 8_000, type: "SALE" }),
+      ],
+    });
+  });
+
+  it("does not change payments when the car is not sold", async () => {
+    const tx = {
+      car: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      payment: { deleteMany: vi.fn(), createMany: vi.fn() },
+    } as unknown as Prisma.TransactionClient;
+
+    await expect(
+      replaceCarSalePayments(tx, {
+        ownerId: "owner1",
+        carId: "car1",
+        saleNote: null,
+        payments: [payment(1_000, "2026-11-02")],
+      }),
+    ).rejects.toBeInstanceOf(CarNotSoldError);
+    expect(tx.payment.deleteMany).not.toHaveBeenCalled();
   });
 });

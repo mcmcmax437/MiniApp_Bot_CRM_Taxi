@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CarStatus, agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
-import { useCar, useReminders } from "../hooks";
+import { CarStatus, PaymentType, agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
+import { useCar, usePayments, useReminders } from "../hooks";
 import { AppHeader, Icon, IconActionButton, SectionCard } from "../components/crm";
-import { CopyOnDoubleTap } from "../components/ui";
+import { CopyOnDoubleTap, formatDate, formatMoney } from "../components/ui";
 import { carNeedsAttention } from "../components/carAttention";
 import { CarAttentionMark } from "../components/CarAttentionMark";
 import { CarDetailHeroGallery } from "../components/CarDetailHeroGallery";
@@ -15,7 +15,7 @@ import { CarDocumentsSection } from "../components/CarDocumentsSection";
 import { CarTrackingSections } from "../components/CarTrackingSections";
 import { CarTrackerSection } from "../components/CarTrackerSection";
 import { CarFormModal } from "../components/CarFormModal";
-import { CarSellModal } from "../components/CarSellModal";
+import { CarSellModal, salePartsFromPayments } from "../components/CarSellModal";
 import { CarTiresModal } from "../components/CarTiresModal";
 import { CarTrackerModal } from "../components/CarTrackerModal";
 import { CarTrackerMapModal } from "../components/CarTrackerMapModal";
@@ -42,6 +42,7 @@ export function CarDetailPage() {
   const fromFinanceChart = searchParams.get("finance") === "1";
   const financeSectionRef = useRef<HTMLDivElement | null>(null);
   const carQuery = useCar(id);
+  const paymentsQuery = usePayments();
   const reminders = useReminders();
   const [editOpen, setEditOpen] = useState(false);
   const [tiresOpen, setTiresOpen] = useState(false);
@@ -50,6 +51,17 @@ export function CarDetailPage() {
   const [sellOpen, setSellOpen] = useState(false);
 
   const car = carQuery.data;
+  const salePayments = useMemo(
+    () =>
+      (paymentsQuery.data ?? [])
+        .filter((payment) => payment.carId === car?.id && payment.type === PaymentType.SALE)
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [paymentsQuery.data, car?.id],
+  );
+  const saleDrafts = useMemo(
+    () => salePartsFromPayments(salePayments, car?.saleNote ?? null),
+    [salePayments, car?.saleNote],
+  );
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -201,9 +213,28 @@ export function CarDetailPage() {
           ) : null}
         </div>
         {car.status === CarStatus.SOLD && car.salePrice != null ? (
-          <p className="crm-form-hint crm-car-sold-note">
-            {t("cars.soldOn", { date: car.saleDate ? car.saleDate.slice(0, 10) : "—" })}
-          </p>
+          <div className="crm-car-sale-summary">
+            <p className="crm-form-hint crm-car-sold-note">
+              {t("cars.soldOn", { date: car.saleDate ? formatDate(car.saleDate) : "—" })}
+            </p>
+            {salePayments.length > 0 ? (
+              <ul className="crm-car-sale-payments">
+                {salePayments.map((payment, index) => (
+                  <li key={payment.id}>
+                    <span>{t("cars.salePartLabel", { n: index + 1 })}</span>
+                    <strong>{formatMoney(payment.amount)}</strong>
+                    <span>{formatDate(payment.date)}</span>
+                    <span>{t(`finance.${payment.method}`)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {!readOnly ? (
+              <button type="button" className="crm-car-sale-edit-btn" onClick={() => setSellOpen(true)}>
+                {t("cars.editSale")}
+              </button>
+            ) : null}
+          </div>
         ) : null}
         {!readOnly && car.status !== CarStatus.SOLD ? (
           <div className="crm-car-detail-head__sell">
@@ -279,8 +310,12 @@ export function CarDetailPage() {
 
       <CarSellModal
         open={sellOpen}
+        mode={car.status === CarStatus.SOLD ? "edit" : "create"}
         carId={car.id}
         plate={car.plate}
+        initialParts={saleDrafts}
+        initialNote={car.saleNote ?? ""}
+        loading={car.status === CarStatus.SOLD && paymentsQuery.isLoading}
         onClose={() => setSellOpen(false)}
         onSold={refresh}
       />

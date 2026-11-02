@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PaymentBank, PaymentMethod, PAYMENT_BANKS } from "@taxi/shared";
 import { ApiError } from "../api";
 import { formatMoney } from "../currency";
-import { useSellCar } from "../hooks";
+import { useSellCar, useUpdateCarSale } from "../hooks";
 import { todayInput } from "../dates";
 import { showAlert } from "../telegram";
 import { Icon } from "./crm";
@@ -17,7 +17,7 @@ import {
   TextInput,
 } from "./ui";
 
-type SalePartDraft = {
+export type SalePartDraft = {
   key: string;
   amount: number | "";
   date: string;
@@ -25,6 +25,37 @@ type SalePartDraft = {
   bank: PaymentBank;
   note: string;
 };
+
+function partNoteForForm(note: string | null, shared: string | null): string {
+  const value = note?.trim() ?? "";
+  const base = shared?.trim() ?? "";
+  if (!value) return "";
+  if (base && (value === base || value.startsWith(`${base} (`))) return "";
+  return value;
+}
+
+export function salePartsFromPayments(
+  payments: Array<{
+    id: string;
+    amount: number;
+    date: string;
+    method: PaymentMethod;
+    bank?: PaymentBank | null;
+    note: string | null;
+  }>,
+  sharedNote: string | null,
+): SalePartDraft[] {
+  return [...payments]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((payment) => ({
+      key: payment.id,
+      amount: payment.amount,
+      date: payment.date.slice(0, 10),
+      method: payment.method,
+      bank: payment.bank ?? PaymentBank.NONE,
+      note: partNoteForForm(payment.note, sharedNote),
+    }));
+}
 
 function newPart(date = todayInput()): SalePartDraft {
   return {
@@ -41,26 +72,38 @@ export function CarSellModal(props: {
   open: boolean;
   carId: string;
   plate: string;
+  mode?: "create" | "edit";
+  initialParts?: SalePartDraft[];
+  initialNote?: string;
+  loading?: boolean;
   onClose: () => void;
   onSold: () => void;
 }) {
   const { t } = useTranslation();
+  const mode = props.mode ?? "create";
   const sell = useSellCar();
+  const update = useUpdateCarSale();
+  const pending = sell.isPending || update.isPending;
   const [parts, setParts] = useState<SalePartDraft[]>(() => [newPart()]);
   const [note, setNote] = useState("");
   const [invalid, setInvalid] = useState(false);
 
-  const total = parts.reduce((sum, part) => sum + (typeof part.amount === "number" ? part.amount : 0), 0);
-
-  function reset() {
+  useEffect(() => {
+    if (!props.open) return;
+    setInvalid(false);
+    if (mode === "edit") {
+      setParts(props.initialParts && props.initialParts.length > 0 ? props.initialParts : [newPart()]);
+      setNote(props.initialNote ?? "");
+      return;
+    }
     setParts([newPart()]);
     setNote("");
-    setInvalid(false);
-  }
+  }, [props.open, mode, props.initialParts, props.initialNote]);
+
+  const total = parts.reduce((sum, part) => sum + (typeof part.amount === "number" ? part.amount : 0), 0);
 
   function close() {
-    if (sell.isPending) return;
-    reset();
+    if (pending) return;
     props.onClose();
   }
 
@@ -76,56 +119,64 @@ export function CarSellModal(props: {
     }
     setInvalid(false);
     const sharedNote = note.trim() || t("cars.saleNoteDefault", { plate: props.plate });
-    sell.mutate(
-      {
-        id: props.carId,
-        data: {
-          note: sharedNote,
-          parts: parts.map((part) => ({
-            amount: part.amount,
-            date: part.date,
-            method: part.method,
-            bank: part.method === PaymentMethod.BANK ? part.bank : PaymentBank.NONE,
-            note: part.note.trim() || null,
-          })),
-        },
+    const payload = {
+      id: props.carId,
+      data: {
+        note: sharedNote,
+        parts: parts.map((part) => ({
+          amount: part.amount,
+          date: part.date,
+          method: part.method,
+          bank: part.method === PaymentMethod.BANK ? part.bank : PaymentBank.NONE,
+          note: part.note.trim() || null,
+        })),
       },
-      {
-        onSuccess: () => {
-          reset();
-          props.onSold();
-          props.onClose();
-        },
-        onError: (err) => {
-          const code = err instanceof ApiError ? err.code : undefined;
-          if (code === "already_sold") {
-            showAlert(t("cars.alreadySold"));
-            return;
-          }
-          showAlert(t("cars.sellFailed"));
-        },
+    };
+    const request = mode === "edit" ? update : sell;
+    request.mutate(payload, {
+      onSuccess: () => {
+        props.onSold();
+        props.onClose();
       },
-    );
+      onError: (err) => {
+        const code = err instanceof ApiError ? err.code : undefined;
+        if (code === "already_sold") {
+          showAlert(t("cars.alreadySold"));
+          return;
+        }
+        if (code === "not_sold") {
+          showAlert(t("cars.editSaleFailed"));
+          return;
+        }
+        showAlert(mode === "edit" ? t("cars.editSaleFailed") : t("cars.sellFailed"));
+      },
+    });
   }
 
   return (
     <Modal
       open={props.open}
-      title={t("cars.sellTitle")}
+      title={mode === "edit" ? t("cars.editSaleTitle") : t("cars.sellTitle")}
       onClose={close}
       footer={
         <div className="crm-form-actions">
-          <button type="button" className="crm-btn-outline" onClick={close} disabled={sell.isPending}>
+          <button type="button" className="crm-btn-outline" onClick={close} disabled={pending}>
             {t("common.cancel")}
           </button>
-          <button type="button" className="crm-btn-primary" onClick={submit} disabled={sell.isPending}>
-            {sell.isPending ? <span className="crm-spinner crm-form-actions__spinner" aria-hidden /> : null}
-            <span>{t("cars.sellConfirm")}</span>
+          <button type="button" className="crm-btn-primary" onClick={submit} disabled={pending || props.loading}>
+            {pending ? <span className="crm-spinner crm-form-actions__spinner" aria-hidden /> : null}
+            <span>{mode === "edit" ? t("common.save") : t("cars.sellConfirm")}</span>
           </button>
         </div>
       }
     >
-      <p className="crm-form-hint">{t("cars.sellHint")}</p>
+      <p className="crm-form-hint">{mode === "edit" ? t("cars.editSaleHint") : t("cars.sellHint")}</p>
+      {props.loading ? (
+        <div className="crm-empty-box">
+          <span className="crm-spinner" />
+        </div>
+      ) : (
+      <>
       <div className="crm-sale-parts">
         {parts.map((part, index) => {
           const amountInvalid = invalid && (part.amount === "" || part.amount <= 0);
@@ -196,6 +247,8 @@ export function CarSellModal(props: {
       <Field label={t("cars.saleNote")}>
         <TextArea value={note} onChange={setNote} rows={3} maxLength={2000} />
       </Field>
+      </>
+      )}
     </Modal>
   );
 }
