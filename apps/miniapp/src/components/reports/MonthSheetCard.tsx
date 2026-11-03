@@ -60,6 +60,12 @@ function MonthSheetTable(props: { sheet: MonthSheet; title: string }) {
         <div className="crm-month-sheet__cell crm-month-sheet__money--in">{formatMoney(s.bankIncome)}</div>
         <div className="crm-month-sheet__cell crm-month-sheet__who">{t("reports.monthSheetWhoMine")}</div>
         <div className="crm-month-sheet__cell crm-month-sheet__money--out">{formatMoney(s.expenseMine)}</div>
+        <div className="crm-month-sheet__cell" />
+        <div className="crm-month-sheet__cell" />
+        <div className="crm-month-sheet__cell crm-month-sheet__who crm-month-sheet__who--tax">
+          {t("reports.monthSheetTaxes")}
+        </div>
+        <div className="crm-month-sheet__cell crm-month-sheet__money--tax">{formatMoney(s.tax)}</div>
         <div className={`crm-month-sheet__cell crm-month-sheet__money--${net.tone} crm-month-sheet__span-net`}>
           {net.text}
         </div>

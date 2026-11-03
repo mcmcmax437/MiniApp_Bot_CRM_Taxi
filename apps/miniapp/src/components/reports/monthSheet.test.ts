@@ -53,16 +53,21 @@ describe("sumMonthSheet", () => {
     expect(sheet.net).toBe(9395.25);
   });
 
-  it("puts tax into my expenses", () => {
+  it("shows taxes apart from my expenses and still subtracts them", () => {
     const sheet = sumMonthSheet(
-      [payment({ amount: 100, method: PaymentMethod.CASH, date: "2026-08-01" })],
-      [expense({ amount: 50, category: ExpenseCategory.TAX })],
+      [payment({ amount: 100, method: PaymentMethod.CASH, date: "2026-09-01" })],
+      [
+        expense({ amount: 40 }),
+        expense({ amount: 50, category: ExpenseCategory.TAX }),
+        expense({ amount: 10, category: ExpenseCategory.TAX, paidByPartner: true }),
+      ],
       "2026-09",
     );
-    expect(sheet.incomeSum).toBe(0);
-    expect(sheet.expenseMine).toBe(50);
+    expect(sheet.expenseMine).toBe(40);
     expect(sheet.expensePartner).toBe(0);
-    expect(sheet.net).toBe(-50);
+    expect(sheet.tax).toBe(60);
+    expect(sheet.expenseSum).toBe(100);
+    expect(sheet.net).toBe(0);
   });
 
   it("leaves car purchases out until included", () => {

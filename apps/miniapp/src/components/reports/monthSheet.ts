@@ -10,6 +10,8 @@ export type MonthSheet = {
   incomeSum: number;
   expensePartner: number;
   expenseMine: number;
+  /** Income tax and other TAX expenses, shown apart from operating costs. */
+  tax: number;
   expenseSum: number;
   /** Partner cash income minus expenses the partner paid. */
   partnerNet: number;
@@ -30,6 +32,7 @@ export function emptyMonthSheet(monthKey: string): MonthSheet {
     incomeSum: 0,
     expensePartner: 0,
     expenseMine: 0,
+    tax: 0,
     expenseSum: 0,
     partnerNet: 0,
     net: 0,
@@ -81,8 +84,9 @@ export function sumMonthSheet(
   for (const e of expenses) {
     if (monthKeyFromIso(e.date) !== monthKey) continue;
     if (!includeCarPurchases && isCarPurchaseExpense(e)) continue;
-    if (e.category === ExpenseCategory.TAX || !e.paidByPartner) out.expenseMine += e.amount;
-    else out.expensePartner += e.amount;
+    if (e.category === ExpenseCategory.TAX) out.tax += e.amount;
+    else if (e.paidByPartner) out.expensePartner += e.amount;
+    else out.expenseMine += e.amount;
   }
 
   out.cashMine = round2(out.cashMine);
@@ -91,7 +95,8 @@ export function sumMonthSheet(
   out.incomeSum = round2(out.cashMine + out.cashPartner + out.bankIncome);
   out.expensePartner = round2(out.expensePartner);
   out.expenseMine = round2(out.expenseMine);
-  out.expenseSum = round2(out.expensePartner + out.expenseMine);
+  out.tax = round2(out.tax);
+  out.expenseSum = round2(out.expensePartner + out.expenseMine + out.tax);
   out.partnerNet = round2(out.cashPartner - out.expensePartner);
   out.net = round2(out.incomeSum - out.expenseSum);
   return out;
