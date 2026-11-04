@@ -95,8 +95,12 @@ describe("recordCarSale", () => {
 describe("replaceCarSalePayments", () => {
   it("replaces only the sale income rows and updates the stored total", async () => {
     const tx = {
-      car: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      car: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findFirst: vi.fn().mockResolvedValue({ plate: "OP8645U", saleNote: null, salePrice: 12_500 }),
+      },
       payment: {
+        findMany: vi.fn().mockResolvedValue([]),
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
         createMany: vi.fn().mockResolvedValue({ count: 2 }),
       },

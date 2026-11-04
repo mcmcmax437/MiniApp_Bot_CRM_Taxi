@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import { paymentCreateSchema, paymentUpdateSchema } from "@taxi/shared";
 import { ownerId, parse, toDates } from "./helpers.js";
-import { syncSoldCarFromSalePayments } from "../services/car-sale.js";
+import { restoreMisfiledSalePayments, syncSoldCarFromSalePayments } from "../services/car-sale.js";
 
 export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/payments", async (req) => {
@@ -12,6 +12,11 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
       from?: string;
       to?: string;
     };
+    try {
+      await restoreMisfiledSalePayments(ownerId(req));
+    } catch (err) {
+      req.log.warn({ err }, "failed to restore sale payments");
+    }
     return prisma.payment.findMany({
       where: {
         ownerId: ownerId(req),

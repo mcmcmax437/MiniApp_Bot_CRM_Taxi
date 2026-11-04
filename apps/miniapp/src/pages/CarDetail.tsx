@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CarStatus, PaymentType, agreementDriverDisplayName, agreementIsTemporaryDriver } from "@taxi/shared";
+import { CarStatus, PaymentMethod, PaymentType, agreementDriverDisplayName, agreementIsTemporaryDriver, pickMisfiledSalePayments } from "@taxi/shared";
 import { useCar, usePayments, useReminders } from "../hooks";
 import { AppHeader, Icon, IconActionButton, SectionCard } from "../components/crm";
 import { CopyOnDoubleTap, formatDate, formatMoney } from "../components/ui";
@@ -51,17 +51,32 @@ export function CarDetailPage() {
   const [sellOpen, setSellOpen] = useState(false);
 
   const car = carQuery.data;
-  const salePayments = useMemo(
-    () =>
-      (paymentsQuery.data ?? [])
-        .filter((payment) => payment.carId === car?.id && payment.type === PaymentType.SALE)
-        .sort((a, b) => a.date.localeCompare(b.date)),
-    [paymentsQuery.data, car?.id],
-  );
-  const saleDrafts = useMemo(
-    () => salePartsFromPayments(salePayments, car?.saleNote ?? null),
-    [salePayments, car?.saleNote],
-  );
+  const salePayments = useMemo(() => {
+    if (!car) return [];
+    const onCar = (paymentsQuery.data ?? []).filter((payment) => payment.carId === car.id);
+    const filed = onCar.filter((payment) => payment.type === PaymentType.SALE);
+    const rows = filed.length > 0 ? filed : pickMisfiledSalePayments(onCar, {
+      plate: car.plate,
+      saleNote: car.saleNote,
+      salePrice: car.salePrice,
+    });
+    return [...rows].sort((a, b) => a.date.localeCompare(b.date));
+  }, [paymentsQuery.data, car]);
+  const saleDrafts = useMemo(() => {
+    const fromPayments = salePartsFromPayments(salePayments, car?.saleNote ?? null);
+    if (fromPayments.length > 0) return fromPayments;
+    if (!car || car.salePrice == null) return [];
+    return [
+      {
+        key: "sale-price",
+        amount: car.salePrice,
+        date: car.saleDate ? car.saleDate.slice(0, 10) : "",
+        method: PaymentMethod.CASH,
+        bank: "NONE" as const,
+        note: "",
+      },
+    ];
+  }, [salePayments, car]);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -227,6 +242,14 @@ export function CarDetailPage() {
                     <span>{t(`finance.${payment.method}`)}</span>
                   </li>
                 ))}
+              </ul>
+            ) : car.salePrice != null ? (
+              <ul className="crm-car-sale-payments">
+                <li>
+                  <span>{t("cars.salePartLabel", { n: 1 })}</span>
+                  <strong>{formatMoney(car.salePrice)}</strong>
+                  <span>{car.saleDate ? formatDate(car.saleDate) : "—"}</span>
+                </li>
               </ul>
             ) : null}
             {!readOnly ? (

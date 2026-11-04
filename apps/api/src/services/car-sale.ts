@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import type { PaymentBank, PaymentMethod } from "@taxi/shared";
+import { pickMisfiledSalePayments, type PaymentBank, type PaymentMethod } from "@taxi/shared";
 import { prisma } from "../prisma.js";
 
 export class CarAlreadySoldError extends Error {
@@ -118,6 +118,35 @@ export async function syncSoldCarFromSalePayments(
   });
 }
 
+/** Put sale lines that were saved as rent back on the sale, without changing the stored price. */
+export async function restoreMisfiledSalePayments(ownerId: string): Promise<void> {
+  const cars = await prisma.car.findMany({
+    where: { ownerId, status: "SOLD" },
+    select: { id: true, plate: true, saleNote: true, salePrice: true },
+  });
+  if (cars.length === 0) return;
+  const payments = await prisma.payment.findMany({
+    where: { ownerId, carId: { in: cars.map((car) => car.id) }, type: { in: ["RENT", "SALE"] } },
+    select: { id: true, carId: true, type: true, amount: true, note: true, driverId: true },
+  });
+  const ids: string[] = [];
+  for (const car of cars) {
+    const rows = payments.filter((payment) => payment.carId === car.id);
+    ids.push(
+      ...pickMisfiledSalePayments(rows, {
+        plate: car.plate,
+        saleNote: car.saleNote,
+        salePrice: car.salePrice,
+      }).map((payment) => payment.id),
+    );
+  }
+  if (ids.length === 0) return;
+  await prisma.payment.updateMany({
+    where: { id: { in: ids }, ownerId },
+    data: { type: "SALE" },
+  });
+}
+
 function saleTotals(payments: CarSalePaymentInput[]): { total: number; saleDate: Date } {
   const total = round2(payments.reduce((sum, payment) => sum + payment.amount, 0));
   const saleDate = payments
@@ -191,6 +220,26 @@ export async function replaceCarSalePayments(
     throw new CarNotSoldError();
   }
 
+  const car = await tx.car.findFirst({
+    where: { id: input.carId, ownerId: input.ownerId },
+    select: { plate: true, saleNote: true, salePrice: true },
+  });
+  const existingPayments = await tx.payment.findMany({
+    where: { ownerId: input.ownerId, carId: input.carId, type: { in: ["RENT", "SALE"] } },
+    select: { id: true, type: true, amount: true, note: true, driverId: true },
+  });
+  const misfiledIds = car
+    ? pickMisfiledSalePayments(existingPayments, {
+        plate: car.plate,
+        saleNote: car.saleNote,
+        salePrice: car.salePrice,
+      }).map((payment) => payment.id)
+    : [];
+  if (misfiledIds.length > 0) {
+    await tx.payment.deleteMany({
+      where: { ownerId: input.ownerId, carId: input.carId, id: { in: misfiledIds } },
+    });
+  }
   await tx.payment.deleteMany({
     where: { ownerId: input.ownerId, carId: input.carId, type: "SALE" },
   });

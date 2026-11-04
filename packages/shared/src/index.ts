@@ -938,3 +938,10 @@ export {
   roundMoney,
   splitExpenseAmount,
 } from "./expense-cars.js";
+
+export {
+  noteMatchesSale,
+  pickMisfiledSalePayments,
+  saleNoteBases,
+  type SalePaymentCandidate,
+} from "./car-sale-payments.js";
