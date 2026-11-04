@@ -11,6 +11,8 @@ import { contractEndTextColor } from "../../utils/expiryUrgency";
 export function FleetCarCard(props: {
   car: Car;
   agreement?: Agreement;
+  /** Sold car shown from the fleet archive. `agreement` is the last rental, not a current one. */
+  archived?: boolean;
   coverDocumentId?: string;
   readOnly: boolean;
   ending?: boolean;
@@ -23,11 +25,12 @@ export function FleetCarCard(props: {
   const { car, agreement } = props;
   const modelLine = [car.make, car.model, car.year].filter(Boolean).join(" ");
   const art = resolveCarModelArt(car.make, car.model);
-  const rented = Boolean(agreement);
+  const archived = Boolean(props.archived);
+  const rented = Boolean(agreement) && !archived;
 
   return (
     <article
-      className={`crm-fleet-card${rented ? " crm-fleet-card--rented" : " crm-fleet-card--available"}`}
+      className={`crm-fleet-card${archived ? " crm-fleet-card--sold" : rented ? " crm-fleet-card--rented" : " crm-fleet-card--available"}`}
     >
       <button type="button" className="crm-fleet-card__body" onClick={props.onOpenHistory}>
         <div className="crm-fleet-card__media">
@@ -56,9 +59,9 @@ export function FleetCarCard(props: {
               {modelLine ? <span className="crm-fleet-card__model">{modelLine}</span> : null}
             </div>
             <span
-              className={`crm-fleet-card__status${rented ? " crm-fleet-card__status--rented" : " crm-fleet-card__status--free"}`}
+              className={`crm-fleet-card__status${archived ? " crm-fleet-card__status--sold" : rented ? " crm-fleet-card__status--rented" : " crm-fleet-card__status--free"}`}
             >
-              {rented ? t("fleet.onTheRoad") : t(`cars.${car.status}`)}
+              {archived ? t("cars.SOLD") : rented ? t("fleet.onTheRoad") : t(`cars.${car.status}`)}
             </span>
           </div>
 
@@ -78,15 +81,22 @@ export function FleetCarCard(props: {
                 {agreement.endDate ? (
                   <>
                     {" · "}
-                    <span
-                      className="crm-fleet-card__end"
-                      style={{ color: contractEndTextColor(agreement.endDate) }}
-                    >
-                      {t("fleet.endsOn", { date: formatDate(agreement.endDate) })}
-                    </span>
+                    {archived ? (
+                      formatDate(agreement.endDate)
+                    ) : (
+                      <span
+                        className="crm-fleet-card__end"
+                        style={{ color: contractEndTextColor(agreement.endDate) }}
+                      >
+                        {t("fleet.endsOn", { date: formatDate(agreement.endDate) })}
+                      </span>
+                    )}
                   </>
                 ) : null}
               </p>
+              {archived && car.saleDate ? (
+                <p className="crm-fleet-card__meta">{t("cars.soldOn", { date: formatDate(car.saleDate) })}</p>
+              ) : null}
               <div className="crm-fleet-card__rent">
                 <span className="crm-fleet-card__rent-amount">
                   {formatMoney(agreement.rentAmount)}
@@ -95,7 +105,11 @@ export function FleetCarCard(props: {
               </div>
             </>
           ) : (
-            <p className="crm-fleet-card__meta">{t("fleet.available")}</p>
+            <p className="crm-fleet-card__meta">
+              {archived && car.saleDate
+                ? t("cars.soldOn", { date: formatDate(car.saleDate) })
+                : t("fleet.available")}
+            </p>
           )}
 
           <span className="crm-fleet-card__history-link">
@@ -105,7 +119,7 @@ export function FleetCarCard(props: {
         </div>
       </button>
 
-      {!props.readOnly ? (
+      {!props.readOnly && !archived ? (
         <div className="crm-fleet-card__actions">
           {agreement ? (
             <>

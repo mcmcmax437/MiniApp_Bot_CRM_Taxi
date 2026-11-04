@@ -76,6 +76,7 @@ export function FleetTab() {
   const end = useEndAgreement();
 
   const [search, setSearch] = useState("");
+  const [listView, setListView] = useState<"fleet" | "archive">("fleet");
   const [open, setOpen] = useState(false);
   const [lockedCarId, setLockedCarId] = useState<string | null>(null);
   const [historyCar, setHistoryCar] = useState<Car | null>(null);
@@ -118,6 +119,10 @@ export function FleetTab() {
     () => (cars.data ?? []).filter((c) => c.status !== CarStatus.SOLD),
     [cars.data],
   );
+  const soldCars = useMemo(
+    () => (cars.data ?? []).filter((c) => c.status === CarStatus.SOLD),
+    [cars.data],
+  );
   const availableCars = useMemo(
     () => unsoldCars.filter((c) => !activeByCarId.has(c.id)),
     [unsoldCars, activeByCarId],
@@ -136,32 +141,50 @@ export function FleetTab() {
   }, [isHistoricalAssign, unsoldCars, availableCars, form.carId]);
   const lockedCar = lockedCarId ? cars.data?.find((c) => c.id === lockedCarId) : undefined;
 
+  function matchesFleetSearch(car: Car, agreement: Agreement | undefined, query: string) {
+    if (!query) return true;
+    const hay = [
+      car.plate,
+      car.make,
+      car.model,
+      agreement ? agreementDriverDisplayName(agreement) : "",
+      agreement ? agreement.temporaryDriverName : "",
+      agreement?.company ?? "",
+      agreement ? formatDate(agreement.startDate) : "",
+      car.saleDate ? formatDate(car.saleDate) : "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(query);
+  }
+
   const fleetRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return unsoldCars
       .map((car) => ({ car, agreement: activeByCarId.get(car.id) }))
-      .filter(({ car, agreement }) => {
-        if (!q) return true;
-        const hay = [
-          car.plate,
-          car.make,
-          car.model,
-          agreement ? agreementDriverDisplayName(agreement) : "",
-          agreement ? agreement.temporaryDriverName : "",
-          agreement?.company ?? "",
-          agreement ? formatDate(agreement.startDate) : "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      })
+      .filter(({ car, agreement }) => matchesFleetSearch(car, agreement, q))
       .sort((a, b) => {
         if (a.agreement && !b.agreement) return -1;
         if (!a.agreement && b.agreement) return 1;
         return a.car.plate.localeCompare(b.car.plate);
       });
   }, [unsoldCars, activeByCarId, search]);
+
+  const archiveRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return soldCars
+      .map((car) => ({ car, agreement: historyByCarId.get(car.id)?.[0] }))
+      .filter(({ car, agreement }) => matchesFleetSearch(car, agreement, q))
+      .sort((a, b) => {
+        const ad = a.car.saleDate ?? "";
+        const bd = b.car.saleDate ?? "";
+        if (ad !== bd) return bd.localeCompare(ad);
+        return a.car.plate.localeCompare(b.car.plate);
+      });
+  }, [soldCars, historyByCarId, search]);
+
+  const shownRows = listView === "archive" ? archiveRows : fleetRows;
 
   function openAssign(carId = "", options?: { historical?: boolean }) {
     const historical = Boolean(options?.historical && carId);
@@ -352,30 +375,60 @@ export function FleetTab() {
         </label>
       </div>
 
-      <h3 className="crm-fleet-section-title">{t("fleet.allCarsTitle")}</h3>
-      <p className="crm-fleet-section-hint">{t("fleet.allCarsHint")}</p>
+      {!cars.isLoading && (unsoldCars.length > 0 || soldCars.length > 0) ? (
+        <div className="crm-car-archive-toggle" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listView === "fleet"}
+            className={listView === "fleet" ? "is-active" : undefined}
+            onClick={() => setListView("fleet")}
+          >
+            {t("cars.fleetList")}
+            <span>{unsoldCars.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listView === "archive"}
+            className={listView === "archive" ? "is-active" : undefined}
+            onClick={() => setListView("archive")}
+          >
+            {t("cars.archive")}
+            <span>{soldCars.length}</span>
+          </button>
+        </div>
+      ) : null}
 
-      {!cars.isLoading && fleetRows.length === 0 ? (
+      <h3 className="crm-fleet-section-title">
+        {listView === "archive" ? t("cars.archive") : t("fleet.allCarsTitle")}
+      </h3>
+      <p className="crm-fleet-section-hint">
+        {listView === "archive" ? t("fleet.archiveHint") : t("fleet.allCarsHint")}
+      </p>
+
+      {!cars.isLoading && shownRows.length === 0 ? (
         <FinanceEmptyState
           title={t("common.empty")}
-          description={t("fleet.emptyDesc")}
-          actionLabel={readOnly ? undefined : t("fleet.assignCar")}
-          onAction={readOnly ? undefined : () => handleAssign()}
+          description={listView === "archive" ? t("cars.archiveEmpty") : t("fleet.emptyDesc")}
+          actionLabel={readOnly || listView === "archive" ? undefined : t("fleet.assignCar")}
+          onAction={readOnly || listView === "archive" ? undefined : () => handleAssign()}
         />
       ) : (
         <FinanceList loading={cars.isLoading || agreements.isLoading} className="crm-fleet-list">
-          {fleetRows.map(({ car, agreement }) => (
+          {shownRows.map(({ car, agreement }) => (
             <FleetCarCard
               key={car.id}
               car={car}
               agreement={agreement}
+              archived={listView === "archive"}
               coverDocumentId={covers.data?.get(car.id)}
               readOnly={readOnly}
               ending={end.isPending}
               onOpenHistory={() => setHistoryCar(car)}
               onAssign={() => handleAssign(car.id)}
               onToggleCash={
-                agreement
+                agreement && listView === "fleet"
                   ? () =>
                       update.mutate({
                         id: agreement.id,
@@ -384,7 +437,7 @@ export function FleetTab() {
                   : undefined
               }
               onReturn={() => {
-                if (!agreement) return;
+                if (!agreement || listView === "archive") return;
                 void confirmAction(t("fleet.endConfirm"), t("common.delete"), t("common.cancel")).then(
                   (ok) => {
                     if (ok) end.mutate(agreement.id);

@@ -3422,6 +3422,12 @@ button.crm-driver-stat:hover {
   border: 1px solid rgba(68, 138, 255, 0.28);
 }
 
+.crm-fleet-card__status--sold {
+  color: #f5c542;
+  background: rgba(245, 197, 66, 0.16);
+  border: 1px solid rgba(245, 197, 66, 0.35);
+}
+
 .crm-fleet-card__amount {
   flex-shrink: 0;
   max-width: 52%;
