@@ -390,8 +390,10 @@ function PaymentsTab() {
     // Legacy payments may have types the form no longer offers (REFUND,
     // FINE, DISCOUNT). Map them to RENT so the dropdown always has a valid
     // initial selection — the owner can change it to DEPOSIT if needed.
+    // SALE stays SALE: it is the income for an archived car, and rewriting
+    // it as rent hides those payments on the car while the sale price drifts.
     const editableType =
-      p.type === PaymentType.RENT || p.type === PaymentType.DEPOSIT
+      p.type === PaymentType.RENT || p.type === PaymentType.DEPOSIT || p.type === PaymentType.SALE
         ? p.type
         : PaymentType.RENT;
     setForm({
@@ -1411,7 +1413,10 @@ function PaymentModal(props: {
           options={driverOptions}
         />
       </Field>
-      <Field label={t("finance.car")}>
+      <Field
+        label={t("finance.car")}
+        hint={form.type === PaymentType.SALE ? t("finance.salePaymentCarLocked") : undefined}
+      >
         <SearchableSelect value={form.carId} onChange={onCarChange} options={carOptions} />
       </Field>
       {form.driverId || form.carId ? (
@@ -1569,10 +1574,14 @@ function PaymentModal(props: {
           // module, and discounts are now recorded inline on a RENT payment
           // (see the Discount field above) — they don't need their own
           // payment-type entry.
-          options={[
-            { value: PaymentType.RENT, label: t(`finance.${PaymentType.RENT}`) },
-            { value: PaymentType.DEPOSIT, label: t(`finance.${PaymentType.DEPOSIT}`) },
-          ]}
+          options={
+            form.type === PaymentType.SALE
+              ? [{ value: PaymentType.SALE, label: t(`finance.${PaymentType.SALE}`) }]
+              : [
+                  { value: PaymentType.RENT, label: t(`finance.${PaymentType.RENT}`) },
+                  { value: PaymentType.DEPOSIT, label: t(`finance.${PaymentType.DEPOSIT}`) },
+                ]
+          }
         />
       </Field>
       <Field

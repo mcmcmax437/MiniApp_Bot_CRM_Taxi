@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import type { PaymentBank, PaymentMethod } from "@taxi/shared";
+import { prisma } from "../prisma.js";
 
 export class CarAlreadySoldError extends Error {
   constructor() {
@@ -75,6 +76,45 @@ export function paymentsFromSellInput(
       bank: (method === "BANK" ? (part.bank ?? "NONE") : "NONE") as PaymentBank,
       note,
     };
+  });
+}
+
+/** Sale price and earliest date from the income rows still linked to the car. */
+export function saleSnapshotFromPayments(
+  payments: Array<{ amount: number; date: Date }>,
+): { salePrice: number; saleDate: Date } | null {
+  if (payments.length === 0) return null;
+  const salePrice = round2(payments.reduce((sum, payment) => sum + payment.amount, 0));
+  const saleDate = payments.reduce(
+    (earliest, payment) => (payment.date.getTime() < earliest.getTime() ? payment.date : earliest),
+    payments[0]!.date,
+  );
+  return { salePrice, saleDate };
+}
+
+/**
+ * After a sale payment is edited or deleted on the finance page, the archived
+ * car price must follow the remaining SALE rows. Cars that are not sold are left alone.
+ * When every sale payment is gone, the price becomes 0 and the car stays in the archive.
+ */
+export async function syncSoldCarFromSalePayments(
+  ownerId: string,
+  carId: string | null | undefined,
+): Promise<void> {
+  if (!carId) return;
+  const car = await prisma.car.findFirst({
+    where: { id: carId, ownerId, status: "SOLD" },
+    select: { id: true },
+  });
+  if (!car) return;
+  const sales = await prisma.payment.findMany({
+    where: { ownerId, carId, type: "SALE" },
+    select: { amount: true, date: true },
+  });
+  const snapshot = saleSnapshotFromPayments(sales);
+  await prisma.car.update({
+    where: { id: carId },
+    data: snapshot ?? { salePrice: 0 },
   });
 }
 

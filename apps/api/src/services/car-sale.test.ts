@@ -1,7 +1,13 @@
 import type { Prisma } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import { PaymentBank, PaymentMethod } from "@taxi/shared";
-import { CarAlreadySoldError, CarNotSoldError, recordCarSale, replaceCarSalePayments } from "./car-sale.js";
+import {
+  CarAlreadySoldError,
+  CarNotSoldError,
+  recordCarSale,
+  replaceCarSalePayments,
+  saleSnapshotFromPayments,
+} from "./car-sale.js";
 
 function payment(amount: number, day: string) {
   return {
@@ -12,6 +18,24 @@ function payment(amount: number, day: string) {
     note: `Sale OP8645U ${amount}`,
   };
 }
+
+describe("saleSnapshotFromPayments", () => {
+  it("sums the sale payments and keeps the earliest date", () => {
+    expect(
+      saleSnapshotFromPayments([
+        { amount: 20_000, date: new Date("2026-11-04T12:00:00.000Z") },
+        { amount: 500, date: new Date("2026-11-10T12:00:00.000Z") },
+      ]),
+    ).toEqual({
+      salePrice: 20_500,
+      saleDate: new Date("2026-11-04T12:00:00.000Z"),
+    });
+  });
+
+  it("is empty when no sale payments remain", () => {
+    expect(saleSnapshotFromPayments([])).toBeNull();
+  });
+});
 
 describe("recordCarSale", () => {
   it("books each split payment and stores the total sale price", async () => {

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../prisma.js";
 import { paymentCreateSchema, paymentUpdateSchema } from "@taxi/shared";
 import { ownerId, parse, toDates } from "./helpers.js";
+import { syncSoldCarFromSalePayments } from "../services/car-sale.js";
 
 export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/payments", async (req) => {
@@ -56,7 +57,22 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
     const data = toDates(body, ["date"]);
     const nextMethod = data.method ?? existing.method;
     if (nextMethod === "CASH") data.bank = "NONE";
-    return prisma.payment.update({ where: { id }, data });
+    // A sale payment stays a sale on its sold car. Editing the amount or date
+    // from Finance must not turn it into rent, or the archive loses the lines
+    // while the stored sale price no longer matches.
+    if (existing.type === "SALE") {
+      data.type = "SALE";
+      data.carId = existing.carId;
+      data.discountAmount = 0;
+    }
+    const updated = await prisma.payment.update({ where: { id }, data });
+    if (existing.type === "SALE" || updated.type === "SALE") {
+      await syncSoldCarFromSalePayments(ownerId(req), existing.carId);
+      if (updated.carId && updated.carId !== existing.carId) {
+        await syncSoldCarFromSalePayments(ownerId(req), updated.carId);
+      }
+    }
+    return updated;
   });
 
   app.delete("/payments/:id", async (req, reply) => {
@@ -64,6 +80,9 @@ export async function paymentsRoutes(app: FastifyInstance): Promise<void> {
     const existing = await prisma.payment.findFirst({ where: { id, ownerId: ownerId(req) } });
     if (!existing) return reply.code(404).send({ error: "not_found" });
     await prisma.payment.delete({ where: { id } });
+    if (existing.type === "SALE") {
+      await syncSoldCarFromSalePayments(ownerId(req), existing.carId);
+    }
     return { ok: true };
   });
 }

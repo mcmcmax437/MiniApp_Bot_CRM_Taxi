@@ -299,6 +299,7 @@ export function useSavePayment() {
         : apiFetch("/payments", { method: "POST", body: input.data }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["payments"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
       void qc.invalidateQueries({ queryKey: ["balances"] });
       void qc.invalidateQueries({ queryKey: ["report"] });
     },
@@ -310,6 +311,7 @@ export function useDeletePayment() {
     mutationFn: (id: string) => apiFetch(`/payments/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["payments"] });
+      void qc.invalidateQueries({ queryKey: ["cars"] });
       void qc.invalidateQueries({ queryKey: ["balances"] });
       void qc.invalidateQueries({ queryKey: ["report"] });
     },
