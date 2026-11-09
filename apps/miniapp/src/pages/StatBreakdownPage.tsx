@@ -13,6 +13,7 @@ import type { Expense, Payment } from "../types";
 import { formatDate, formatMoney } from "../components/ui";
 import {
   DASHBOARD_FLEET_OTHER_CAR_ID,
+  DASHBOARD_FLEET_TAX_CAR_ID,
   filterDashboardExpenses,
   filterDashboardIncomePayments,
   parseStatBreakdownKind,
@@ -42,6 +43,7 @@ export function StatBreakdownPage() {
 
   const carLabel = useMemo(() => {
     if (carId === DASHBOARD_FLEET_OTHER_CAR_ID) return t("dashboard.chartFleetOther");
+    if (carId === DASHBOARD_FLEET_TAX_CAR_ID) return t("dashboard.chartFleetTax");
     if (!carId) return null;
     const car = (cars.data ?? []).find((c) => c.id === carId);
     if (!car) return null;

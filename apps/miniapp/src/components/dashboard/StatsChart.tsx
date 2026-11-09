@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { ReportSummary } from "@taxi/shared";
 import { formatMoney } from "../ui";
 import { Icon, type DashboardStatsPeriod } from "../crm";
-import { DASHBOARD_FLEET_OTHER_CAR_ID } from "../../utils/dashboardStats";
+import { DASHBOARD_FLEET_OTHER_CAR_ID, isDashboardFleetBucket } from "../../utils/dashboardStats";
 
 /**
  * A small, dependency-free bar chart that summarises fleet numbers on the
@@ -28,7 +28,7 @@ export function StatsChart(props: { rows: ReportSummary["byCar"]; period: Dashbo
   const rows = props.rows;
 
   function openRow(row: ReportSummary["byCar"][number]) {
-    if (row.carId === DASHBOARD_FLEET_OTHER_CAR_ID) {
+    if (isDashboardFleetBucket(row.carId)) {
       const params = new URLSearchParams({
         kind: "expenses",
         period: props.period,
@@ -74,7 +74,9 @@ export function StatsChart(props: { rows: ReportSummary["byCar"]; period: Dashbo
               aria-label={
                 row.carId === DASHBOARD_FLEET_OTHER_CAR_ID
                   ? t("dashboard.chartFleetOtherOpen")
-                  : t("dashboard.chartRowOpen", { label: row.label })
+                  : isDashboardFleetBucket(row.carId)
+                    ? t("dashboard.chartFleetTaxOpen")
+                    : t("dashboard.chartRowOpen", { label: row.label })
               }
             >
               <div className="crm-stats-chart__label">

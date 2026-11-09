@@ -1,10 +1,16 @@
-import { PaymentType, expenseAmountForSelection, isFleetIncomePayment, linkedExpenseCarIds, splitExpenseAmount } from "@taxi/shared";
+import { ExpenseCategory, PaymentType, expenseAmountForSelection, isFleetIncomePayment, linkedExpenseCarIds, splitExpenseAmount } from "@taxi/shared";
 import type { ReportSummary } from "@taxi/shared";
 import type { DashboardStatsPeriod } from "../components/crm";
 import type { Car, Expense, Payment } from "../types";
 
 /** Synthetic id for dashboard / breakdown rows — expenses (or income) not tied to a car. */
 export const DASHBOARD_FLEET_OTHER_CAR_ID = "__fleet_other__";
+/** Taxes that are not tied to a car, shown apart from other unassigned expenses. */
+export const DASHBOARD_FLEET_TAX_CAR_ID = "__fleet_tax__";
+
+export function isDashboardFleetBucket(carId: string): boolean {
+  return carId === DASHBOARD_FLEET_OTHER_CAR_ID || carId === DASHBOARD_FLEET_TAX_CAR_ID;
+}
 
 function todayIso(): string {
   return localDateIso(new Date());
@@ -92,6 +98,7 @@ export function dateInStatsPeriod(dateStr: string, period: DashboardStatsPeriod)
 
 export function matchesDashboardCar(carId: string | null | undefined, filterCarId: string): boolean {
   if (!filterCarId) return true;
+  if (filterCarId === DASHBOARD_FLEET_TAX_CAR_ID) return false;
   if (filterCarId === DASHBOARD_FLEET_OTHER_CAR_ID) return carId == null || carId === "";
   return carId === filterCarId;
 }
@@ -99,12 +106,17 @@ export function matchesDashboardCar(carId: string | null | undefined, filterCarI
 function expenseMatchesDashboardCar(expense: Expense, filterCarId: string): boolean {
   const ids = linkedExpenseCarIds(expense);
   if (!filterCarId) return true;
-  if (filterCarId === DASHBOARD_FLEET_OTHER_CAR_ID) return ids.length === 0;
+  if (filterCarId === DASHBOARD_FLEET_TAX_CAR_ID) {
+    return ids.length === 0 && expense.category === ExpenseCategory.TAX;
+  }
+  if (filterCarId === DASHBOARD_FLEET_OTHER_CAR_ID) {
+    return ids.length === 0 && expense.category !== ExpenseCategory.TAX;
+  }
   return ids.includes(filterCarId);
 }
 
 function expenseCountedAmount(expense: Expense, filterCarId: string): number {
-  if (!filterCarId || filterCarId === DASHBOARD_FLEET_OTHER_CAR_ID) return expense.amount;
+  if (!filterCarId || isDashboardFleetBucket(filterCarId)) return expense.amount;
   return expenseAmountForSelection(expense.amount, linkedExpenseCarIds(expense), new Set([filterCarId]));
 }
 
@@ -189,6 +201,7 @@ export function buildDashboardByCar(
   cars: Car[],
   period: DashboardStatsPeriod,
   fleetOtherLabel: string,
+  fleetTaxLabel: string,
 ): ReportSummary["byCar"] {
   const incomeByCar = new Map<string, number>();
   let fleetOtherIncome = 0;
@@ -199,10 +212,12 @@ export function buildDashboardByCar(
 
   const expenseByCar = new Map<string, number>();
   let fleetOtherExpenses = 0;
+  let fleetTaxExpenses = 0;
   for (const e of filterDashboardExpenses(expenses, period, "")) {
     const ids = linkedExpenseCarIds(e);
     if (ids.length === 0) {
-      fleetOtherExpenses += e.amount;
+      if (e.category === ExpenseCategory.TAX) fleetTaxExpenses += e.amount;
+      else fleetOtherExpenses += e.amount;
       continue;
     }
     const shares = splitExpenseAmount(e.amount, ids.length);
@@ -237,6 +252,17 @@ export function buildDashboardByCar(
       income: otherIncome,
       expenses: otherExpenses,
       profit: round2(otherIncome - otherExpenses),
+    });
+  }
+
+  const taxExpenses = round2(fleetTaxExpenses);
+  if (taxExpenses > 0) {
+    rows.push({
+      carId: DASHBOARD_FLEET_TAX_CAR_ID,
+      label: fleetTaxLabel,
+      income: 0,
+      expenses: taxExpenses,
+      profit: round2(-taxExpenses),
     });
   }
 
