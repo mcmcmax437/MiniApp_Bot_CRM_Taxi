@@ -3,7 +3,12 @@ import { useNavigate } from "react-router-dom";
 import type { ReportSummary } from "@taxi/shared";
 import { formatMoney } from "../ui";
 import { Icon, type DashboardStatsPeriod } from "../crm";
-import { DASHBOARD_FLEET_OTHER_CAR_ID, isDashboardFleetBucket } from "../../utils/dashboardStats";
+import {
+  DASHBOARD_FLEET_OTHER_CAR_ID,
+  DASHBOARD_FLEET_TAX_CAR_ID,
+  isDashboardFleetBucket,
+  orderDashboardChartRows,
+} from "../../utils/dashboardStats";
 
 /**
  * A small, dependency-free bar chart that summarises fleet numbers on the
@@ -32,7 +37,7 @@ export function StatsChart(props: { rows: ReportSummary["byCar"]; period: Dashbo
       const params = new URLSearchParams({
         kind: "expenses",
         period: props.period,
-        carId: DASHBOARD_FLEET_OTHER_CAR_ID,
+        carId: row.carId,
       });
       navigate(`/stats?${params.toString()}`);
       return;
@@ -49,10 +54,9 @@ export function StatsChart(props: { rows: ReportSummary["byCar"]; period: Dashbo
     );
   }
 
-  // Sort by profit descending so the most successful car is at the top —
-  // this is what the owner typically wants to see first. Cars with no
-  // activity still show up because they're sorted by profit (0) too.
-  const sorted = [...rows].sort((a, b) => b.profit - a.profit);
+  // Cars stay ordered by profit. Taxes and other unassigned expenses stay
+  // after every car, even when their profit would sort them higher.
+  const sorted = orderDashboardChartRows(rows);
   const max = Math.max(
     1,
     ...sorted.map((r) => Math.max(r.income, r.expenses)),
@@ -74,7 +78,7 @@ export function StatsChart(props: { rows: ReportSummary["byCar"]; period: Dashbo
               aria-label={
                 row.carId === DASHBOARD_FLEET_OTHER_CAR_ID
                   ? t("dashboard.chartFleetOtherOpen")
-                  : isDashboardFleetBucket(row.carId)
+                  : row.carId === DASHBOARD_FLEET_TAX_CAR_ID
                     ? t("dashboard.chartFleetTaxOpen")
                     : t("dashboard.chartRowOpen", { label: row.label })
               }

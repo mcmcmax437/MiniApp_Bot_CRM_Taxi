@@ -111,10 +111,14 @@ export function StatBreakdownPage() {
   const title =
     kind === "income" ? t("dashboard.statBreakdownIncome") : t("dashboard.statBreakdownExpenses");
 
+  const expenseScope =
+    carId === DASHBOARD_FLEET_TAX_CAR_ID || carId === DASHBOARD_FLEET_OTHER_CAR_ID
+      ? null
+      : t("dashboard.statBreakdownExpensesIncludesTaxes");
   const subtitleParts = [
     periodSuffix,
     carLabel,
-    kind === "expenses" ? t("dashboard.statBreakdownExpensesIncludesTaxes") : null,
+    kind === "expenses" ? expenseScope : null,
   ].filter(Boolean);
 
   return (

@@ -243,6 +243,17 @@ export function buildDashboardByCar(
     })
     .sort((a, b) => b.profit - a.profit);
 
+  const taxExpenses = round2(fleetTaxExpenses);
+  if (taxExpenses > 0) {
+    rows.push({
+      carId: DASHBOARD_FLEET_TAX_CAR_ID,
+      label: fleetTaxLabel,
+      income: 0,
+      expenses: taxExpenses,
+      profit: round2(-taxExpenses),
+    });
+  }
+
   const otherIncome = round2(fleetOtherIncome);
   const otherExpenses = round2(fleetOtherExpenses);
   if (otherIncome > 0 || otherExpenses > 0) {
@@ -255,18 +266,17 @@ export function buildDashboardByCar(
     });
   }
 
-  const taxExpenses = round2(fleetTaxExpenses);
-  if (taxExpenses > 0) {
-    rows.push({
-      carId: DASHBOARD_FLEET_TAX_CAR_ID,
-      label: fleetTaxLabel,
-      income: 0,
-      expenses: taxExpenses,
-      profit: round2(-taxExpenses),
-    });
-  }
-
   return rows;
+}
+
+/** Cars stay sorted by profit. Unassigned taxes and other expenses stay last. */
+export function orderDashboardChartRows(rows: ReportSummary["byCar"]): ReportSummary["byCar"] {
+  const cars = rows
+    .filter((row) => !isDashboardFleetBucket(row.carId))
+    .sort((a, b) => b.profit - a.profit);
+  const tax = rows.find((row) => row.carId === DASHBOARD_FLEET_TAX_CAR_ID);
+  const other = rows.find((row) => row.carId === DASHBOARD_FLEET_OTHER_CAR_ID);
+  return [...cars, ...(tax ? [tax] : []), ...(other ? [other] : [])];
 }
 
 export type StatBreakdownKind = "income" | "expenses";
