@@ -206,6 +206,7 @@ export function Dashboard() {
         cars.data ?? [],
         statsPeriod,
         t("dashboard.chartFleetOther"),
+        t("dashboard.chartFleetTax"),
       ),
     [paymentsQuery.data, expensesQuery.data, cars.data, statsPeriod, t],
   );

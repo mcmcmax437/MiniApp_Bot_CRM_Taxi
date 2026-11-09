@@ -3,6 +3,8 @@ import { PaymentType } from "@taxi/shared";
 import { ExpenseCategory } from "@taxi/shared";
 import {
   DASHBOARD_FLEET_OTHER_CAR_ID,
+  DASHBOARD_FLEET_TAX_CAR_ID,
+  buildDashboardByCar,
   filterDashboardIncomePayments,
   isDashboardIncomePayment,
   matchesDashboardCar,
@@ -257,5 +259,42 @@ describe("sumExpensesByPayer", () => {
     ];
     expect(sumExpensesByPayer(shared, "all", "car-1").total).toBe(50);
     expect(sumExpensesByPayer(shared, "all", "").total).toBe(100);
+  });
+});
+
+describe("buildDashboardByCar", () => {
+  function expense(partial: Pick<Expense, "id" | "carId" | "category" | "amount">): Expense {
+    return {
+      date: "2001-01-10",
+      note: null,
+      tag: null,
+      paidByPartner: false,
+      partnerSettled: false,
+      paidByFather: false,
+      ...partial,
+    };
+  }
+
+  it("splits unassigned expenses into taxes and other", () => {
+    const rows = buildDashboardByCar(
+      [],
+      [
+        expense({ id: "tax", carId: null, category: ExpenseCategory.TAX, amount: 300 }),
+        expense({ id: "other", carId: null, category: ExpenseCategory.OTHER, amount: 80 }),
+        expense({ id: "car-tax", carId: "car-1", category: ExpenseCategory.TAX, amount: 40 }),
+      ],
+      [{ id: "car-1", plate: "AA1111", make: "Toyota", model: "Prius" } as never],
+      "all",
+      "Other",
+      "Taxes",
+    );
+
+    const other = rows.find((row) => row.carId === DASHBOARD_FLEET_OTHER_CAR_ID);
+    const tax = rows.find((row) => row.carId === DASHBOARD_FLEET_TAX_CAR_ID);
+    const car = rows.find((row) => row.carId === "car-1");
+    expect(other?.expenses).toBe(80);
+    expect(tax?.expenses).toBe(300);
+    expect(tax?.label).toBe("Taxes");
+    expect(car?.expenses).toBe(40);
   });
 });
