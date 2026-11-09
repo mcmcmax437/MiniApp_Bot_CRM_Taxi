@@ -5,6 +5,7 @@ import {
   DASHBOARD_FLEET_OTHER_CAR_ID,
   DASHBOARD_FLEET_TAX_CAR_ID,
   buildDashboardByCar,
+  orderDashboardChartRows,
   filterDashboardIncomePayments,
   isDashboardIncomePayment,
   matchesDashboardCar,
@@ -296,5 +297,49 @@ describe("buildDashboardByCar", () => {
     expect(tax?.expenses).toBe(300);
     expect(tax?.label).toBe("Taxes");
     expect(car?.expenses).toBe(40);
+    expect(rows.map((row) => row.carId)).toEqual([
+      "car-1",
+      DASHBOARD_FLEET_TAX_CAR_ID,
+      DASHBOARD_FLEET_OTHER_CAR_ID,
+    ]);
+  });
+
+  it("keeps taxes and other after every car even when a car loses more", () => {
+    const ordered = orderDashboardChartRows([
+      {
+        carId: DASHBOARD_FLEET_OTHER_CAR_ID,
+        label: "Other",
+        income: 500,
+        expenses: 0,
+        profit: 500,
+      },
+      {
+        carId: "car-loss",
+        label: "Loss",
+        income: 0,
+        expenses: 1000,
+        profit: -1000,
+      },
+      {
+        carId: DASHBOARD_FLEET_TAX_CAR_ID,
+        label: "Taxes",
+        income: 0,
+        expenses: 10,
+        profit: -10,
+      },
+      {
+        carId: "car-win",
+        label: "Win",
+        income: 20,
+        expenses: 0,
+        profit: 20,
+      },
+    ]);
+    expect(ordered.map((row) => row.carId)).toEqual([
+      "car-win",
+      "car-loss",
+      DASHBOARD_FLEET_TAX_CAR_ID,
+      DASHBOARD_FLEET_OTHER_CAR_ID,
+    ]);
   });
 });
