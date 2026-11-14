@@ -34,6 +34,19 @@ export function rankCarsForDriver(
   return { suggestedCarId: orderedCarIds[0] ?? null, orderedCarIds };
 }
 
+/**
+ * Picking a driver suggests that driver's car. Clearing the driver keeps
+ * the car already chosen, so income can be recorded against a car alone.
+ */
+export function carIdAfterDriverChange(
+  currentCarId: string,
+  nextDriverId: string,
+  suggestedCarId: string | null,
+): string {
+  if (!nextDriverId) return currentCarId;
+  return suggestedCarId ?? "";
+}
+
 export function agreementHintForCar(
   driverId: string,
   carId: string,

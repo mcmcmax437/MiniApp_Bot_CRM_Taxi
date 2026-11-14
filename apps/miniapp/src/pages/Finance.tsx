@@ -17,6 +17,7 @@ import {
 import {
   agreementHintForCar,
   agreementHintForDriver,
+  carIdAfterDriverChange,
   rankCarsForDriver,
   rankDriversForCar,
 } from "../driverCarSuggestions";
@@ -579,11 +580,11 @@ function PaymentsTab() {
                   const rawNote = (p.note ?? "").trim();
                   const driverName = p.driver?.fullName ?? "";
                   // If the note is long AND is what we're showing as the title,
-                  // truncate it; otherwise fall back to driver or "none".
+                  // truncate it; otherwise fall back to the driver, the car, or "none".
                   if (rawNote) {
                     return rawNote.length > 80 ? previewNote(rawNote, 80) : rawNote;
                   }
-                  return driverName || t("common.none");
+                  return driverName || p.car?.plate || t("common.none");
                 })()}
                 subtitle={paymentDisplaySubtitle(p, formatDate(p.date), t, t("common.none"))}
                 amount={formatMoney(p.amount)}
@@ -1371,7 +1372,7 @@ function PaymentModal(props: {
     setForm({
       ...form,
       driverId,
-      carId: suggestedCarId ?? "",
+      carId: carIdAfterDriverChange(form.carId, driverId, suggestedCarId),
     });
   }
 

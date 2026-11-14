@@ -55,13 +55,14 @@ export function paymentDisplayTitle(
     note?: string | null;
     type: PaymentType;
     driver?: { fullName: string } | null;
+    car?: { plate: string } | null;
   },
   t: Translate,
   noneLabel: string,
 ): string {
   const note = payment.note?.trim();
   if (note) return note;
-  return payment.driver?.fullName ?? noneLabel;
+  return payment.driver?.fullName ?? payment.car?.plate ?? noneLabel;
 }
 
 export function paymentDisplaySubtitle(
