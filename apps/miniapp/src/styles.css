@@ -2192,21 +2192,14 @@ button.crm-stat {
 }
 
 @media (max-width: 640px) {
-  /* On phones the title row stacks so the plate, the (optional)
-     attention mark, the edit pencil and the driver pill can never
-     overlap. Without this, the previous layout would squeeze the
-     action icons against the plate text on very narrow viewports. */
-  .crm-car-detail-head__title-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-  .crm-car-detail-head__title-row .crm-doc-detail-head__title {
-    flex: 1 1 auto;
-  }
-  .crm-car-detail-head__actions {
-    justify-content: flex-start;
-    width: 100%;
+  /* The header toolbar already lays out the badge and the actions side
+     by side. Stretching the actions to the full toolbar width here used
+     to push the icon-only edit pencil past the right edge of the phone
+     viewport, so the edit control disappeared while the Sell button
+     stayed visible. Keep the actions at their intrinsic width instead. */
+  .crm-car-detail-head__toolbar .crm-car-detail-head__actions {
+    width: auto;
+    justify-content: flex-end;
   }
 }
 
